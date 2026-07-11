@@ -69,10 +69,20 @@
           </div>
         </div>
 
-        <button class="btn btn-primary compare-btn" @click="runDiff" :disabled="!branchA || !branchB || loading">
-          <span v-if="loading">Comparing...</span>
-          <span v-else>🔍 Compare References</span>
-        </button>
+        <div class="diff-view-actions">
+          <div class="show-remote-toggle" style="margin-top: var(--spacing-sm); margin-bottom: var(--spacing-md); display: flex; align-items: center; justify-content: flex-end;">
+            <label class="checkbox-container select-none" style="font-size: 0.9rem;">
+              <input type="checkbox" v-model="showRemote" />
+              <span class="checkmark"></span>
+              Include Remote Branches
+            </label>
+          </div>
+  
+          <button class="btn btn-primary compare-btn" @click="runDiff" :disabled="!branchA || !branchB || loading">
+            <span v-if="loading">Comparing...</span>
+            <span v-else>🔍 Compare References</span>
+          </button>
+        </div>
       </section>
 
       <!-- Diff results area -->
@@ -141,17 +151,26 @@ const searchA = ref('');
 const searchB = ref('');
 const loading = ref(false);
 const diffResult = ref<ClientDiffResult | null>(null);
+const showRemote = ref(false);
 
 const filteredBranchesA = computed(() => {
+  let list = store.branches;
+  if (!showRemote.value) {
+    list = list.filter(b => b.classification.locality === 'local');
+  }
   const q = searchA.value.toLowerCase().trim();
-  if (!q) return store.branches;
-  return store.branches.filter(b => b.name.toLowerCase().includes(q));
+  if (!q) return list;
+  return list.filter(b => b.name.toLowerCase().includes(q));
 });
 
 const filteredBranchesB = computed(() => {
+  let list = store.branches;
+  if (!showRemote.value) {
+    list = list.filter(b => b.classification.locality === 'local');
+  }
   const q = searchB.value.toLowerCase().trim();
-  if (!q) return store.branches;
-  return store.branches.filter(b => b.name.toLowerCase().includes(q));
+  if (!q) return list;
+  return list.filter(b => b.name.toLowerCase().includes(q));
 });
 
 const swapBranches = () => {
@@ -340,6 +359,14 @@ onMounted(() => {
 
 .form-input:focus {
   border-color: var(--primary);
+}
+
+.diff-view-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: end;
+  gap: var(--spacing-xs);
 }
 
 .compare-btn {

@@ -79,6 +79,30 @@
             <span class="input-hint">Unmerged branches were detected in this repository.</span>
           </div>
 
+          <!-- Archive Destination Branch -->
+          <div class="filter-item" v-if="actionKind === 'archive'">
+            <label for="archive-target">Archive Destination Branch</label>
+            <input
+              id="archive-target"
+              type="text"
+              v-model="archiveTargetBranch"
+              class="form-input"
+              :disabled="isExecuting"
+              placeholder="main-legacy"
+            />
+            <span class="input-hint">Target branch where archived commits are stored.</span>
+          </div>
+
+          <!-- Archive Merge Strategy (Ours vs Theirs) -->
+          <div class="filter-item" v-if="actionKind === 'archive'">
+            <label for="archive-strategy">Git Merge Strategy</label>
+            <select id="archive-strategy" v-model="archiveStrategy" class="form-input" :disabled="isExecuting">
+              <option value="ours">Ours (Prefer Legacy Content)</option>
+              <option value="theirs">Theirs (Prefer Incoming Content)</option>
+            </select>
+            <span class="input-hint">Conflict resolution preference.</span>
+          </div>
+
           <button class="btn btn-primary w-100" @click="generatePlan" :disabled="isExecuting || loadingPlan">
             <span v-if="loadingPlan">Analyzing...</span>
             <span v-else>🔍 Generate Cleanup Plan</span>
@@ -274,6 +298,8 @@ const includeUnmerged = ref(false);
 
 // Archive Mode Merge Strategy
 const mergeStrategy = ref<'skip' | 'force' | 'merge-first'>('skip');
+const archiveTargetBranch = ref('main-legacy');
+const archiveStrategy = ref<'ours' | 'theirs'>('ours');
 
 const hasUnmergedBranches = computed(() => {
   return store.branches.some(b => b.classification.merge === 'unmerged');
@@ -386,7 +412,9 @@ const executePlan = async () => {
 
     const execOpts = {
       noBackup: noBackup.value,
-      confirmedToken: hasDestructiveActions.value ? confirmToken.value : undefined
+      confirmedToken: hasDestructiveActions.value ? confirmToken.value : undefined,
+      targetBranch: archiveTargetBranch.value.trim() || 'main-legacy',
+      strategy: archiveStrategy.value
     };
 
     let report: ClientRunReport;

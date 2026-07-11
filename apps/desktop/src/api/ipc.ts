@@ -97,6 +97,8 @@ export interface ClientPlan {
 export interface ClientExecOptions {
   noBackup: boolean;
   confirmedToken?: string;
+  targetBranch?: string;
+  strategy?: string;
 }
 
 export interface ClientRunReport {
@@ -603,6 +605,27 @@ export async function deleteBranches(repoId: string, plan: ClientPlan, exec: Cli
 
 export async function archiveBranches(repoId: string, plan: ClientPlan, exec: ClientExecOptions, taskId: string): Promise<ClientRunReport> {
   if (isMock) {
+    const target = exec.targetBranch || 'main-legacy';
+    if (mockBranches[repoId] && !mockBranches[repoId].some(b => b.name === target)) {
+      mockBranches[repoId].push({
+        name: target,
+        refPath: `refs/heads/${target}`,
+        tipSha: 'abc123000',
+        tipShort: 'abc1230',
+        authorName: 'Git Purge Archive',
+        committedAt: new Date().toISOString(),
+        ageDays: 0,
+        classification: {
+          locality: 'local',
+          freshness: 'active',
+          merge: 'unmerged',
+          protected: true,
+          naming: 'standard',
+          ahead: 0,
+          behind: 0
+        }
+      });
+    }
     return deleteBranches(repoId, plan, exec, taskId);
   }
   return invoke<ClientRunReport>('archive_branches', { repoId, plan, exec, taskId });
@@ -718,30 +741,47 @@ export async function historyGet(repoId: string): Promise<any> {
   return invoke<any>('history_get', { repoId });
 }
 
-export async function reportGenerate(repoId: string, format: string): Promise<any> {
+export async function reportGenerate(repoId: string, format: string, reportType?: string): Promise<any> {
   if (isMock) {
     const repo = mockRepos.find(r => r.id === repoId) || mockRepos[0];
     const dateStr = new Date().toLocaleString();
     let content = '';
-    if (format === 'json') {
-      content = JSON.stringify({
-        reportType: 'audit',
-        repoName: repo.name,
-        localPath: repo.localPath,
-        generatedAt: dateStr,
-        metrics: { total: repo.branchCount, stale: repo.stale, unmerged: repo.unmerged, protected: repo.protectedCount }
-      }, null, 2);
-    } else if (format === 'html') {
-      content = `<html><body><h1>Audit Report for ${repo.name}</h1><p>Generated at ${dateStr}</p></body></html>`;
+    
+    if (reportType === 'trend') {
+      if (format === 'json') {
+        content = JSON.stringify({
+          reportType: 'trend',
+          repoName: repo.name,
+          generatedAt: dateStr,
+          milestones: ['Stale branches reduced by 10% since baseline'],
+          history: mockHistory[repoId] || []
+        }, null, 2);
+      } else if (format === 'html') {
+        content = `<html><body><h1>Trend Report for ${repo.name}</h1><p>Generated at ${dateStr}</p></body></html>`;
+      } else {
+        content = `### 🔄 Compare against Previous Run\nComparing current state to run on **Fri Jul 10 15:02:26 2026 +0300**:\n\n| Metric | Old Value | New Value | Absolute Change | Change Ratio (%) |\n| :--- | :---: | :---: | :---: | :---: |\n| **Total Branches** | ${repo.branchCount + 2} | ${repo.branchCount} | **-2** | **-25.0%** |\n| **Stale Branches** | ${repo.stale + 1} | ${repo.stale} | **-1** | **-33.3%** |\n\n> [!TIP]\n> **Cleanup Milestone**: Stale branches have been reduced by **1** branch since the baseline run!\n\n### 📜 Run History Log\n| Run Date | Total | Active | Stale | Merged | Unmerged |\n| :--- | :---: | :---: | :---: | :---: | :---: |\n| ${dateStr} | ${repo.branchCount} | ${repo.branchCount - repo.stale} | ${repo.stale} | ${repo.branchCount - repo.unmerged} | ${repo.unmerged} |`;
+      }
     } else {
-      content = `# Audit Report for ${repo.name}\n\nGenerated at ${dateStr}\n\n- **Total Branches:** ${repo.branchCount}\n- **Stale Branches:** ${repo.stale}\n- **Unmerged Branches:** ${repo.unmerged}`;
+      if (format === 'json') {
+        content = JSON.stringify({
+          reportType: 'audit',
+          repoName: repo.name,
+          localPath: repo.localPath,
+          generatedAt: dateStr,
+          metrics: { total: repo.branchCount, stale: repo.stale, unmerged: repo.unmerged, protected: repo.protectedCount }
+        }, null, 2);
+      } else if (format === 'html') {
+        content = `<html><body><h1>Audit Report for ${repo.name}</h1><p>Generated at ${dateStr}</p></body></html>`;
+      } else {
+        content = `# Audit Report for ${repo.name}\n\nGenerated at ${dateStr}\n\n- **Total Branches:** ${repo.branchCount}\n- **Stale Branches:** ${repo.stale}\n- **Unmerged Branches:** ${repo.unmerged}`;
+      }
     }
     return Promise.resolve({
       content,
       generatedAt: new Date().toISOString()
     });
   }
-  return invoke<any>('report_generate', { repoId, format });
+  return invoke<any>('report_generate', { repoId, format, reportType });
 }
 
 export async function authAdd(credential: any): Promise<any> {

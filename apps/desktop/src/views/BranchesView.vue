@@ -239,13 +239,31 @@
     <div v-if="showReportModal" class="modal-overlay" @click.self="showReportModal = false">
       <div class="modal-card card report-modal-card">
         <header class="modal-header">
-          <h3>Audit Report (MARKDOWN)</h3>
+          <h3>Standardized Reports</h3>
           <button class="close-btn" @click="showReportModal = false">✕</button>
         </header>
+
+        <div class="report-tabs">
+          <button 
+            class="report-tab-btn" 
+            :class="{ active: selectedReportType === 'audit' }" 
+            @click="selectedReportType = 'audit'"
+          >
+            📋 Branch Audit
+          </button>
+          <button 
+            class="report-tab-btn" 
+            :class="{ active: selectedReportType === 'trend' }" 
+            @click="selectedReportType = 'trend'"
+          >
+            📈 Cleanup Trend
+          </button>
+        </div>
+
         <main class="modal-body">
           <div v-if="generatingReport" class="loading-state">
             <span class="spinner"></span>
-            <p>Generating standardized audit report...</p>
+            <p>Generating standardized {{ selectedReportType }} report...</p>
           </div>
           <pre v-else class="report-preview"><code>{{ reportContent }}</code></pre>
         </main>
@@ -322,10 +340,11 @@ const formattedLatestSnapshotDate = computed(() => {
 const showReportModal = ref(false);
 const generatingReport = ref(false);
 const reportContent = ref('');
+const selectedReportType = ref<'audit' | 'trend'>('audit');
 
 // Filter and Sort inputs
 const searchQuery = ref('');
-const filterLocality = ref('all');
+const filterLocality = ref('local');
 const filterFreshness = ref('all');
 const filterMerge = ref('all');
 const filterProtection = ref('all');
@@ -365,11 +384,15 @@ const triggerScan = async () => {
 const openReportModal = async () => {
   if (!store.activeRepoId) return;
   showReportModal.value = true;
+  await fetchReport();
+};
+
+const fetchReport = async () => {
+  if (!store.activeRepoId) return;
   generatingReport.value = true;
   reportContent.value = '';
-  
   try {
-    const res = await reportGenerate(store.activeRepoId, 'markdown');
+    const res = await reportGenerate(store.activeRepoId, 'markdown', selectedReportType.value);
     reportContent.value = res.content;
   } catch (err: any) {
     alert('Failed to generate report: ' + err.message);
@@ -378,6 +401,12 @@ const openReportModal = async () => {
     generatingReport.value = false;
   }
 };
+
+watch(selectedReportType, () => {
+  if (showReportModal.value) {
+    fetchReport();
+  }
+});
 
 const copyReportToClipboard = async () => {
   try {
@@ -394,9 +423,21 @@ const downloadReportFile = () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `git-purge-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.md`;
+  a.download = `git-purge-${selectedReportType.value}-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.md`;
   a.click();
   URL.revokeObjectURL(url);
+};
+
+// Hash sum based duplication check for snapshots
+const computeBranchesHash = async (branches: { name: string; tipSha: string }[]): Promise<string> => {
+  // Sort branches by name to ensure deterministic representation
+  const sorted = [...branches].sort((a, b) => a.name.localeCompare(b.name));
+  const representation = sorted.map(b => `${b.name.replace(/^origin\//, '')}:${b.tipSha}`).join(';');
+  const encoder = new TextEncoder();
+  const data = encoder.encode(representation);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
 // Snapshot Backup Methods
@@ -412,22 +453,20 @@ const triggerBackupSnapshot = async () => {
       
       const details = await backupShow(latest.id);
       if (details && details.refs) {
-        const currentBranches = store.branches;
-        let isDuplicate = true;
+        // Filter current branches to local only for comparison with local-only snapshots
+        const currentLocal = store.branches.filter(b => b.classification.locality === 'local');
         
-        if (currentBranches.length !== details.refs.length) {
-          isDuplicate = false;
-        } else {
-          for (const branch of currentBranches) {
-            const matchedRef = details.refs.find(r => r.branch === branch.name);
-            if (!matchedRef || matchedRef.tipSha !== branch.tipSha) {
-              isDuplicate = false;
-              break;
-            }
-          }
-        }
+        const currentHash = await computeBranchesHash(currentLocal.map(b => ({
+          name: b.name,
+          tipSha: b.tipSha
+        })));
         
-        if (isDuplicate) {
+        const snapshotHash = await computeBranchesHash(details.refs.map(r => ({
+          name: r.branch,
+          tipSha: r.tipSha
+        })));
+        
+        if (currentHash === snapshotHash) {
           latestSnapshotId.value = latest.id;
           latestSnapshotDate.value = latest.createdAt;
           showDuplicateWarning.value = true;
@@ -1125,5 +1164,35 @@ watch(() => store.activeRepoId, (newId) => {
 .warning-alert-text {
   color: var(--danger);
   font-weight: 500;
+}
+
+.report-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  border-bottom: 1px solid var(--border);
+  margin-top: calc(-1 * var(--spacing-xs));
+  margin-bottom: var(--spacing-sm);
+}
+
+.report-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.report-tab-btn:hover {
+  color: var(--on-surface-strong);
+}
+
+.report-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
 }
 </style>

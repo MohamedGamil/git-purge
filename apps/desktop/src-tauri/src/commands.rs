@@ -124,6 +124,8 @@ pub struct ClientPlan {
 pub struct ClientExecOptions {
     pub no_backup: bool,
     pub confirmed_token: Option<String>,
+    pub target_branch: Option<String>,
+    pub strategy: Option<String>,
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -473,16 +475,33 @@ pub fn map_scan_result(scan_res: ScanResult) -> ClientScanResult {
     let branches = scan_res
         .classifications
         .into_iter()
-        .map(|c| Branch {
-            name: c.branch.0.clone(),
-            ref_path: format!("refs/heads/{}", c.branch.0),
-            tip_sha: c.tip.oid.0.clone(),
-            tip_short: c.tip.short.clone(),
-            author_name: c.tip.author.name.clone(),
-            committed_at: format_datetime(c.tip.commit_date),
-            age_days: c.age.as_secs() / 86400,
-            upstream: c.branch.0.clone().into(),
-            classification: map_classification(&c),
+        .map(|c| {
+            let is_remote = c.scope == gitpurge_core::model::BranchScope::Remote;
+            let display_name = if is_remote {
+                format!("origin/{}", c.branch.0)
+            } else {
+                c.branch.0.clone()
+            };
+            let ref_path = if is_remote {
+                format!("refs/remotes/origin/{}", c.branch.0)
+            } else {
+                format!("refs/heads/{}", c.branch.0)
+            };
+            Branch {
+                name: display_name,
+                ref_path,
+                tip_sha: c.tip.oid.0.clone(),
+                tip_short: c.tip.short.clone(),
+                author_name: c.tip.author.name.clone(),
+                committed_at: format_datetime(c.tip.commit_date),
+                age_days: c.age.as_secs() / 86400,
+                upstream: if is_remote {
+                    None
+                } else {
+                    Some(format!("origin/{}", c.branch.0))
+                },
+                classification: map_classification(&c),
+            }
         })
         .collect();
 
@@ -497,17 +516,24 @@ pub fn map_plan(core_plan: Plan) -> ClientPlan {
     let actions = core_plan
         .actions
         .into_iter()
-        .map(|a| ClientPlannedAction {
-            ref_name: a.branch.0.clone(),
-            action: match a.kind {
-                gitpurge_core::model::ActionKind::Delete => "delete",
-                gitpurge_core::model::ActionKind::Archive => "archive",
-                _ => "delete",
+        .map(|a| {
+            let ref_name = if a.scope == gitpurge_core::model::BranchScope::Remote {
+                format!("origin/{}", a.branch.0)
+            } else {
+                a.branch.0.clone()
+            };
+            ClientPlannedAction {
+                ref_name,
+                action: match a.kind {
+                    gitpurge_core::model::ActionKind::Delete => "delete",
+                    gitpurge_core::model::ActionKind::Archive => "archive",
+                    _ => "delete",
+                }
+                .to_string(),
+                reason: a.reason,
+                classification: map_classification(&a.classification),
+                destructive: a.classification.merge_state == gitpurge_core::model::MergeState::Unmerged,
             }
-            .to_string(),
-            reason: a.reason,
-            classification: map_classification(&a.classification),
-            destructive: a.classification.merge_state == gitpurge_core::model::MergeState::Unmerged,
         })
         .collect();
 
@@ -526,19 +552,36 @@ pub fn map_run_report(core_report: RunReport) -> ClientRunReport {
         .map(|r| {
             let (ref_name, outcome, error) = match r {
                 ActionResult::Success { action, .. } => {
-                    (action.branch.0.clone(), "done".to_string(), None)
+                    let name = if action.scope == gitpurge_core::model::BranchScope::Remote {
+                        format!("origin/{}", action.branch.0)
+                    } else {
+                        action.branch.0.clone()
+                    };
+                    (name, "done".to_string(), None)
                 }
-                ActionResult::Failed { action, error } => (
-                    action.branch.0.clone(),
-                    "failed".to_string(),
-                    Some(SerializableError {
-                        code: "GIT_ERROR".to_string(),
-                        message: error.clone(),
-                        hint: None,
-                    }),
-                ),
+                ActionResult::Failed { action, error } => {
+                    let name = if action.scope == gitpurge_core::model::BranchScope::Remote {
+                        format!("origin/{}", action.branch.0)
+                    } else {
+                        action.branch.0.clone()
+                    };
+                    (
+                        name,
+                        "failed".to_string(),
+                        Some(SerializableError {
+                            code: "GIT_ERROR".to_string(),
+                            message: error.clone(),
+                            hint: None,
+                        }),
+                    )
+                }
                 ActionResult::Skipped { action } => {
-                    (action.branch.0.clone(), "skipped".to_string(), None)
+                    let name = if action.scope == gitpurge_core::model::BranchScope::Remote {
+                        format!("origin/{}", action.branch.0)
+                    } else {
+                        action.branch.0.clone()
+                    };
+                    (name, "skipped".to_string(), None)
                 }
             };
             RefOutcome {
@@ -637,15 +680,54 @@ pub fn map_restore_outcome(outcome: gitpurge_core::model::RestoreOutcome) -> Cli
     }
 }
 
+pub fn unescape_git_path(path: &str) -> String {
+    let mut bytes = Vec::new();
+    let mut s = path;
+    if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
+        s = &s[1..s.len() - 1];
+    }
+    
+    let chars: Vec<char> = s.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '\\' && i + 1 < chars.len() {
+            let next = chars[i + 1];
+            if next.is_digit(8) && i + 3 < chars.len() && chars[i + 2].is_digit(8) && chars[i + 3].is_digit(8) {
+                let octal_str: String = chars[i + 1..=i + 3].iter().collect();
+                if let Ok(byte_val) = u8::from_str_radix(&octal_str, 8) {
+                    bytes.push(byte_val);
+                    i += 4;
+                    continue;
+                }
+            }
+            
+            match next {
+                'n' => bytes.push(b'\n'),
+                'r' => bytes.push(b'\r'),
+                't' => bytes.push(b'\t'),
+                '\\' => bytes.push(b'\\'),
+                '"' => bytes.push(b'"'),
+                _ => bytes.extend_from_slice(chars[i].to_string().as_bytes()),
+            }
+            i += 2;
+        } else {
+            bytes.extend_from_slice(chars[i].to_string().as_bytes());
+            i += 1;
+        }
+    }
+    
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
 pub fn map_diff_result(
     repo_id: &str,
     core_res: gitpurge_core::diff::DiffResult,
 ) -> ClientDiffResult {
-    let files = core_res
+    let mut files: Vec<DiffFile> = core_res
         .entries
         .into_iter()
         .map(|e| DiffFile {
-            path: e.path,
+            path: unescape_git_path(&e.path),
             status: match e.kind {
                 gitpurge_core::diff::DiffKind::Added => "added",
                 gitpurge_core::diff::DiffKind::Deleted => "deleted",
@@ -658,6 +740,8 @@ pub fn map_diff_result(
             removed: e.deletions as usize,
         })
         .collect();
+
+    files.sort_by(|a, b| a.path.to_lowercase().cmp(&b.path.to_lowercase()));
 
     ClientDiffResult {
         a: ClientRefSpec {
@@ -894,15 +978,15 @@ pub async fn scan(
         );
 
         let scope = if options.include_remote.unwrap_or(true) {
-            BranchScope::Remote
+            None
         } else {
-            BranchScope::Local
+            Some(BranchScope::Local)
         };
 
         let core_opts = ScanOptions {
             age_override: options.age,
             excludes: Vec::new(),
-            scope: Some(scope),
+            scope,
             include_all: false,
         };
 
@@ -1337,13 +1421,19 @@ pub async fn delete_branches(
                     _ => gitpurge_core::model::MergeState::Unmerged,
                 };
 
+                let branch_name = if scope == BranchScope::Remote {
+                    a.ref_name.strip_prefix("origin/").unwrap_or(&a.ref_name).to_string()
+                } else {
+                    a.ref_name.clone()
+                };
+
                 gitpurge_core::model::Action {
                     kind,
-                    branch: BranchName(a.ref_name.clone()),
+                    branch: BranchName(branch_name.clone()),
                     scope,
                     remote,
                     classification: gitpurge_core::model::Classification {
-                        branch: BranchName(a.ref_name.clone()),
+                        branch: BranchName(branch_name),
                         scope,
                         merge_state,
                         activity: gitpurge_core::model::Activity::Active,
@@ -1471,11 +1561,56 @@ pub async fn archive_branches(
     app: AppHandle,
     state: State<'_, AppState>,
     repo_id: String,
-    plan: ClientPlan,
+    mut plan: ClientPlan,
     exec: ClientExecOptions,
     task_id: String,
 ) -> Result<ClientRunReport, SerializableError> {
-    // Thinly route to delete_branches as they share the engine.execute route
+    let engine = state.engine.clone();
+
+    // 1. Resolve target branch
+    let target = exec.target_branch.clone().unwrap_or_else(|| "main-legacy".to_string());
+
+    // 2. Resolve merge strategy
+    let strategy = match exec.strategy.as_deref() {
+        Some("theirs") => gitpurge_core::action::ArchiveStrategy::Theirs,
+        _ => gitpurge_core::action::ArchiveStrategy::Ours,
+    };
+
+    // 3. Resolve list of branches to archive (local only)
+    let branches_to_archive: Vec<gitpurge_core::model::BranchName> = plan
+        .actions
+        .iter()
+        .filter(|a| a.action == "archive" && a.classification.locality == "local")
+        .map(|a| gitpurge_core::model::BranchName(a.ref_name.clone()))
+        .collect();
+
+    if !branches_to_archive.is_empty() {
+        emit_progress(
+            &app,
+            &task_id,
+            "archive",
+            &format!("Merging {} branches into '{}'...", branches_to_archive.len(), target),
+            20,
+            100,
+            false,
+            None,
+        );
+
+        let repo_id_core = gitpurge_core::model::RepoId(repo_id.clone());
+
+        // Run core archiving to merge them
+        engine.archive(&repo_id_core, &branches_to_archive, &target, strategy, true)
+            .map_err(map_error)?;
+    }
+
+    // 4. Change action to "delete" for these actions in the plan, so delete_branches deletes them
+    for a in &mut plan.actions {
+        if a.action == "archive" {
+            a.action = "delete".to_string();
+        }
+    }
+
+    // 5. Delegate to delete_branches to create the safety backup, delete them from git, and return the report
     delete_branches(app, state, repo_id, plan, exec, task_id).await
 }
 
@@ -1549,6 +1684,7 @@ pub async fn report_generate(
     state: State<'_, AppState>,
     repo_id: String,
     format: String,
+    report_type: Option<String>,
 ) -> Result<serde_json::Value, SerializableError> {
     let engine = &state.engine;
     let fmt = match format.as_str() {
@@ -1556,11 +1692,16 @@ pub async fn report_generate(
         "html" => gitpurge_core::report::ReportFormat::Html,
         _ => gitpurge_core::report::ReportFormat::Markdown,
     };
+    
+    let rep_type = match report_type.as_deref() {
+        Some("trend") => gitpurge_core::report::ReportType::Trend,
+        _ => gitpurge_core::report::ReportType::Audit,
+    };
 
     let report = engine
         .report(
             &RepoId(repo_id),
-            gitpurge_core::report::ReportType::Audit,
+            rep_type,
             fmt,
         )
         .map_err(map_error)?;
