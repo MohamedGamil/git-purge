@@ -81,3 +81,36 @@ pub struct BackupOptions {
     /// Restrict capture to these branches; empty ⇒ capture all eligible refs.
     pub only_branches: Vec<BranchName>,
 }
+
+/// Retention policy for snapshots (docs/08 §6).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RetentionPolicy {
+    /// Keep the N newest snapshots.
+    pub keep_last: Option<usize>,
+    /// Keep snapshots newer than a cutoff duration.
+    pub keep_within: Option<std::time::Duration>,
+    /// Triggers that should always be kept.
+    pub keep_triggers: Vec<SnapshotTrigger>,
+    /// Absolute floor of snapshots to keep to prevent emptying the store.
+    pub min_keep: usize,
+}
+
+impl Default for RetentionPolicy {
+    fn default() -> Self {
+        Self {
+            keep_last: Some(10),
+            keep_within: None,
+            keep_triggers: Vec::new(),
+            min_keep: 1,
+        }
+    }
+}
+
+/// The outcome of a snapshot prune operation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PruneReport {
+    /// The IDs of snapshots that were deleted.
+    pub pruned_snapshots: Vec<SnapshotId>,
+    /// Estimated disk space reclaimed (bytes).
+    pub space_reclaimed_bytes: u64,
+}

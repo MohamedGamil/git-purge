@@ -1,6 +1,6 @@
 # P2 — Task Cards
 
-> Phase: **2 — Backup & restore** · Status: **Not started** · Est: 10 ED
+> Phase: **2 — Backup & restore** · Status: **Complete** · Est: 10 ED
 > Depends on: P1
 
 ---

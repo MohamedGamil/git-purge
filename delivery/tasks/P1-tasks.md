@@ -1,11 +1,11 @@
 # P1 — Task Cards
 
-> Phase: **1 — Core read engine** · Status: **Not started** · Est: 12 ED
+> Phase: **1 — Core read engine** · Status: **Complete** · Est: 12 ED
 > Depends on: P0
 
 ---
 
-## P1-T1 · gix read adapter
+## P1-T1 · gix read adapter ✅ 2026-07-11
 
 **Goal:** Implement the gix (gitoxide) adapter for `GitBackend` — ref enumeration,
 commit/date/author metadata, object lookup, tree/blob reads. Pure-Rust, no C deps.
@@ -19,7 +19,7 @@ commit/date/author metadata, object lookup, tree/blob reads. Pure-Rust, no C dep
 
 ---
 
-## P1-T2 · git2 write adapter
+## P1-T2 · git2 write adapter ✅ 2026-07-11
 
 **Goal:** Implement the git2 (libgit2) adapter for write operations: push delete, remote
 interaction, credential callbacks. Fallback for paths gix doesn't yet cover.
@@ -33,7 +33,7 @@ credential callback exercises SSH key and HTTPS token paths.
 
 ---
 
-## P1-T3 · Composite GitBackend (hybrid routing)
+## P1-T3 · Composite GitBackend (hybrid routing) ✅ 2026-07-11
 
 **Goal:** Wire gix + git2 into a composite `GitBackend` that routes each method to the
 appropriate implementation per ADR-0002 capability table.
@@ -47,7 +47,7 @@ backend and proves the trait surface stays stable (R6 proof).
 
 ---
 
-## P1-T4 · Classification pipeline
+## P1-T4 · Classification pipeline ✅ 2026-07-11
 
 **Goal:** Port and generalize `generate_reports.py`'s classification logic into a
 policy-driven engine. Compute facets: merged/unmerged, stale/active (age), protected,
@@ -62,7 +62,7 @@ for each branch; `SAFE-02` (protected branches never classified as deletable) pr
 
 ---
 
-## P1-T5 · Policy engine
+## P1-T5 · Policy engine ✅ 2026-07-11
 
 **Goal:** `PolicyEngine` evaluates classification results against the loaded policy config.
 Resolves protection (well-known + user globs), staleness threshold, naming patterns.
@@ -76,7 +76,7 @@ hold under all configurations.
 
 ---
 
-## P1-T6 · Filter, sort, diff, show
+## P1-T6 · Filter, sort, diff, show ✅ 2026-07-11
 
 **Goal:** `RefFilter`/`SortOrder` applied to classified branch lists; `diff(a, b)` returns
 file-level diff stats; `show_tree`/file-at-commit returns blob content.
@@ -90,7 +90,7 @@ golden; `show` returns correct blob at arbitrary SHA.
 
 ---
 
-## P1-T7 · Engine wiring + scan/plan tests
+## P1-T7 · Engine wiring + scan/plan tests ✅ 2026-07-11
 
 **Goal:** Wire `Engine::scan`, `Engine::plan` (dry-run only), `Engine::diff`, `Engine::show_tree`.
 Comprehensive test suite on fixture repos.

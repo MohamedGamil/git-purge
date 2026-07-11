@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::model::{RepoId, RunReport};
+use crate::model::{RepoId, RunReport, Snapshot, SnapshotId};
 
 /// A single data point in the trend history.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -50,12 +50,33 @@ pub trait HistoryStore: Send + Sync + std::fmt::Debug {
 
     /// Fetch the most recent N entries.
     fn get_recent(&self, repo: &RepoId, limit: usize) -> Result<Vec<TrendEntry>>;
+
+    /// Save snapshot metadata.
+    fn save_snapshot(&self, snapshot: &Snapshot) -> Result<()>;
+
+    /// List all snapshots for a repo, newest first.
+    fn list_snapshots(&self, repo: &RepoId) -> Result<Vec<Snapshot>>;
+
+    /// Get snapshot details by ID.
+    fn get_snapshot(&self, id: &SnapshotId) -> Result<Option<Snapshot>>;
+
+    /// Delete snapshot metadata.
+    fn delete_snapshot(&self, id: &SnapshotId) -> Result<()>;
 }
 
 /// In-memory fake for tests.
 #[derive(Debug, Default)]
 pub struct FakeHistoryStore {
-    // TODO(P5): add fields for canned history data.
+    snapshots: std::sync::Mutex<std::collections::HashMap<SnapshotId, Snapshot>>,
+}
+
+impl FakeHistoryStore {
+    /// Create a new empty FakeHistoryStore.
+    pub fn new() -> Self {
+        Self {
+            snapshots: std::sync::Mutex::new(std::collections::HashMap::new()),
+        }
+    }
 }
 
 impl HistoryStore for FakeHistoryStore {
@@ -72,5 +93,32 @@ impl HistoryStore for FakeHistoryStore {
 
     fn get_recent(&self, _repo: &RepoId, _limit: usize) -> Result<Vec<TrendEntry>> {
         Ok(Vec::new())
+    }
+
+    fn save_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
+        let mut snaps = self.snapshots.lock().unwrap();
+        snaps.insert(snapshot.id.clone(), snapshot.clone());
+        Ok(())
+    }
+
+    fn list_snapshots(&self, repo: &RepoId) -> Result<Vec<Snapshot>> {
+        let snaps = self.snapshots.lock().unwrap();
+        let mut result: Vec<Snapshot> = snaps.values()
+            .filter(|s| s.repo == *repo)
+            .cloned()
+            .collect();
+        result.sort_by_key(|b| std::cmp::Reverse(b.created_at));
+        Ok(result)
+    }
+
+    fn get_snapshot(&self, id: &SnapshotId) -> Result<Option<Snapshot>> {
+        let snaps = self.snapshots.lock().unwrap();
+        Ok(snaps.get(id).cloned())
+    }
+
+    fn delete_snapshot(&self, id: &SnapshotId) -> Result<()> {
+        let mut snaps = self.snapshots.lock().unwrap();
+        snaps.remove(id);
+        Ok(())
     }
 }
