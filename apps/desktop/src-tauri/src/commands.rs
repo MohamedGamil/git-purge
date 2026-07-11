@@ -532,7 +532,8 @@ pub fn map_plan(core_plan: Plan) -> ClientPlan {
                 .to_string(),
                 reason: a.reason,
                 classification: map_classification(&a.classification),
-                destructive: a.classification.merge_state == gitpurge_core::model::MergeState::Unmerged,
+                destructive: a.classification.merge_state
+                    == gitpurge_core::model::MergeState::Unmerged,
             }
         })
         .collect();
@@ -686,13 +687,17 @@ pub fn unescape_git_path(path: &str) -> String {
     if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
         s = &s[1..s.len() - 1];
     }
-    
+
     let chars: Vec<char> = s.chars().collect();
     let mut i = 0;
     while i < chars.len() {
         if chars[i] == '\\' && i + 1 < chars.len() {
             let next = chars[i + 1];
-            if next.is_digit(8) && i + 3 < chars.len() && chars[i + 2].is_digit(8) && chars[i + 3].is_digit(8) {
+            if next.is_digit(8)
+                && i + 3 < chars.len()
+                && chars[i + 2].is_digit(8)
+                && chars[i + 3].is_digit(8)
+            {
                 let octal_str: String = chars[i + 1..=i + 3].iter().collect();
                 if let Ok(byte_val) = u8::from_str_radix(&octal_str, 8) {
                     bytes.push(byte_val);
@@ -700,7 +705,7 @@ pub fn unescape_git_path(path: &str) -> String {
                     continue;
                 }
             }
-            
+
             match next {
                 'n' => bytes.push(b'\n'),
                 'r' => bytes.push(b'\r'),
@@ -715,7 +720,7 @@ pub fn unescape_git_path(path: &str) -> String {
             i += 1;
         }
     }
-    
+
     String::from_utf8_lossy(&bytes).into_owned()
 }
 
@@ -1422,7 +1427,10 @@ pub async fn delete_branches(
                 };
 
                 let branch_name = if scope == BranchScope::Remote {
-                    a.ref_name.strip_prefix("origin/").unwrap_or(&a.ref_name).to_string()
+                    a.ref_name
+                        .strip_prefix("origin/")
+                        .unwrap_or(&a.ref_name)
+                        .to_string()
                 } else {
                     a.ref_name.clone()
                 };
@@ -1568,7 +1576,10 @@ pub async fn archive_branches(
     let engine = state.engine.clone();
 
     // 1. Resolve target branch
-    let target = exec.target_branch.clone().unwrap_or_else(|| "main-legacy".to_string());
+    let target = exec
+        .target_branch
+        .clone()
+        .unwrap_or_else(|| "main-legacy".to_string());
 
     // 2. Resolve merge strategy
     let strategy = match exec.strategy.as_deref() {
@@ -1589,7 +1600,11 @@ pub async fn archive_branches(
             &app,
             &task_id,
             "archive",
-            &format!("Merging {} branches into '{}'...", branches_to_archive.len(), target),
+            &format!(
+                "Merging {} branches into '{}'...",
+                branches_to_archive.len(),
+                target
+            ),
             20,
             100,
             false,
@@ -1599,7 +1614,8 @@ pub async fn archive_branches(
         let repo_id_core = gitpurge_core::model::RepoId(repo_id.clone());
 
         // Run core archiving to merge them
-        engine.archive(&repo_id_core, &branches_to_archive, &target, strategy, true)
+        engine
+            .archive(&repo_id_core, &branches_to_archive, &target, strategy, true)
             .map_err(map_error)?;
     }
 
@@ -1692,18 +1708,14 @@ pub async fn report_generate(
         "html" => gitpurge_core::report::ReportFormat::Html,
         _ => gitpurge_core::report::ReportFormat::Markdown,
     };
-    
+
     let rep_type = match report_type.as_deref() {
         Some("trend") => gitpurge_core::report::ReportType::Trend,
         _ => gitpurge_core::report::ReportType::Audit,
     };
 
     let report = engine
-        .report(
-            &RepoId(repo_id),
-            rep_type,
-            fmt,
-        )
+        .report(&RepoId(repo_id), rep_type, fmt)
         .map_err(map_error)?;
 
     Ok(serde_json::json!({

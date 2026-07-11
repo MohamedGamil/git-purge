@@ -438,19 +438,10 @@ impl HistoryStore for SqliteHistoryStore {
 
         let mut result = Vec::new();
         for r in rows {
-            let (id, created_at, trigger, verified) =
+            let (id, _created_at, _trigger, verified) =
                 r.map_err(|e| crate::GitPurgeError::Config(format!("Row error: {}", e)))?;
-            let snapshot = self
-                .load_snapshot_from_mirror(repo, &id)
-                .unwrap_or_else(|_| Snapshot {
-                    id: id.clone(),
-                    repo: repo.clone(),
-                    created_at,
-                    trigger,
-                    refs: Vec::new(),
-                    verified,
-                    manifest_path: self.resolve_mirror_path(repo).join("snapshot.json"),
-                });
+            let mut snapshot = self.load_snapshot_from_mirror(repo, &id)?;
+            snapshot.verified = verified;
             result.push(snapshot);
         }
 
@@ -488,18 +479,9 @@ impl HistoryStore for SqliteHistoryStore {
                 crate::GitPurgeError::Config(format!("Failed to get snapshot details: {}", e))
             })?;
 
-        if let Some((repo_id, created_at, trigger, verified)) = row_opt {
-            let snapshot = self
-                .load_snapshot_from_mirror(&repo_id, id)
-                .unwrap_or_else(|_| Snapshot {
-                    id: id.clone(),
-                    repo: repo_id.clone(),
-                    created_at,
-                    trigger,
-                    refs: Vec::new(),
-                    verified,
-                    manifest_path: self.resolve_mirror_path(&repo_id).join("snapshot.json"),
-                });
+        if let Some((repo_id, _created_at, _trigger, verified)) = row_opt {
+            let mut snapshot = self.load_snapshot_from_mirror(&repo_id, id)?;
+            snapshot.verified = verified;
             Ok(Some(snapshot))
         } else {
             Ok(None)
@@ -513,5 +495,132 @@ impl HistoryStore for SqliteHistoryStore {
                 crate::GitPurgeError::Config(format!("Failed to delete snapshot row: {}", e))
             })?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{
+        BranchName, MergeState, Oid, RepoId, Snapshot, SnapshotId, SnapshotRef, SnapshotTrigger,
+    };
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_sqlite_history_store_snapshot_flow() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("history.db");
+        let backups_root = temp_dir.path().join("backups");
+        fs::create_dir_all(&backups_root).unwrap();
+
+        let store = SqliteHistoryStore::new(&db_path, backups_root.clone()).unwrap();
+
+        let repo_id = RepoId("test-repo".to_string());
+        let repo = Repository {
+            id: repo_id.clone(),
+            display_name: "Test Repo".to_string(),
+            local_path: Some(PathBuf::from("/dummy/path")),
+            remote_url: None,
+            default_branch: None,
+            provider: crate::model::ProviderHint::Unknown,
+            added_at: time::OffsetDateTime::now_utc(),
+            last_scanned_at: None,
+        };
+
+        // 1. Save repo first (foreign key constraint)
+        store.save_repo(&repo).unwrap();
+
+        let snapshot_id = SnapshotId("01J8ZK9Q2F3M4N5P6R7S8T9V0W".to_string());
+        let created_at = time::OffsetDateTime::now_utc();
+        let manifest_path = store
+            .resolve_mirror_path(&repo_id)
+            .join(format!("{}.json", snapshot_id.0));
+
+        let snapshot_ref = SnapshotRef {
+            branch: BranchName("main".to_string()),
+            original_full_ref: "refs/heads/main".to_string(),
+            backup_ref: format!("refs/gitpurge/backups/{}/refs/heads/main", snapshot_id.0),
+            tip: Oid("1234567890abcdef1234567890abcdef12345678".to_string()),
+            commit_count: 10,
+            upstream: None,
+            merged_at_capture: MergeState::Unknown,
+        };
+
+        let snapshot = Snapshot {
+            id: snapshot_id.clone(),
+            repo: repo_id.clone(),
+            created_at,
+            trigger: SnapshotTrigger::Manual,
+            refs: vec![snapshot_ref],
+            verified: true, // We want to verify that this is saved correctly in SQLite, and overridden on load
+            manifest_path: manifest_path.clone(),
+        };
+
+        // 2. Save snapshot in DB (inserts into snapshots table)
+        store.save_snapshot(&snapshot).unwrap();
+
+        // 3. Since bare mirror and meta ref don't exist yet, load_snapshot_from_mirror should fail.
+        // Assert that list_snapshots returns Err (propagating the error).
+        let list_err = store.list_snapshots(&repo_id);
+        assert!(
+            list_err.is_err(),
+            "Expected error from missing bare mirror, got: {:?}",
+            list_err
+        );
+
+        let get_err = store.get_snapshot(&snapshot_id);
+        assert!(
+            get_err.is_err(),
+            "Expected error from missing bare mirror, got: {:?}",
+            get_err
+        );
+
+        // 4. Create the bare mirror repository and meta ref
+        let mirror_path = store.resolve_mirror_path(&repo_id);
+        fs::create_dir_all(&mirror_path).unwrap();
+        let mirror_repo = git2::Repository::init_bare(&mirror_path).unwrap();
+
+        // Still should fail because meta ref is missing
+        let list_err2 = store.list_snapshots(&repo_id);
+        assert!(
+            list_err2.is_err(),
+            "Expected error from missing meta ref, got: {:?}",
+            list_err2
+        );
+
+        // 5. Write the manifest JSON to the mirror repo as a blob and set the meta reference
+        // We write the manifest with verified = false to ensure list_snapshots/get_snapshot correctly overwrite it with verified = true from DB.
+        let mut manifest_snap = snapshot.clone();
+        manifest_snap.verified = false;
+        let json_bytes = serde_json::to_vec_pretty(&manifest_snap).unwrap();
+        let blob_oid = mirror_repo.blob(&json_bytes).unwrap();
+        let meta_ref_path = format!("refs/gitpurge/meta/{}", snapshot_id.0);
+        mirror_repo
+            .reference(&meta_ref_path, blob_oid, true, "Test meta")
+            .unwrap();
+
+        // 6. Now both list_snapshots and get_snapshot should succeed!
+        let list_ok = store.list_snapshots(&repo_id).unwrap();
+        assert_eq!(list_ok.len(), 1);
+        assert_eq!(list_ok[0].id, snapshot_id);
+        assert_eq!(list_ok[0].refs.len(), 1);
+        assert_eq!(list_ok[0].refs[0].branch.0, "main");
+        // Check that verified status was set from database value (which was saved as true)
+        assert!(
+            list_ok[0].verified,
+            "Expected snapshot verified to be true (set from DB)"
+        );
+
+        let get_ok = store.get_snapshot(&snapshot_id).unwrap();
+        assert!(get_ok.is_some());
+        let loaded = get_ok.unwrap();
+        assert_eq!(loaded.id, snapshot_id);
+        assert!(loaded.verified);
+
+        // 7. Delete the snapshot and verify
+        store.delete_snapshot(&snapshot_id).unwrap();
+        let get_none = store.get_snapshot(&snapshot_id).unwrap();
+        assert!(get_none.is_none());
     }
 }

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Centralized and secured date parsing in the Vue/TS desktop frontend to handle RFC3339/ISO-8601 date strings from the Rust backend with timezone offsets or whitespace separators reliably, preventing browser-specific `Invalid Date` errors.
+- Fixed silent swallowing of snapshot loading errors in `SqliteHistoryStore` by propagating failures using the `?` operator, and added a comprehensive suite of unit tests for actual SQLite-based snapshot storage and retrieval.
+
 
 
 ## [0.1.1] — 2026-07-11
