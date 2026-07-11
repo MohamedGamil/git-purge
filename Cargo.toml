@@ -50,6 +50,7 @@ zeroize = "1"
 # --- misc core ---
 regex = "1"
 time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
+rayon = "1.10"
 
 # --- CLI presentation ---
 clap = { version = "4", features = ["derive", "env"] }

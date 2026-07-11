@@ -90,6 +90,7 @@ pub struct Engine {
     #[allow(dead_code)]
     progress: Box<dyn progress::ProgressSink>,
     repos: Mutex<HashMap<RepoId, Repository>>,
+    scan_cache: Mutex<HashMap<RepoId, (String, ScanResult)>>,
 }
 
 // Compile-time assertion: Engine must be Send + Sync because all port traits
@@ -145,6 +146,7 @@ impl Engine {
             clock,
             progress,
             repos: Mutex::new(repos_map),
+            scan_cache: Mutex::new(HashMap::new()),
         })
     }
 
@@ -173,6 +175,7 @@ impl Engine {
             clock,
             progress,
             repos: Mutex::new(repos_map),
+            scan_cache: Mutex::new(HashMap::new()),
         }
     }
 
@@ -287,12 +290,52 @@ impl Engine {
         let policy_engine =
             crate::policy::PolicyEngine::new(policy).map_err(crate::GitPurgeError::Config)?;
 
-        let mut scan_result = crate::scan::Scanner::classify(
-            self.git.as_ref(),
-            &repo_model,
-            &policy_engine,
-            self.clock.as_ref(),
-        )?;
+        let branches = self.git.list_branches(&repo_model, None)?;
+
+        // Compute git signature (based on branches and their tip commit OIDs + is_head)
+        let mut branch_sigs: Vec<String> = branches
+            .iter()
+            .map(|b| format!("{}:{}:{}", b.name.0, b.tip.oid.0, b.is_head))
+            .collect();
+        branch_sigs.sort();
+
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        for sig in branch_sigs {
+            sig.hash(&mut hasher);
+        }
+        let git_sig = hasher.finish();
+
+        let mut policy_hasher = std::collections::hash_map::DefaultHasher::new();
+        let policy_json = serde_json::to_string(&policy_engine.policy).unwrap_or_default();
+        policy_json.hash(&mut policy_hasher);
+        let policy_sig = policy_hasher.finish();
+
+        let cache_key = format!("{:x}:{:x}", git_sig, policy_sig);
+
+        let cached_result = {
+            let cache = self.scan_cache.lock().unwrap();
+            cache
+                .get(repo)
+                .filter(|(sig, _)| sig == &cache_key)
+                .map(|(_, res)| res.clone())
+        };
+
+        let mut scan_result = match cached_result {
+            Some(res) => res,
+            None => {
+                let res = crate::scan::Scanner::classify(
+                    self.git.as_ref(),
+                    &repo_model,
+                    &policy_engine,
+                    self.clock.as_ref(),
+                    branches,
+                )?;
+                let mut cache = self.scan_cache.lock().unwrap();
+                cache.insert(repo.clone(), (cache_key, res.clone()));
+                res
+            }
+        };
 
         let ref_filter = crate::model::RefFilter {
             scope: opts.scope,
@@ -622,6 +665,8 @@ impl Engine {
             |_, _| true,
         )?;
 
+        self.scan_cache.lock().unwrap().remove(&plan.repo);
+
         let success_count = results
             .iter()
             .filter(|r| matches!(r, ActionResult::Success { .. }))
@@ -750,7 +795,9 @@ impl Engine {
             })?
         };
 
-        crate::backup::restore_snapshot(&self.config.lock().unwrap(), &repo, snap, &spec)
+        let res = crate::backup::restore_snapshot(&self.config.lock().unwrap(), &repo, snap, &spec);
+        self.scan_cache.lock().unwrap().remove(&snapshot.repo);
+        res
     }
 
     /// Archive branches into a target legacy/archive branch.
@@ -772,14 +819,16 @@ impl Engine {
             })?
         };
 
-        crate::action::archive_branches(
+        let res = crate::action::archive_branches(
             &self.config.lock().unwrap(),
             &repo,
             branches,
             target_branch,
             strategy,
             push,
-        )
+        );
+        self.scan_cache.lock().unwrap().remove(repo_id);
+        res
     }
 
     /// List all backup snapshots for a repository.
@@ -1515,5 +1564,69 @@ mod tests {
             )
             .unwrap();
         insta::assert_snapshot!("audit_report_markdown", report.content);
+    }
+
+    #[test]
+    fn test_scan_cache_hit_and_invalidation() {
+        let repo_fixture = testkit::merged_repo();
+        let repo_id = RepoId("test-cache-repo".to_string());
+
+        let mut config = Config::default();
+        let git_backend = Box::new(crate::git::CompositeGitBackend::new());
+        let secrets = Box::new(crate::auth::FakeSecretStore::default());
+        let history = Box::new(crate::history::FakeHistoryStore::default());
+        let report_sink = Box::new(crate::report::FakeReportSink::default());
+        let clock = Box::new(FakeClock::new(
+            time::macros::datetime!(2026-07-05 12:00:00 UTC),
+        ));
+        let progress = Box::new(crate::progress::NoopProgressSink);
+
+        let engine = Engine::new(
+            config.clone(),
+            git_backend,
+            secrets,
+            history,
+            report_sink,
+            clock,
+            progress,
+        );
+
+        let repo_model = Repository {
+            id: repo_id.clone(),
+            display_name: "test-cache-repo".to_string(),
+            local_path: Some(repo_fixture.path().to_path_buf()),
+            remote_url: None,
+            default_branch: None,
+            provider: crate::model::ProviderHint::Unknown,
+            added_at: time::OffsetDateTime::now_utc(),
+            last_scanned_at: None,
+        };
+        engine.register_repo(repo_model).unwrap();
+
+        // 1. First scan (cache miss, populates cache)
+        let res1 = engine.scan(&repo_id, ScanOptions::default()).unwrap();
+        assert!(!res1.classifications.is_empty());
+
+        // Cache must now contain 1 entry
+        {
+            let cache = engine.scan_cache.lock().unwrap();
+            assert_eq!(cache.len(), 1);
+            assert!(cache.contains_key(&repo_id));
+        }
+
+        // 2. Second scan (cache hit)
+        let res2 = engine.scan(&repo_id, ScanOptions::default()).unwrap();
+        assert_eq!(res1, res2);
+
+        // 3. Change policy (cache invalidation because policy signature changes)
+        config.default_policy.age = "30 days ago".to_string();
+        engine.update_config(config);
+
+        let _res3 = engine.scan(&repo_id, ScanOptions::default()).unwrap();
+        assert_eq!(engine.scan_cache.lock().unwrap().len(), 1);
+
+        // 4. Manual cache clear (belt and suspenders)
+        engine.scan_cache.lock().unwrap().clear();
+        assert_eq!(engine.scan_cache.lock().unwrap().len(), 0);
     }
 }

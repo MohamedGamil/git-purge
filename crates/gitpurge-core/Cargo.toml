@@ -40,6 +40,7 @@ regex = { workspace = true }
 time = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
+rayon = { workspace = true }
 
 # Optional: only pulled in with the `testkit` feature.
 tempfile = { workspace = true, optional = true }

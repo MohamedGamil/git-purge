@@ -11,6 +11,8 @@ use crate::policy::PolicyEngine;
 pub mod filter;
 
 pub use filter::filter_and_sort_classifications;
+use rayon::prelude::*;
+
 /// The scanner orchestrates reference reading and policy evaluation.
 pub struct Scanner;
 
@@ -21,9 +23,8 @@ impl Scanner {
         repo: &Repository,
         policy_engine: &PolicyEngine,
         clock: &dyn Clock,
+        branches: Vec<Branch>,
     ) -> Result<ScanResult> {
-        // Enumerate all branches
-        let branches = git.list_branches(repo, None)?;
         let total_branches = branches.len();
 
         // Resolve the default branch
@@ -36,91 +37,102 @@ impl Scanner {
                 .map(|b| b.tip.oid.clone())
         });
 
+        let classifications_res: Result<Vec<Option<Classification>>> = branches
+            .into_par_iter()
+            .map(|branch| {
+                // Check exclusion
+                if policy_engine.is_excluded(&branch.name.0) {
+                    return Ok(None);
+                }
+
+                // Calculate age (now - tip.commit_date)
+                let age_duration = clock.now() - branch.tip.commit_date;
+                let age =
+                    std::time::Duration::from_secs(age_duration.whole_seconds().max(0) as u64);
+
+                // Activity
+                let activity = if age >= policy_engine.age_duration {
+                    Activity::Stale
+                } else {
+                    Activity::Active
+                };
+
+                // Protection
+                let is_default = Some(&branch.name) == default_branch_name.as_ref();
+                let protection =
+                    policy_engine
+                        .protection
+                        .evaluate(&branch.name.0, is_default, branch.is_head);
+
+                // Naming
+                let naming = policy_engine.naming.evaluate(&branch.name.0);
+
+                // Merge state
+                let merge_state = if is_default {
+                    // Default branch is not merged into itself/others for cleanup purposes
+                    MergeState::Unmerged
+                } else if let Some(ref default_oid) = default_branch_tip_oid {
+                    match git.is_ancestor(repo, &branch.tip.oid, default_oid) {
+                        Ok(true) => MergeState::Merged,
+                        Ok(false) => MergeState::Unmerged,
+                        Err(e) => return Err(e),
+                    }
+                } else {
+                    MergeState::Unknown
+                };
+
+                // Tracking facet
+                let tracking = if let Some(u) = &branch.upstream {
+                    TrackingFacet {
+                        ahead: u.ahead,
+                        behind: u.behind,
+                        upstream_gone: false,
+                        compared_against: RefBasis::Upstream,
+                    }
+                } else {
+                    TrackingFacet {
+                        ahead: 0,
+                        behind: 0,
+                        upstream_gone: false,
+                        compared_against: RefBasis::DefaultBranch,
+                    }
+                };
+
+                // Recommendation
+                let recommendation = if !matches!(protection, Protection::Unprotected) {
+                    Recommendation::KeepProtected
+                } else if merge_state == MergeState::Merged {
+                    Recommendation::DeleteMerged
+                } else if activity == Activity::Stale {
+                    Recommendation::ArchiveStale
+                } else {
+                    Recommendation::ReviewUnmerged
+                };
+
+                Ok(Some(Classification {
+                    branch: branch.name.clone(),
+                    scope: branch.scope,
+                    merge_state,
+                    activity,
+                    age,
+                    protection,
+                    naming,
+                    tracking,
+                    tip: branch.tip.clone(),
+                    recommendation,
+                }))
+            })
+            .collect();
+
+        let classifications_opt = classifications_res?;
         let mut classifications = Vec::new();
         let mut excluded_count = 0;
-
-        for branch in branches {
-            // Check exclusion
-            if policy_engine.is_excluded(&branch.name.0) {
+        for c in classifications_opt {
+            if let Some(class) = c {
+                classifications.push(class);
+            } else {
                 excluded_count += 1;
-                continue;
             }
-
-            // Calculate age (now - tip.commit_date)
-            let age_duration = clock.now() - branch.tip.commit_date;
-            let age = std::time::Duration::from_secs(age_duration.whole_seconds().max(0) as u64);
-
-            // Activity
-            let activity = if age >= policy_engine.age_duration {
-                Activity::Stale
-            } else {
-                Activity::Active
-            };
-
-            // Protection
-            let is_default = Some(&branch.name) == default_branch_name.as_ref();
-            let protection =
-                policy_engine
-                    .protection
-                    .evaluate(&branch.name.0, is_default, branch.is_head);
-
-            // Naming
-            let naming = policy_engine.naming.evaluate(&branch.name.0);
-
-            // Merge state
-            let merge_state = if is_default {
-                // Default branch is not merged into itself/others for cleanup purposes
-                MergeState::Unmerged
-            } else if let Some(ref default_oid) = default_branch_tip_oid {
-                match git.is_ancestor(repo, &branch.tip.oid, default_oid) {
-                    Ok(true) => MergeState::Merged,
-                    Ok(false) => MergeState::Unmerged,
-                    Err(_) => MergeState::Unknown,
-                }
-            } else {
-                MergeState::Unknown
-            };
-
-            // Tracking facet
-            let tracking = if let Some(u) = &branch.upstream {
-                TrackingFacet {
-                    ahead: u.ahead,
-                    behind: u.behind,
-                    upstream_gone: false,
-                    compared_against: RefBasis::Upstream,
-                }
-            } else {
-                TrackingFacet {
-                    ahead: 0,
-                    behind: 0,
-                    upstream_gone: false,
-                    compared_against: RefBasis::DefaultBranch,
-                }
-            };
-
-            // Recommendation
-            let recommendation = if !matches!(protection, Protection::Unprotected) {
-                Recommendation::KeepProtected
-            } else if merge_state == MergeState::Merged {
-                Recommendation::DeleteMerged
-            } else if activity == Activity::Stale {
-                Recommendation::ArchiveStale
-            } else {
-                Recommendation::ReviewUnmerged
-            };
-
-            classifications.push(Classification {
-                branch: branch.name.clone(),
-                scope: branch.scope,
-                merge_state,
-                activity,
-                age,
-                protection,
-                naming,
-                tracking,
-                tip: branch.tip.clone(),
-                recommendation,
-            });
         }
 
         Ok(ScanResult {
@@ -195,7 +207,9 @@ mod tests {
         let now = time::macros::datetime!(2026-07-05 12:00:00 UTC);
         let clock = FakeClock::new(now);
 
-        let scan_result = Scanner::classify(&backend, &repo_model, &engine, &clock).unwrap();
+        let branches = backend.list_branches(&repo_model, None).unwrap();
+        let scan_result =
+            Scanner::classify(&backend, &repo_model, &engine, &clock, branches).unwrap();
 
         assert_eq!(scan_result.total_branches, 3);
 
