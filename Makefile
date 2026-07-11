@@ -1,7 +1,7 @@
 # Git Purge — Development Makefile
 # Excludes gitpurge-desktop (Tauri app) by default as it requires Tauri system dependencies.
 
-.PHONY: all build check test clippy fmt run clean ui-dev install-desktop-deps
+.PHONY: all build check test clippy fmt run clean ui-dev install-desktop-deps desktop-dev desktop-build desktop-test
 
 # Default target
 all: check test
@@ -37,6 +37,18 @@ install-desktop-deps:
 # Run the desktop UI web app in dev mode for testing the interface
 ui-dev:
 	pnpm --filter @gitpurge/desktop dev
+
+# Run the desktop application in dev mode (requires Tauri dependencies)
+desktop-dev:
+	pnpm --filter @gitpurge/desktop tauri dev
+
+# Build the desktop application package (requires Tauri dependencies)
+desktop-build:
+	pnpm --filter @gitpurge/desktop tauri build
+
+# Run desktop UI frontend unit tests
+desktop-test:
+	pnpm --filter @gitpurge/desktop test
 
 # Run the CLI binary (usage: make run ARGS="--help")
 run:

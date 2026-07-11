@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Completed scaffolding of Tauri v2 backend with Vue 3, Vite, TypeScript, and Pinia.
   - Implemented 26 Tauri command handlers wrapping `gitpurge-core::Engine` with progress events and tokio cancellation.
   - Added architecture guard test ensuring no direct references to git/db dependencies in the desktop crate.
+  - Added Makefile shorthand commands (`desktop-dev`, `desktop-build`, `desktop-test`) for Tauri desktop development, build, and test workflows.
   - Designed One Dark Pro and One Light themes using CSS semantic variables.
   - Built App sidebar navigation shell.
   - Created Pinia store managing repository lists, active scan details, and execution tasks.
