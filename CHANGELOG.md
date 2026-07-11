@@ -25,8 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Verbs: `repo add/list/remove/set-default`, `scan`, `plan`, `delete`, `archive`, `backup`, `restore`, `diff`, `show`.
   - Stubs: `report`, `history`, `auth`, `ui`, `completions`, `install-cli`.
   - TTY-aware confirmation prompts for standard/strong mutation gates.
-- **Desktop stub** (`gitpurge-desktop`): Tauri v2 workspace member (UI lands in
-  Phase 4).
+- **Desktop UI Foundations** (Phase 4):
+  - Completed scaffolding of Tauri v2 backend with Vue 3, Vite, TypeScript, and Pinia.
+  - Implemented 26 Tauri command handlers wrapping `gitpurge-core::Engine` with progress events and tokio cancellation.
+  - Added architecture guard test ensuring no direct references to git/db dependencies in the desktop crate.
+  - Designed One Dark Pro and One Light themes using CSS semantic variables.
+  - Built App sidebar navigation shell and mockup dashboard verifying Tauri IPC connectivity.
+  - Generated premium high-resolution RGBA icon assets (`32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.png`, `icon.ico`, `icon.icns`) for Tauri.
 - **Domain model**: Repository, Branch, Commit, Tag, Ref, Classification, Policy,
   Snapshot, Plan, Action, RunReport, Config, and all supporting value objects.
 - **Port trait fakes**: FakeGitBackend, FakeSecretStore, FakeHistoryStore,

@@ -1,0 +1,11 @@
+{
+  "identifier": "default",
+  "description": "Minimal capabilities for the main Git Purge window.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:event:allow-listen",
+    "core:window:allow-set-theme",
+    "dialog:allow-open"
+  ]
+}

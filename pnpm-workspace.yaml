@@ -1,0 +1,6 @@
+packages:
+  - "apps/desktop"
+
+allowBuilds:
+  esbuild: true
+  vue-demi: true

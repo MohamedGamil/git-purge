@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Git Purge",
+  "identifier": "com.gitpurge.desktop",
+  "version": "0.1.0-beta.1",
+  "app": {
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "assetProtocol": { "enable": false },
+      "freezePrototype": true
+    },
+    "windows": [
+      {
+        "label": "main",
+        "title": "Git Purge",
+        "width": 1000,
+        "height": 700
+      }
+    ]
+  },
+  "bundle": {
+    "active": false
+  },
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "pnpm build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  }
+}

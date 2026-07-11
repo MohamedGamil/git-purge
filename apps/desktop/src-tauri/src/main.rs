@@ -2,17 +2,68 @@
 //!
 //! This is a thin adapter that exposes `gitpurge-core::Engine` methods as Tauri
 //! commands for the Vue 3 frontend. **No git/DB/keychain logic lives here.**
-//!
-//! ## Note (P0 scaffolding)
-//! This is a minimal stub that compiles but does nothing. The full Tauri app
-//! (commands, events, window setup) lands in Phase 4.
 
 // Prevent a console window on Windows in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tokio::sync::oneshot;
+
+pub mod commands;
+
+/// Managed state for the Tauri application.
+pub struct AppState {
+    pub engine: Arc<gitpurge_core::Engine>,
+    pub tasks: Mutex<HashMap<String, oneshot::Sender<()>>>,
+}
+
 fn main() {
-    // TODO(P4): initialize Tauri app builder with commands and event handlers.
-    // For P0 scaffolding, this is a no-op binary that proves the crate compiles
-    // as a workspace member.
-    println!("gitpurge-desktop: Tauri app stub — full UI lands in Phase 4");
+    // 1. Load config
+    let config = gitpurge_core::Config::load(None).unwrap_or_default();
+
+    // 2. Initialize Engine
+    let engine =
+        Arc::new(gitpurge_core::Engine::open(config).expect("Failed to initialize Engine"));
+
+    // 3. Build state
+    let state = AppState {
+        engine,
+        tasks: Mutex::new(HashMap::new()),
+    };
+
+    // 4. Build and run Tauri app
+    tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .manage(state)
+        .invoke_handler(tauri::generate_handler![
+            commands::repo_list,
+            commands::repo_add,
+            commands::repo_remove,
+            commands::repo_show,
+            commands::scan,
+            commands::plan,
+            commands::backup_create,
+            commands::backup_list,
+            commands::backup_show,
+            commands::backup_verify,
+            commands::backup_prune,
+            commands::delete_branches,
+            commands::archive_branches,
+            commands::restore,
+            commands::diff,
+            commands::show_tree,
+            commands::report_generate,
+            commands::history_get,
+            commands::auth_add,
+            commands::auth_list,
+            commands::auth_remove,
+            commands::auth_test,
+            commands::settings_get,
+            commands::settings_save,
+            commands::install_cli,
+            commands::cancel,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }

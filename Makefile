@@ -30,6 +30,10 @@ fmt:
 fmt-write:
 	cargo fmt --all
 
+# Install required Desktop OS packages for Tauri to run on Ubuntu (requires sudo)
+install-desktop-deps:
+	sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev
+
 # Run the CLI binary (usage: make run ARGS="--help")
 run:
 	cargo run --bin git-purge -- $(ARGS)

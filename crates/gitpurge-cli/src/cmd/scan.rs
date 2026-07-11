@@ -143,9 +143,7 @@ pub fn handle_scan(
             "name" => scan_result
                 .classifications
                 .sort_by(|a, b| a.branch.0.cmp(&b.branch.0)),
-            "age" => scan_result
-                .classifications
-                .sort_by_key(|a| a.age),
+            "age" => scan_result.classifications.sort_by_key(|a| a.age),
             "author" => scan_result
                 .classifications
                 .sort_by(|a, b| a.tip.author.name.cmp(&b.tip.author.name)),

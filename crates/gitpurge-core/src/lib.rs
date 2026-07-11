@@ -227,6 +227,17 @@ impl Engine {
         Ok(())
     }
 
+    /// Get a clone of the current configuration.
+    pub fn config(&self) -> Config {
+        self.config.lock().unwrap().clone()
+    }
+
+    /// Update the current configuration.
+    pub fn update_config(&self, new_config: Config) {
+        let mut config = self.config.lock().unwrap();
+        *config = new_config;
+    }
+
     /// Purge backups bare mirror for a repository from disk.
     pub fn purge_repo_backups(&self, id: &RepoId) -> Result<()> {
         let config_guard = self.config.lock().unwrap();
