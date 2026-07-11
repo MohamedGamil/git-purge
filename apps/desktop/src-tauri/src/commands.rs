@@ -741,7 +741,7 @@ pub fn map_diff_result(
         })
         .collect();
 
-    files.sort_by(|a, b| a.path.to_lowercase().cmp(&b.path.to_lowercase()));
+    files.sort_by_key(|a| a.path.to_lowercase());
 
     ClientDiffResult {
         a: ClientRefSpec {

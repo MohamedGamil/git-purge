@@ -99,13 +99,20 @@ pub fn merged_repo() -> FixtureRepo {
 
     repo.git(&["checkout", "main"]);
     // Merge without fast-forward to ensure merge-base is clear
-    repo.git(&[
-        "merge",
-        "merged-branch",
-        "--no-ff",
-        "-m",
-        "Merge merged-branch",
-    ]);
+    let merge_date = "2026-07-04T12:00:00Z";
+    repo.git_with_env(
+        &[
+            "merge",
+            "merged-branch",
+            "--no-ff",
+            "-m",
+            "Merge merged-branch",
+        ],
+        &[
+            ("GIT_AUTHOR_DATE", merge_date),
+            ("GIT_COMMITTER_DATE", merge_date),
+        ],
+    );
 
     // unmerged-branch: create, add commit, leave it unmerged
     repo.git(&["checkout", "-b", "unmerged-branch"]);

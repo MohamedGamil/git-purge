@@ -52,7 +52,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <span>v0.1.0-beta.1</span>
+        <span>v0.1.1</span>
       </div>
     </aside>
 

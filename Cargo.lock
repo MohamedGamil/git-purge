@@ -1492,7 +1492,7 @@ dependencies = [
 
 [[package]]
 name = "gitpurge-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anstyle",
  "assert_cmd",
@@ -1515,7 +1515,7 @@ dependencies = [
 
 [[package]]
 name = "gitpurge-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "directories",
  "git2",
@@ -1539,7 +1539,7 @@ dependencies = [
 
 [[package]]
 name = "gitpurge-desktop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "gitpurge-core",
  "serde",

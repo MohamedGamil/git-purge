@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-07-11
+
+### Changed
+
+- Bumped application version to v0.1.1.
+
 ## [0.1.0-beta.1] — TBD
 
 ### Added
@@ -73,5 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.1.0-beta.1...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/MohamedGamil/git-purge/compare/v0.1.0-beta.1...v0.1.1
 [0.1.0-beta.1]: https://github.com/MohamedGamil/git-purge/releases/tag/v0.1.0-beta.1
