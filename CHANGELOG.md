@@ -49,6 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented Markdown, JSON, and theme-aware HTML report generators styling HTML with One Dark Pro design tokens.
   - Wired CLI `report` and `history` commands and Tauri IPC methods to backend engine interfaces.
   - Added `test_golden_reports` asserting report layout and content consistency using `insta` snapshot tests.
+- **Desktop UI Completion & Enhancements** (Phase 5 & 6):
+  - Wired full interactive credentials manager in `AuthView.vue` supporting add, test, remove, and system default SSH agent fallback notification banners.
+  - Built `CleanupView.vue` for whole-repository automated branch plan generation, options overrides, dry-run list, unmerged delete safety confirmations, progress tracking, and cancellation.
+  - Built `HistoryView.vue` plotting stale branches over time via SVG charts, with report download options.
+  - Added text query search dropdown filters and branch swapping in the Compare/Diff view.
+  - Added RFC3339 date payload formatting on Rust commands and integrated fallback date parsers in Branches and Backups views.
+  - Integrated on-demand branch status report generation and manual backup snapshot creation with duplicate detection checks directly in Branches Explorer.
+  - Updated default naming regex to `^(main|master|develop|staging|prod|production|feat/.*|feature/.*|fix/.*|refactor/.*|docs/.*|perf/.*|test/.*|chore/.*|release/.*|hotfix/.*)$` in Rust Core and Vue App settings.
 - **Domain model**: Repository, Branch, Commit, Tag, Ref, Classification, Policy,
   Snapshot, Plan, Action, RunReport, Config, and all supporting value objects.
 - **Port trait fakes**: FakeGitBackend, FakeSecretStore, FakeHistoryStore,

@@ -29,6 +29,7 @@
       <aside class="controls-panel card">
         <div class="control-group scan-box">
           <h3>Analysis Engine</h3>
+          <!-- Scan Progress -->
           <div v-if="store.isScanning" class="scan-progress-container">
             <div class="progress-bar-bg">
               <div class="progress-bar-fill" :style="{ width: store.scanProgress + '%' }"></div>
@@ -41,9 +42,35 @@
               ✕ Cancel Scan
             </button>
           </div>
-          <button v-else class="btn btn-primary w-100" @click="triggerScan">
-            🔄 Scan & Classify
-          </button>
+
+          <!-- Backup Progress -->
+          <div v-else-if="isBackingUp" class="scan-progress-container">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" :style="{ width: backupProgress + '%' }"></div>
+            </div>
+            <div class="progress-meta">
+              <span class="progress-pct">{{ backupProgress }}%</span>
+              <span class="progress-msg">{{ backupProgressMessage }}</span>
+            </div>
+            <button class="btn btn-secondary btn-sm cancel-btn" @click="cancelBackup">
+              ✕ Cancel Backup
+            </button>
+          </div>
+
+          <!-- Normal State Buttons -->
+          <div v-else class="engine-buttons-wrapper">
+            <button class="btn btn-primary w-100 scan-main-btn" @click="triggerScan">
+              🔄 Scan & Classify
+            </button>
+            <div class="engine-action-row">
+              <button class="btn btn-secondary btn-sm flex-1" @click="openReportModal">
+                📋 Generate Report
+              </button>
+              <button class="btn btn-secondary btn-sm flex-1" @click="triggerBackupSnapshot">
+                💾 Create Snapshot
+              </button>
+            </div>
+          </div>
           <p class="last-scanned" v-if="store.scannedAt">Last Scan: {{ formattedScannedAt }}</p>
         </div>
 
@@ -207,6 +234,49 @@
         </div>
       </div>
     </div>
+
+    <!-- Report Modal -->
+    <div v-if="showReportModal" class="modal-overlay" @click.self="showReportModal = false">
+      <div class="modal-card card report-modal-card">
+        <header class="modal-header">
+          <h3>Audit Report (MARKDOWN)</h3>
+          <button class="close-btn" @click="showReportModal = false">✕</button>
+        </header>
+        <main class="modal-body">
+          <div v-if="generatingReport" class="loading-state">
+            <span class="spinner"></span>
+            <p>Generating standardized audit report...</p>
+          </div>
+          <pre v-else class="report-preview"><code>{{ reportContent }}</code></pre>
+        </main>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" @click="copyReportToClipboard">📋 Copy to Clipboard</button>
+          <button class="btn btn-primary" @click="downloadReportFile">📥 Download File</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Duplicate Warning Modal -->
+    <div v-if="showDuplicateWarning" class="modal-overlay" @click.self="showDuplicateWarning = false">
+      <div class="modal-card card warning-modal-card">
+        <header class="modal-header">
+          <h3>⚠️ Duplicate Snapshot Warning</h3>
+          <button class="close-btn" @click="showDuplicateWarning = false">✕</button>
+        </header>
+        <main class="modal-body warning-body">
+          <p>No branches or commit tips have changed since the last backup snapshot.</p>
+          <div class="duplicate-details">
+            <p><strong>Latest Snapshot:</strong> <code>{{ latestSnapshotId }}</code></p>
+            <p><strong>Created At:</strong> {{ formattedLatestSnapshotDate }}</p>
+          </div>
+          <p class="warning-alert-text">Creating a new snapshot now will duplicate identical reference files on disk. Do you want to proceed anyway?</p>
+        </main>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" @click="showDuplicateWarning = false">Cancel</button>
+          <button class="btn btn-danger" @click="proceedWithBackup">Yes, Proceed</button>
+        </footer>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -214,13 +284,44 @@
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useReposStore } from '../stores/repos';
-import type { Branch } from '../api/ipc';
+import { 
+  type Branch,
+  reportGenerate, 
+  backupCreate, 
+  backupList, 
+  backupShow, 
+  listenProgress, 
+  cancel 
+} from '../api/ipc';
 
 const router = useRouter();
 const store = useReposStore();
 
 const selectedRepoId = ref(store.activeRepoId || '');
 const selectedBranches = ref<string[]>([]);
+
+// Backup Snapshot state
+const isBackingUp = ref(false);
+const backupProgress = ref(0);
+const backupProgressMessage = ref('');
+const activeBackupTaskId = ref('');
+
+// Duplicate warning details
+const showDuplicateWarning = ref(false);
+const latestSnapshotId = ref('');
+const latestSnapshotDate = ref('');
+
+const formattedLatestSnapshotDate = computed(() => {
+  if (!latestSnapshotDate.value) return '';
+  const d = new Date(latestSnapshotDate.value);
+  if (isNaN(d.getTime())) return latestSnapshotDate.value;
+  return d.toLocaleString();
+});
+
+// Report Generation state
+const showReportModal = ref(false);
+const generatingReport = ref(false);
+const reportContent = ref('');
 
 // Filter and Sort inputs
 const searchQuery = ref('');
@@ -256,6 +357,141 @@ const triggerScan = async () => {
       await store.runScan(store.activeRepoId, { includeRemote: true });
     } catch (err: any) {
       alert('Scan failed: ' + err.message);
+    }
+  }
+};
+
+// Report Generation Methods
+const openReportModal = async () => {
+  if (!store.activeRepoId) return;
+  showReportModal.value = true;
+  generatingReport.value = true;
+  reportContent.value = '';
+  
+  try {
+    const res = await reportGenerate(store.activeRepoId, 'markdown');
+    reportContent.value = res.content;
+  } catch (err: any) {
+    alert('Failed to generate report: ' + err.message);
+    showReportModal.value = false;
+  } finally {
+    generatingReport.value = false;
+  }
+};
+
+const copyReportToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(reportContent.value);
+    alert('Copied report content to clipboard!');
+  } catch (err) {
+    alert('Failed to copy: ' + err);
+  }
+};
+
+const downloadReportFile = () => {
+  const activeRepoName = store.activeRepoDetail?.name || 'repo';
+  const blob = new Blob([reportContent.value], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `git-purge-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// Snapshot Backup Methods
+const triggerBackupSnapshot = async () => {
+  if (!store.activeRepoId) return;
+  
+  try {
+    const list = await backupList(store.activeRepoId);
+    if (list && list.length > 0) {
+      // Sort desc so latest is first
+      const sorted = [...list].sort((a, b) => b.id.localeCompare(a.id));
+      const latest = sorted[0];
+      
+      const details = await backupShow(latest.id);
+      if (details && details.refs) {
+        const currentBranches = store.branches;
+        let isDuplicate = true;
+        
+        if (currentBranches.length !== details.refs.length) {
+          isDuplicate = false;
+        } else {
+          for (const branch of currentBranches) {
+            const matchedRef = details.refs.find(r => r.branch === branch.name);
+            if (!matchedRef || matchedRef.tipSha !== branch.tipSha) {
+              isDuplicate = false;
+              break;
+            }
+          }
+        }
+        
+        if (isDuplicate) {
+          latestSnapshotId.value = latest.id;
+          latestSnapshotDate.value = latest.createdAt;
+          showDuplicateWarning.value = true;
+          return;
+        }
+      }
+    }
+    
+    await proceedWithBackup();
+  } catch (err: any) {
+    alert('Backup check failed: ' + err.message);
+  }
+};
+
+const proceedWithBackup = async () => {
+  showDuplicateWarning.value = false;
+  if (!store.activeRepoId) return;
+
+  isBackingUp.value = true;
+  backupProgress.value = 0;
+  backupProgressMessage.value = 'Preparing snapshot...';
+  
+  const taskId = 'backup-' + Math.random().toString(36).slice(2, 7);
+  activeBackupTaskId.value = taskId;
+  
+  let unsubscribe: (() => void) | null = null;
+  
+  try {
+    unsubscribe = await listenProgress((evt: any) => {
+      if (evt.taskId === taskId) {
+        backupProgress.value = evt.pct;
+        backupProgressMessage.value = evt.message;
+      }
+    });
+
+    const options = {
+      trigger: 'manual' as const,
+      verify: true,
+      refs: []
+    };
+    
+    const snapshot = await backupCreate(store.activeRepoId, options, taskId);
+    alert(`Snapshot backup created successfully!\nID: ${snapshot.id}\nRefs: ${snapshot.refCount}`);
+    
+    await store.selectRepo(store.activeRepoId);
+  } catch (err: any) {
+    if (err?.message !== 'CANCELLED') {
+      alert('Snapshot backup failed: ' + (err?.message || err));
+    }
+  } finally {
+    isBackingUp.value = false;
+    activeBackupTaskId.value = '';
+    if (unsubscribe) {
+      unsubscribe();
+    }
+  }
+};
+
+const cancelBackup = async () => {
+  if (activeBackupTaskId.value) {
+    try {
+      await cancel(activeBackupTaskId.value);
+    } catch (err: any) {
+      console.error('Failed to cancel backup:', err);
     }
   }
 };
@@ -750,5 +986,144 @@ watch(() => store.activeRepoId, (newId) => {
 .drawer-right {
   display: flex;
   gap: var(--spacing-sm);
+}
+
+/* Engine Action Row styling */
+.engine-buttons-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.engine-action-row {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.scan-main-btn {
+  margin-bottom: 2px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+/* Modal styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: var(--spacing-lg);
+}
+
+.modal-card {
+  width: 700px;
+  max-width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  background-color: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-lg);
+}
+
+.report-modal-card {
+  width: 800px;
+}
+
+.warning-modal-card {
+  width: 500px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--spacing-sm);
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  color: var(--on-surface-strong);
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.close-btn:hover {
+  color: var(--on-surface-strong);
+}
+
+.modal-body {
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.report-preview {
+  background-color: var(--surface-variant);
+  border: 1px solid var(--border);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--on-surface);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-md);
+}
+
+/* Duplicate warning body */
+.warning-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  font-size: 13px;
+  color: var(--on-surface);
+}
+
+.duplicate-details {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.duplicate-details p {
+  margin: var(--spacing-xs) 0;
+}
+
+.warning-alert-text {
+  color: var(--danger);
+  font-weight: 500;
 }
 </style>
