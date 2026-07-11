@@ -51,7 +51,8 @@
             <span class="input-hint">Leave blank to use default policy.</span>
           </div>
 
-          <div class="filter-item checkbox-group">
+          <!-- Delete Mode Options -->
+          <div class="filter-item checkbox-group" v-if="actionKind === 'delete'">
             <label class="checkbox-container">
               <input type="checkbox" v-model="mergedOnly" :disabled="isExecuting" />
               <span class="checkmark"></span>
@@ -59,12 +60,23 @@
             </label>
           </div>
 
-          <div class="filter-item checkbox-group">
+          <div class="filter-item checkbox-group" v-if="actionKind === 'delete'">
             <label class="checkbox-container">
               <input type="checkbox" v-model="includeUnmerged" :disabled="isExecuting" />
               <span class="checkmark"></span>
               Include unmerged branches
             </label>
+          </div>
+
+          <!-- Archive Mode Merge Strategy Selector -->
+          <div class="filter-item merge-strategy-wrapper" v-if="actionKind === 'archive' && hasUnmergedBranches">
+            <label for="merge-strategy">Merge / Archive Strategy</label>
+            <select id="merge-strategy" v-model="mergeStrategy" class="form-input" :disabled="isExecuting">
+              <option value="skip">Skip Unmerged (Safe)</option>
+              <option value="force">Force Archive Unmerged (Dangerous)</option>
+              <option value="merge-first">Fast-Forward Merge, then Archive</option>
+            </select>
+            <span class="input-hint">Unmerged branches were detected in this repository.</span>
           </div>
 
           <button class="btn btn-primary w-100" @click="generatePlan" :disabled="isExecuting || loadingPlan">
@@ -176,21 +188,32 @@
             <div v-else class="execution-setup card">
               <h3>Safety Safeguards</h3>
 
+              <!-- Dynamic Safeguards Description -->
+              <div class="safeguards-description">
+                <div v-if="actionKind === 'delete'" class="mode-info delete-info">
+                  <p>🗑️ <strong>Delete/Purge Mode:</strong> You are about to permanently delete matching branches from the remote and local systems. This action cannot be undone.</p>
+                </div>
+                <div v-else class="mode-info archive-info">
+                  <p>📦 <strong>Archive Mode:</strong> Selected branches will be safely archived (renamed/prefixed to <code>archive/</code> or backed up in bare mirrors). The original references will be deleted from the active tracking list.</p>
+                </div>
+              </div>
+
               <div class="safety-options">
                 <label class="checkbox-container select-none">
                   <input type="checkbox" v-model="noBackup" />
                   <span class="checkmark"></span>
-                  Disable pre-deletion backup snapshot
+                  <span v-if="actionKind === 'delete'">Disable pre-deletion backup snapshot</span>
+                  <span v-else>Disable pre-archival backup snapshot</span>
                 </label>
                 <div v-if="noBackup" class="warning-box">
-                  ⚠️ <strong>Caution:</strong> Proceeding without a backup snapshot is dangerous and cannot be undone!
+                  ⚠️ <strong>Caution:</strong> Proceeding without a backup snapshot is highly dangerous and cannot be undone!
                 </div>
               </div>
 
               <!-- Unmerged Destructive Confirmation (SAFE-02) -->
               <div v-if="hasDestructiveActions" class="destructive-confirmation">
                 <label for="confirm-token">
-                  ⚠️ This plan contains unmerged branches. Type <strong>DELETE</strong> to confirm destruction:
+                  ⚠️ This plan contains unmerged branches. Type <strong>DELETE</strong> to confirm:
                 </label>
                 <input
                   id="confirm-token"
@@ -201,14 +224,25 @@
                 />
               </div>
 
+              <!-- Dynamic CTA Button based on mode -->
               <button
+                v-if="actionKind === 'delete'"
                 class="btn btn-danger w-100 execute-btn"
                 :disabled="!canExecute"
                 @click="executePlan"
               >
-                🚀 Execute Cleanup Plan
+                🗑️ Execute Destructive Purge
               </button>
-              <p class="dry-run-hint">Changes will only be applied after you click the button above.</p>
+              <button
+                v-else
+                class="btn btn-primary w-100 execute-btn"
+                :disabled="!canExecute"
+                @click="executePlan"
+              >
+                📦 Execute Branch Archival
+              </button>
+              
+              <p class="dry-run-hint">Changes will only be applied to the repository after you click the button above.</p>
             </div>
           </aside>
         </div>
@@ -237,6 +271,37 @@ const actionKind = ref<'delete' | 'archive'>('delete');
 const ageOverride = ref('');
 const mergedOnly = ref(true);
 const includeUnmerged = ref(false);
+
+// Archive Mode Merge Strategy
+const mergeStrategy = ref<'skip' | 'force' | 'merge-first'>('skip');
+
+const hasUnmergedBranches = computed(() => {
+  return store.branches.some(b => b.classification.merge === 'unmerged');
+});
+
+// Watch Strategy changes
+watch(mergeStrategy, (newStrategy) => {
+  if (actionKind.value === 'archive') {
+    if (newStrategy === 'skip') {
+      mergedOnly.value = true;
+      includeUnmerged.value = false;
+    } else {
+      mergedOnly.value = false;
+      includeUnmerged.value = true;
+    }
+    generatePlan();
+  }
+});
+
+// Watch Mode changes
+watch(actionKind, (newKind) => {
+  if (newKind === 'archive') {
+    mergeStrategy.value = 'skip';
+    mergedOnly.value = true;
+    includeUnmerged.value = false;
+  }
+  generatePlan();
+});
 
 const loadingPlan = ref(false);
 const planError = ref<string | null>(null);
