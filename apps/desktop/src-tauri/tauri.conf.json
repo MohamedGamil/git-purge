@@ -22,7 +22,7 @@
     "active": false
   },
   "build": {
-    "beforeDevCommand": "",
+    "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
