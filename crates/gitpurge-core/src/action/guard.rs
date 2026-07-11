@@ -39,8 +39,13 @@ where
             only_branches: branches_to_delete.to_vec(),
         };
 
-        let mut snapshot =
-            crate::backup::create_snapshot(config, git_backend, repo, classifications, &backup_opts)?;
+        let mut snapshot = crate::backup::create_snapshot(
+            config,
+            git_backend,
+            repo,
+            classifications,
+            &backup_opts,
+        )?;
 
         // 2. SAFE-04: Verify the snapshot before taking any destructive action
         let verify_report = crate::backup::verify_snapshot(config, &repo.id, &snapshot.id, false)?;

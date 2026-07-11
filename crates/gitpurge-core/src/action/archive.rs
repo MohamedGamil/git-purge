@@ -29,9 +29,8 @@ pub fn archive_branches(
         GitPurgeError::RepoNotFound("Local path missing for repository".to_string())
     })?;
 
-    let repo = git2::Repository::open(local_path).map_err(|e| {
-        GitPurgeError::Git(format!("Failed to open repository: {}", e))
-    })?;
+    let repo = git2::Repository::open(local_path)
+        .map_err(|e| GitPurgeError::Git(format!("Failed to open repository: {}", e)))?;
 
     // 1. Resolve or create target legacy branch
     let mut target_commit = match repo.find_branch(target_branch, git2::BranchType::Local) {
@@ -46,60 +45,78 @@ pub fn archive_branches(
                 .as_ref()
                 .map(|b| b.full_ref.clone())
                 .unwrap_or_else(|| "refs/heads/main".to_string());
-            let default_ref = repo.find_reference(&default_ref_name)
+            let default_ref = repo
+                .find_reference(&default_ref_name)
                 .or_else(|_| repo.find_reference("refs/heads/master"))
                 .or_else(|_| repo.head())
                 .map_err(|e| {
-                    GitPurgeError::Git(format!("Failed to find default branch to initialize legacy archive: {}", e))
+                    GitPurgeError::Git(format!(
+                        "Failed to find default branch to initialize legacy archive: {}",
+                        e
+                    ))
                 })?;
             let commit = default_ref.peel_to_commit().map_err(|e| {
                 GitPurgeError::Git(format!("Failed to peel default reference to commit: {}", e))
             })?;
             repo.branch(target_branch, &commit, false).map_err(|e| {
-                GitPurgeError::Git(format!("Failed to create legacy branch '{}': {}", target_branch, e))
+                GitPurgeError::Git(format!(
+                    "Failed to create legacy branch '{}': {}",
+                    target_branch, e
+                ))
             })?;
             commit
         }
     };
 
-    let sig = repo.signature().unwrap_or_else(|_| {
-        git2::Signature::now("Git Purge", "gitpurge@localhost").unwrap()
-    });
+    let sig = repo
+        .signature()
+        .unwrap_or_else(|_| git2::Signature::now("Git Purge", "gitpurge@localhost").unwrap());
 
     // 2. Perform merges for each source branch
     for source in branches_to_archive {
-        let source_branch = repo.find_branch(&source.0, git2::BranchType::Local)
-            .or_else(|_| repo.find_branch(&format!("origin/{}", source.0), git2::BranchType::Remote))
+        let source_branch = repo
+            .find_branch(&source.0, git2::BranchType::Local)
+            .or_else(|_| {
+                repo.find_branch(&format!("origin/{}", source.0), git2::BranchType::Remote)
+            })
             .map_err(|e| {
-                GitPurgeError::RefNotFound(format!("Archive source branch '{}' not found: {}", source.0, e))
+                GitPurgeError::RefNotFound(format!(
+                    "Archive source branch '{}' not found: {}",
+                    source.0, e
+                ))
             })?;
-        let source_commit = source_branch.into_reference().peel_to_commit().map_err(|e| {
-            GitPurgeError::Git(format!("Failed to peel source branch to commit: {}", e))
-        })?;
+        let source_commit = source_branch
+            .into_reference()
+            .peel_to_commit()
+            .map_err(|e| {
+                GitPurgeError::Git(format!("Failed to peel source branch to commit: {}", e))
+            })?;
 
         match strategy {
             ArchiveStrategy::Ours => {
                 // Ours: merge commit keeping target branch's tree (discard source diff, keep history)
-                let tree = target_commit.tree().map_err(|e| {
-                    GitPurgeError::Git(format!("Failed to get target tree: {}", e))
-                })?;
-                let merge_oid = repo.commit(
-                    Some(&format!("refs/heads/{}", target_branch)),
-                    &sig,
-                    &sig,
-                    &format!("Archive merge branch '{}' (ours)", source.0),
-                    &tree,
-                    &[&target_commit, &source_commit],
-                ).map_err(|e| {
-                    GitPurgeError::Git(format!("Failed to create ours merge commit: {}", e))
-                })?;
+                let tree = target_commit
+                    .tree()
+                    .map_err(|e| GitPurgeError::Git(format!("Failed to get target tree: {}", e)))?;
+                let merge_oid = repo
+                    .commit(
+                        Some(&format!("refs/heads/{}", target_branch)),
+                        &sig,
+                        &sig,
+                        &format!("Archive merge branch '{}' (ours)", source.0),
+                        &tree,
+                        &[&target_commit, &source_commit],
+                    )
+                    .map_err(|e| {
+                        GitPurgeError::Git(format!("Failed to create ours merge commit: {}", e))
+                    })?;
                 target_commit = repo.find_commit(merge_oid).unwrap();
             }
             ArchiveStrategy::Theirs => {
                 // Theirs: merge prefers source branch's files on conflict
-                let mut index = repo.merge_commits(&target_commit, &source_commit, None).map_err(|e| {
-                    GitPurgeError::Git(format!("Failed to merge commits: {}", e))
-                })?;
+                let mut index = repo
+                    .merge_commits(&target_commit, &source_commit, None)
+                    .map_err(|e| GitPurgeError::Git(format!("Failed to merge commits: {}", e)))?;
 
                 if index.has_conflicts() {
                     let mut their_entries = Vec::new();
@@ -107,9 +124,8 @@ pub fn archive_branches(
                         GitPurgeError::Git(format!("Failed to retrieve conflicts: {}", e))
                     })?;
                     for conflict in conflicts {
-                        let conflict = conflict.map_err(|e| {
-                            GitPurgeError::Git(format!("Conflict error: {}", e))
-                        })?;
+                        let conflict = conflict
+                            .map_err(|e| GitPurgeError::Git(format!("Conflict error: {}", e)))?;
                         if let Some(their_entry) = conflict.their {
                             their_entries.push(their_entry);
                         }
@@ -128,16 +144,18 @@ pub fn archive_branches(
                     GitPurgeError::Git(format!("Failed to find merged tree: {}", e))
                 })?;
 
-                let merge_oid = repo.commit(
-                    Some(&format!("refs/heads/{}", target_branch)),
-                    &sig,
-                    &sig,
-                    &format!("Archive merge branch '{}' (theirs)", source.0),
-                    &tree,
-                    &[&target_commit, &source_commit],
-                ).map_err(|e| {
-                    GitPurgeError::Git(format!("Failed to create theirs merge commit: {}", e))
-                })?;
+                let merge_oid = repo
+                    .commit(
+                        Some(&format!("refs/heads/{}", target_branch)),
+                        &sig,
+                        &sig,
+                        &format!("Archive merge branch '{}' (theirs)", source.0),
+                        &tree,
+                        &[&target_commit, &source_commit],
+                    )
+                    .map_err(|e| {
+                        GitPurgeError::Git(format!("Failed to create theirs merge commit: {}", e))
+                    })?;
                 target_commit = repo.find_commit(merge_oid).unwrap();
             }
         }
@@ -148,9 +166,11 @@ pub fn archive_branches(
         if let Ok(mut remote) = repo.find_remote("origin") {
             let refspec = format!("refs/heads/{}", target_branch);
             let mut push_opts = git2::PushOptions::new();
-            remote.push(&[&refspec], Some(&mut push_opts)).map_err(|e| {
-                GitPurgeError::Git(format!("Failed to push legacy branch to origin: {}", e))
-            })?;
+            remote
+                .push(&[&refspec], Some(&mut push_opts))
+                .map_err(|e| {
+                    GitPurgeError::Git(format!("Failed to push legacy branch to origin: {}", e))
+                })?;
         }
     }
 

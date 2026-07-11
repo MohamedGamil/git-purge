@@ -1,8 +1,11 @@
 //! Subcommand handlers for `backup` and `restore` (CLI Spec §8.6, §8.7).
 
 use gitpurge_core::{
-    Engine, Result, GitPurgeError,
-    model::{RepoId, SnapshotId, BackupOptions, RetentionPolicy, SnapshotTrigger, ExecMode, RestoreSpec, BranchName},
+    model::{
+        BackupOptions, BranchName, ExecMode, RepoId, RestoreSpec, RetentionPolicy, SnapshotId,
+        SnapshotTrigger,
+    },
+    Engine, GitPurgeError, Result,
 };
 use serde_json::json;
 
@@ -78,7 +81,13 @@ pub fn handle_backup(
                 }
 
                 let mut table = comfy_table::Table::new();
-                table.set_header(vec!["SNAPSHOT ID", "CREATED AT", "TRIGGER", "REFS COUNT", "VERIFIED"]);
+                table.set_header(vec![
+                    "SNAPSHOT ID",
+                    "CREATED AT",
+                    "TRIGGER",
+                    "REFS COUNT",
+                    "VERIFIED",
+                ]);
 
                 for s in snapshots {
                     let trigger_str = format!("{:?}", s.trigger);
@@ -96,8 +105,9 @@ pub fn handle_backup(
         }
         crate::cli::BackupAction::Show { snapshot_id } => {
             let snap_id = SnapshotId(snapshot_id.clone());
-            let snapshot = engine.get_snapshot(&snap_id)?
-                .ok_or_else(|| GitPurgeError::Snapshot(format!("Snapshot not found: {}", snapshot_id)))?;
+            let snapshot = engine.get_snapshot(&snap_id)?.ok_or_else(|| {
+                GitPurgeError::Snapshot(format!("Snapshot not found: {}", snapshot_id))
+            })?;
 
             if json_output {
                 println!(
@@ -118,7 +128,10 @@ pub fn handle_backup(
                 println!("ID:          {}", snapshot.id.0);
                 println!("Created At:  {}", snapshot.created_at);
                 println!("Trigger:     {:?}", snapshot.trigger);
-                println!("Verified:    {}", if snapshot.verified { "yes" } else { "no" });
+                println!(
+                    "Verified:    {}",
+                    if snapshot.verified { "yes" } else { "no" }
+                );
                 println!("Manifest:    {}", snapshot.manifest_path.to_string_lossy());
                 println!("\nCaptured References:");
                 for r in &snapshot.refs {
@@ -163,7 +176,8 @@ pub fn handle_backup(
                     Ok(threshold) => Some(threshold.duration),
                     Err(e) => {
                         return Err(GitPurgeError::Config(format!(
-                            "Invalid duration format for --older-than: {}", e
+                            "Invalid duration format for --older-than: {}",
+                            e
                         )));
                     }
                 }
@@ -178,7 +192,11 @@ pub fn handle_backup(
                 keep_triggers: vec![SnapshotTrigger::Manual],
             };
 
-            let mode = if execute { ExecMode::Execute } else { ExecMode::DryRun };
+            let mode = if execute {
+                ExecMode::Execute
+            } else {
+                ExecMode::DryRun
+            };
             let report = engine.backup_prune(repo_id, &policy, mode)?;
 
             if json_output {
@@ -197,14 +215,23 @@ pub fn handle_backup(
                 );
             } else {
                 if !execute {
-                    println!("[DRY-RUN] Would prune {} snapshots.", report.pruned_snapshots.len());
+                    println!(
+                        "[DRY-RUN] Would prune {} snapshots.",
+                        report.pruned_snapshots.len()
+                    );
                     for s in &report.pruned_snapshots {
                         println!("  - {}", s.0);
                     }
-                    println!("Space that would be reclaimed: {} bytes", report.space_reclaimed_bytes);
+                    println!(
+                        "Space that would be reclaimed: {} bytes",
+                        report.space_reclaimed_bytes
+                    );
                     println!("Run with --execute to apply changes.");
                 } else {
-                    println!("Successfully pruned {} snapshots.", report.pruned_snapshots.len());
+                    println!(
+                        "Successfully pruned {} snapshots.",
+                        report.pruned_snapshots.len()
+                    );
                     println!("Reclaimed space: {} bytes", report.space_reclaimed_bytes);
                 }
             }
@@ -213,6 +240,7 @@ pub fn handle_backup(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_restore(
     engine: &Engine,
     repo_id: &RepoId,
@@ -228,7 +256,9 @@ pub fn handle_restore(
     let snap_id = if snapshot_id.to_lowercase() == "latest" {
         let list = engine.list_snapshots(repo_id)?;
         let latest = list.first().ok_or_else(|| {
-            GitPurgeError::Snapshot("No snapshots exist for repository to restore from.".to_string())
+            GitPurgeError::Snapshot(
+                "No snapshots exist for repository to restore from.".to_string(),
+            )
         })?;
         latest.id.clone()
     } else {
@@ -261,7 +291,10 @@ pub fn handle_restore(
                 })
             );
         } else {
-            println!("[DRY-RUN] Would restore branch '{}' from snapshot '{}'.", ref_or_glob, snap_id.0);
+            println!(
+                "[DRY-RUN] Would restore branch '{}' from snapshot '{}'.",
+                ref_or_glob, snap_id.0
+            );
             if as_tag {
                 println!("  - Restoring as a TAG");
             }

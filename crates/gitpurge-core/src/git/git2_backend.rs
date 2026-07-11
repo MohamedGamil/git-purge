@@ -64,12 +64,13 @@ impl GitBackend for Git2Backend {
         let local_path = repo.local_path.as_ref().ok_or_else(|| {
             crate::GitPurgeError::RepoNotFound("Local path missing for repository".to_string())
         })?;
-        let git2_repo = git2::Repository::open(local_path).map_err(|e| {
-            crate::GitPurgeError::Git(format!("Failed to open repository: {}", e))
-        })?;
+        let git2_repo = git2::Repository::open(local_path)
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open repository: {}", e)))?;
         let mut r = git2_repo
             .find_branch(&branch.0, git2::BranchType::Local)
-            .map_err(|e| crate::GitPurgeError::RefNotFound(format!("Local branch not found: {}", e)))?;
+            .map_err(|e| {
+                crate::GitPurgeError::RefNotFound(format!("Local branch not found: {}", e))
+            })?;
         r.delete().map_err(|e| {
             crate::GitPurgeError::Git(format!("Failed to delete local branch: {}", e))
         })?;
@@ -85,17 +86,21 @@ impl GitBackend for Git2Backend {
         let local_path = repo.local_path.as_ref().ok_or_else(|| {
             crate::GitPurgeError::RepoNotFound("Local path missing for repository".to_string())
         })?;
-        let git2_repo = git2::Repository::open(local_path).map_err(|e| {
-            crate::GitPurgeError::Git(format!("Failed to open repository: {}", e))
-        })?;
+        let git2_repo = git2::Repository::open(local_path)
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open repository: {}", e)))?;
         let mut git2_remote = git2_repo.find_remote(remote).map_err(|e| {
             crate::GitPurgeError::Git(format!("Failed to find remote '{}': {}", remote, e))
         })?;
         let refspec = format!(":refs/heads/{}", branch.0);
         let mut push_opts = git2::PushOptions::new();
-        git2_remote.push(&[&refspec], Some(&mut push_opts)).map_err(|e| {
-            crate::GitPurgeError::Git(format!("Failed to push deletion of remote branch: {}", e))
-        })?;
+        git2_remote
+            .push(&[&refspec], Some(&mut push_opts))
+            .map_err(|e| {
+                crate::GitPurgeError::Git(format!(
+                    "Failed to push deletion of remote branch: {}",
+                    e
+                ))
+            })?;
         Ok(())
     }
 
@@ -109,15 +114,13 @@ impl GitBackend for Git2Backend {
         let local_path = repo.local_path.as_ref().ok_or_else(|| {
             crate::GitPurgeError::RepoNotFound("Local path missing for repository".to_string())
         })?;
-        let git2_repo = git2::Repository::open(local_path).map_err(|e| {
-            crate::GitPurgeError::Git(format!("Failed to open repository: {}", e))
-        })?;
-        let oid = git2::Oid::from_str(&target.0).map_err(|e| {
-            crate::GitPurgeError::Git(format!("Invalid target commit OID: {}", e))
-        })?;
-        git2_repo.reference(full_ref, oid, force, "git-purge create_ref").map_err(|e| {
-            crate::GitPurgeError::Git(format!("Failed to create reference: {}", e))
-        })?;
+        let git2_repo = git2::Repository::open(local_path)
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open repository: {}", e)))?;
+        let oid = git2::Oid::from_str(&target.0)
+            .map_err(|e| crate::GitPurgeError::Git(format!("Invalid target commit OID: {}", e)))?;
+        git2_repo
+            .reference(full_ref, oid, force, "git-purge create_ref")
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to create reference: {}", e)))?;
         Ok(())
     }
 
@@ -125,16 +128,17 @@ impl GitBackend for Git2Backend {
         let local_path = repo.local_path.as_ref().ok_or_else(|| {
             crate::GitPurgeError::RepoNotFound("Local path missing for repository".to_string())
         })?;
-        let git2_repo = git2::Repository::open(local_path).map_err(|e| {
-            crate::GitPurgeError::Git(format!("Failed to open repository: {}", e))
-        })?;
+        let git2_repo = git2::Repository::open(local_path)
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open repository: {}", e)))?;
         let mut git2_remote = git2_repo.find_remote(remote).map_err(|e| {
             crate::GitPurgeError::Git(format!("Failed to find remote '{}': {}", remote, e))
         })?;
         let mut fetch_opts = git2::FetchOptions::new();
         git2_remote
             .fetch(&[] as &[&str], Some(&mut fetch_opts), None)
-            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to fetch remote '{}': {}", remote, e)))?;
+            .map_err(|e| {
+                crate::GitPurgeError::Git(format!("Failed to fetch remote '{}': {}", remote, e))
+            })?;
         Ok(())
     }
 }

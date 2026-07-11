@@ -1,5 +1,7 @@
 //! Exit codes and error mapping (CLI Spec §7, CONVENTIONS §11).
 
+#![allow(dead_code)]
+
 use gitpurge_core::GitPurgeError;
 use miette::Diagnostic;
 
@@ -33,34 +35,52 @@ impl std::error::Error for CliError {}
 
 pub fn handle_error(err: gitpurge_core::GitPurgeError) -> ! {
     let (code, msg, hint) = match err {
-        GitPurgeError::Config(m) => (EXIT_CONFIG, m, "Check your config.toml layout or CLI override path.".to_string()),
-        GitPurgeError::RepoNotFound(m) | GitPurgeError::RefNotFound(m) => {
-            (EXIT_NOT_FOUND, m, "Verify that the repository is registered and the reference exists.".to_string())
-        }
-        GitPurgeError::Git(m) | GitPurgeError::BackendUnsupported(m) => {
-            (EXIT_GIT, m, "Ensure the repository is not corrupted and remote access is available.".to_string())
-        }
-        GitPurgeError::Auth(m) => {
-            (EXIT_AUTH, m, "Check your credentials or SSH keys/agents.".to_string())
-        }
-        GitPurgeError::SafetyViolation(m) => {
-            (EXIT_SAFETY, m, "Branch is protected, has unmerged commits, or is current HEAD.".to_string())
-        }
-        GitPurgeError::Snapshot(m) => {
-            (EXIT_BACKUP, m, "A backup snapshot failed integrity checks. Mutations aborted.".to_string())
-        }
-        GitPurgeError::History(m) => {
-            (EXIT_PARTIAL, m, "History store error occurred.".to_string())
-        }
-        GitPurgeError::Io(e) => {
-            (EXIT_GENERIC, e.to_string(), "Check file and directory permissions.".to_string())
-        }
-        GitPurgeError::Other(m) => {
-            (EXIT_GENERIC, m, "An unexpected internal error occurred.".to_string())
-        }
-        _ => {
-            (EXIT_GENERIC, "An unexpected error occurred.".to_string(), "Verify logs and configuration.".to_string())
-        }
+        GitPurgeError::Config(m) => (
+            EXIT_CONFIG,
+            m,
+            "Check your config.toml layout or CLI override path.".to_string(),
+        ),
+        GitPurgeError::RepoNotFound(m) | GitPurgeError::RefNotFound(m) => (
+            EXIT_NOT_FOUND,
+            m,
+            "Verify that the repository is registered and the reference exists.".to_string(),
+        ),
+        GitPurgeError::Git(m) | GitPurgeError::BackendUnsupported(m) => (
+            EXIT_GIT,
+            m,
+            "Ensure the repository is not corrupted and remote access is available.".to_string(),
+        ),
+        GitPurgeError::Auth(m) => (
+            EXIT_AUTH,
+            m,
+            "Check your credentials or SSH keys/agents.".to_string(),
+        ),
+        GitPurgeError::SafetyViolation(m) => (
+            EXIT_SAFETY,
+            m,
+            "Branch is protected, has unmerged commits, or is current HEAD.".to_string(),
+        ),
+        GitPurgeError::Snapshot(m) => (
+            EXIT_BACKUP,
+            m,
+            "A backup snapshot failed integrity checks. Mutations aborted.".to_string(),
+        ),
+        GitPurgeError::History(m) => (EXIT_PARTIAL, m, "History store error occurred.".to_string()),
+        GitPurgeError::Io(e) => (
+            EXIT_GENERIC,
+            e.to_string(),
+            "Check file and directory permissions.".to_string(),
+        ),
+        GitPurgeError::Other(m) => (
+            EXIT_GENERIC,
+            m,
+            "An unexpected internal error occurred.".to_string(),
+        ),
+        _ => (
+            EXIT_GENERIC,
+            "An unexpected error occurred.".to_string(),
+            "Verify logs and configuration.".to_string(),
+        ),
     };
 
     eprintln!("Error: {}", msg);

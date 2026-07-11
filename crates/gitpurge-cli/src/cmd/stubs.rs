@@ -1,6 +1,6 @@
 //! Stub command handlers for commands implemented in later phases (Phase P5/P6).
 
-use gitpurge_core::{Engine, Result, GitPurgeError};
+use gitpurge_core::{Engine, GitPurgeError, Result};
 
 pub fn handle_report(
     _engine: &Engine,
@@ -22,11 +22,7 @@ pub fn handle_history(
     ))
 }
 
-pub fn handle_auth(
-    _engine: &Engine,
-    _action: &crate::cli::AuthAction,
-    _json: bool,
-) -> Result<()> {
+pub fn handle_auth(_engine: &Engine, _action: &crate::cli::AuthAction, _json: bool) -> Result<()> {
     Err(GitPurgeError::Other(
         "The 'auth' command is not yet implemented (Phase P6).".to_string(),
     ))

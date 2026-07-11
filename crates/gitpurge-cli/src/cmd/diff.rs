@@ -1,21 +1,21 @@
 //! Subcommand handlers for `diff` and `show` (CLI Spec §8.8, §8.9).
 
-use std::path::Path;
 use gitpurge_core::{
-    Engine, Result, GitPurgeError,
-    model::{RepoId, RefSpec, BranchName},
+    model::{BranchName, RefSpec, RepoId},
+    Engine, GitPurgeError, Result,
 };
 use serde_json::json;
+use std::path::Path;
 
 pub fn parse_ref_spec(s: &str) -> RefSpec {
-    if s.starts_with("refs/heads/") {
-        RefSpec::Branch(BranchName(s["refs/heads/".len()..].to_string()))
-    } else if s.starts_with("refs/tags/") {
-        RefSpec::Tag(s["refs/tags/".len()..].to_string())
-    } else if s.starts_with("tags/") {
-        RefSpec::Tag(s["tags/".len()..].to_string())
-    } else if s.starts_with("heads/") {
-        RefSpec::Branch(BranchName(s["heads/".len()..].to_string()))
+    if let Some(stripped) = s.strip_prefix("refs/heads/") {
+        RefSpec::Branch(BranchName(stripped.to_string()))
+    } else if let Some(stripped) = s.strip_prefix("refs/tags/") {
+        RefSpec::Tag(stripped.to_string())
+    } else if let Some(stripped) = s.strip_prefix("tags/") {
+        RefSpec::Tag(stripped.to_string())
+    } else if let Some(stripped) = s.strip_prefix("heads/") {
+        RefSpec::Branch(BranchName(stripped.to_string()))
     } else if s == "HEAD" {
         RefSpec::Symbolic(s.to_string())
     } else if s.len() == 40 && s.chars().all(|c| c.is_ascii_hexdigit()) {
@@ -25,6 +25,7 @@ pub fn parse_ref_spec(s: &str) -> RefSpec {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_diff(
     engine: &Engine,
     repo_id: &RepoId,
@@ -62,7 +63,9 @@ pub fn handle_diff(
             println!("{}", entry.path);
         }
     } else if patch {
-        println!("Patch format (unified diff) is only available via git directly. Showing diff stat:");
+        println!(
+            "Patch format (unified diff) is only available via git directly. Showing diff stat:"
+        );
         print_diff_stat(&diff_result);
     } else if stat {
         print_diff_stat(&diff_result);
@@ -119,8 +122,9 @@ pub fn handle_show(
                 })
             );
         } else {
-            std::io::Write::write_all(&mut std::io::stdout(), &content)
-                .map_err(|e| GitPurgeError::Git(format!("Failed to write file content to stdout: {}", e)))?;
+            std::io::Write::write_all(&mut std::io::stdout(), &content).map_err(|e| {
+                GitPurgeError::Git(format!("Failed to write file content to stdout: {}", e))
+            })?;
         }
     } else {
         let tree_view = engine.show_tree(repo_id, &spec, None)?;

@@ -1,9 +1,12 @@
 //! Subcommand handler for `repo` command group (CLI Spec §8.1).
 
-use std::path::Path;
 use comfy_table::Table;
-use gitpurge_core::{Engine, GitPurgeError, Result, model::{RepoId, Repository, GitUrl, Branch, BranchName, BranchScope}};
+use gitpurge_core::{
+    model::{Branch, BranchName, BranchScope, GitUrl, RepoId, Repository},
+    Engine, GitPurgeError, Result,
+};
 use serde_json::json;
+use std::path::Path;
 
 pub fn handle(
     engine: &Engine,
@@ -37,7 +40,9 @@ pub fn handle(
             }
             if let Some(ref db) = default_branch {
                 let placeholder_commit = gitpurge_core::model::Commit {
-                    oid: gitpurge_core::model::Oid("0000000000000000000000000000000000000000".to_string()),
+                    oid: gitpurge_core::model::Oid(
+                        "0000000000000000000000000000000000000000".to_string(),
+                    ),
                     short: "0000000".to_string(),
                     author: gitpurge_core::model::Signature {
                         name: "System".to_string(),
@@ -87,7 +92,12 @@ pub fn handle(
                     .local_path
                     .as_ref()
                     .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| repo.remote_url.as_ref().map(|u| u.raw.clone()).unwrap_or_default());
+                    .unwrap_or_else(|| {
+                        repo.remote_url
+                            .as_ref()
+                            .map(|u| u.raw.clone())
+                            .unwrap_or_default()
+                    });
                 println!(
                     "Added repo '{}' → {} (default branch: {})",
                     repo.id.0,
@@ -129,7 +139,12 @@ pub fn handle(
                         .local_path
                         .as_ref()
                         .map(|p| p.to_string_lossy().to_string())
-                        .unwrap_or_else(|| repo.remote_url.as_ref().map(|u| u.raw.clone()).unwrap_or_default());
+                        .unwrap_or_else(|| {
+                            repo.remote_url
+                                .as_ref()
+                                .map(|u| u.raw.clone())
+                                .unwrap_or_default()
+                        });
                     let def_branch = repo
                         .default_branch
                         .as_ref()
@@ -152,9 +167,9 @@ pub fn handle(
         }
         crate::cli::RepoAction::Show { id } => {
             let repo_id = RepoId(id.clone());
-            let repo = engine
-                .get_repo(&repo_id)?
-                .ok_or_else(|| GitPurgeError::RepoNotFound(format!("Repository not found: {}", id)))?;
+            let repo = engine.get_repo(&repo_id)?.ok_or_else(|| {
+                GitPurgeError::RepoNotFound(format!("Repository not found: {}", id))
+            })?;
 
             if json_output {
                 println!(
@@ -197,14 +212,17 @@ pub fn handle(
         }
         crate::cli::RepoAction::Remove { id, purge_backups } => {
             let repo_id = RepoId(id.clone());
-            let _repo = engine
-                .get_repo(&repo_id)?
-                .ok_or_else(|| GitPurgeError::RepoNotFound(format!("Repository not found: {}", id)))?;
+            let _repo = engine.get_repo(&repo_id)?.ok_or_else(|| {
+                GitPurgeError::RepoNotFound(format!("Repository not found: {}", id))
+            })?;
 
             if !execute {
                 println!("[DRY-RUN] Would remove repo '{}' from tracked list.", id);
                 if *purge_backups {
-                    println!("[DRY-RUN] Would purge backups bare mirror for repo '{}'.", id);
+                    println!(
+                        "[DRY-RUN] Would purge backups bare mirror for repo '{}'.",
+                        id
+                    );
                 }
                 println!("Run with --execute to apply changes.");
             } else {
@@ -241,9 +259,9 @@ pub fn handle(
         }
         crate::cli::RepoAction::SetDefault { id } => {
             let repo_id = RepoId(id.clone());
-            let _ = engine
-                .get_repo(&repo_id)?
-                .ok_or_else(|| GitPurgeError::RepoNotFound(format!("Repository not found: {}", id)))?;
+            let _ = engine.get_repo(&repo_id)?.ok_or_else(|| {
+                GitPurgeError::RepoNotFound(format!("Repository not found: {}", id))
+            })?;
 
             engine.set_default_repo(repo_id)?;
             engine.save_config(config_path)?;

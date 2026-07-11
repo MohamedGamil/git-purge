@@ -557,7 +557,10 @@ impl Engine {
         let repo = {
             let repos = self.repos.lock().unwrap();
             repos.get(repo_id).cloned().ok_or_else(|| {
-                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo_id))
+                crate::GitPurgeError::RepoNotFound(format!(
+                    "Repository not registered: {:?}",
+                    repo_id
+                ))
             })?
         };
 
@@ -587,7 +590,11 @@ impl Engine {
     }
 
     /// Verify the integrity of a backup snapshot in the bare mirror.
-    pub fn backup_verify(&self, repo_id: &RepoId, snap_id: &SnapshotId) -> Result<crate::backup::VerifyReport> {
+    pub fn backup_verify(
+        &self,
+        repo_id: &RepoId,
+        snap_id: &SnapshotId,
+    ) -> Result<crate::backup::VerifyReport> {
         crate::backup::verify_snapshot(&self.config.lock().unwrap(), repo_id, snap_id, false)
     }
 
@@ -612,7 +619,10 @@ impl Engine {
         let repo = {
             let repos = self.repos.lock().unwrap();
             repos.get(repo_id).cloned().ok_or_else(|| {
-                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo_id))
+                crate::GitPurgeError::RepoNotFound(format!(
+                    "Repository not registered: {:?}",
+                    repo_id
+                ))
             })?
         };
         self.git.fetch(&repo, "origin")
@@ -711,19 +721,15 @@ impl Engine {
     }
 
     /// Read the raw content of a file at a ref/commit.
-    pub fn show_file(
-        &self,
-        repo: &RepoId,
-        at: &RefSpec,
-        path: &Path,
-    ) -> Result<Vec<u8>> {
+    pub fn show_file(&self, repo: &RepoId, at: &RefSpec, path: &Path) -> Result<Vec<u8>> {
         let repo_model = {
             let repos = self.repos.lock().unwrap();
             repos.get(repo).cloned().ok_or_else(|| {
                 crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo))
             })?
         };
-        self.git.read_blob(&repo_model, at, path.to_str().unwrap_or(""))
+        self.git
+            .read_blob(&repo_model, at, path.to_str().unwrap_or(""))
     }
 
     /// Generate an audit/trend report in the requested format.
@@ -882,12 +888,18 @@ mod tests {
         assert!(snapshot.verified);
 
         // 2. Verify snapshot
-        let verify_res =
-            crate::backup::verify_snapshot(&engine.config.lock().unwrap(), &repo_id, &snapshot.id, false).unwrap();
+        let verify_res = crate::backup::verify_snapshot(
+            &engine.config.lock().unwrap(),
+            &repo_id,
+            &snapshot.id,
+            false,
+        )
+        .unwrap();
         assert!(verify_res.ok);
 
         // 3. Corrupt snapshot by deleting a backup reference in the mirror
-        let mirror_manager = crate::backup::BackupMirrorManager::new(&engine.config.lock().unwrap());
+        let mirror_manager =
+            crate::backup::BackupMirrorManager::new(&engine.config.lock().unwrap());
         let mirror_path = mirror_manager.resolve_mirror_path(&repo_id);
         let mirror_repo = git2::Repository::open_bare(&mirror_path).unwrap();
 
@@ -899,8 +911,13 @@ mod tests {
         r.delete().unwrap();
 
         // 4. Verify snapshot should now detect corruption
-        let verify_res2 =
-            crate::backup::verify_snapshot(&engine.config.lock().unwrap(), &repo_id, &snapshot.id, false).unwrap();
+        let verify_res2 = crate::backup::verify_snapshot(
+            &engine.config.lock().unwrap(),
+            &repo_id,
+            &snapshot.id,
+            false,
+        )
+        .unwrap();
         assert!(!verify_res2.ok);
         assert!(verify_res2
             .problems
@@ -1163,7 +1180,8 @@ mod tests {
         assert_eq!(listed.len(), 5);
 
         // Verify the bare mirror directory exists and objects are shared
-        let mirror_manager = crate::backup::BackupMirrorManager::new(&engine.config.lock().unwrap());
+        let mirror_manager =
+            crate::backup::BackupMirrorManager::new(&engine.config.lock().unwrap());
         let mirror_path = mirror_manager.resolve_mirror_path(&repo_id);
         assert!(mirror_path.exists());
     }

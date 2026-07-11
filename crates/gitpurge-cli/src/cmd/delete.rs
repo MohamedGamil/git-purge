@@ -1,12 +1,13 @@
 //! Subcommand handlers for `delete` and `archive` (CLI Spec §8.4, §8.5).
 
 use gitpurge_core::{
-    Engine, Result, GitPurgeError,
-    model::{RepoId, ActionKind, ExecMode, MergeState, BranchName},
     action::ArchiveStrategy,
+    model::{ActionKind, BranchName, ExecMode, MergeState, RepoId},
+    Engine, GitPurgeError, Result,
 };
 use serde_json::json;
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_delete(
     engine: &Engine,
     repo_id: &RepoId,
@@ -22,7 +23,7 @@ pub fn handle_delete(
 ) -> Result<()> {
     // 1. Plan the delete
     let mut filter = crate::cmd::scan::make_action_filter(flags, Some(ActionKind::Delete));
-    
+
     // Adjust filter based on specific delete flags
     if unmerged_only {
         filter.merged_only = false;
@@ -35,9 +36,8 @@ pub fn handle_delete(
 
     // If unmerged_only, keep only unmerged branches in the plan
     if unmerged_only {
-        plan.actions.retain(|action| {
-            action.classification.merge_state == MergeState::Unmerged
-        });
+        plan.actions
+            .retain(|action| action.classification.merge_state == MergeState::Unmerged);
     }
 
     if plan.actions.is_empty() {
@@ -67,9 +67,10 @@ pub fn handle_delete(
     }
 
     // Check if plan contains unmerged branches
-    let has_unmerged = plan.actions.iter().any(|action| {
-        action.classification.merge_state == MergeState::Unmerged
-    });
+    let has_unmerged = plan
+        .actions
+        .iter()
+        .any(|action| action.classification.merge_state == MergeState::Unmerged);
 
     if !execute {
         // DRY-RUN mode: print plan
@@ -88,7 +89,10 @@ pub fn handle_delete(
                 })
             );
         } else {
-            println!("Delete plan (dry-run) · repo={} · unmerged={}", repo_id.0, has_unmerged);
+            println!(
+                "Delete plan (dry-run) · repo={} · unmerged={}",
+                repo_id.0, has_unmerged
+            );
             let mut table = comfy_table::Table::new();
             table.set_header(vec!["ACTION", "REF", "REASON", "LAST COMMIT", "MERGED?"]);
             for action in &plan.actions {
@@ -97,7 +101,11 @@ pub fn handle_delete(
                     MergeState::Unmerged => "no",
                     MergeState::Unknown => "unknown",
                 };
-                let last_commit = format!("{} by {}", crate::cmd::scan::format_age(action.classification.age), action.classification.tip.author.name);
+                let last_commit = format!(
+                    "{} by {}",
+                    crate::cmd::scan::format_age(action.classification.age),
+                    action.classification.tip.author.name
+                );
                 table.add_row(vec![
                     "DELETE",
                     action.branch.0.as_str(),
@@ -107,7 +115,10 @@ pub fn handle_delete(
                 ]);
             }
             println!("{}", table);
-            println!("{} branches selected for deletion. Run with --execute to apply changes.", plan.actions.len());
+            println!(
+                "{} branches selected for deletion. Run with --execute to apply changes.",
+                plan.actions.len()
+            );
         }
         return Ok(());
     }
@@ -120,14 +131,17 @@ pub fn handle_delete(
         );
         if !crate::confirm::confirm_strong(&repo_id.0, &prompt, force_unmerged) {
             return Err(GitPurgeError::SafetyViolation(
-                "Deletion of unmerged branches was not confirmed.".to_string()
+                "Deletion of unmerged branches was not confirmed.".to_string(),
             ));
         }
     } else {
-        let prompt = format!("Are you sure you want to delete {} branches?", plan.actions.len());
+        let prompt = format!(
+            "Are you sure you want to delete {} branches?",
+            plan.actions.len()
+        );
         if !crate::confirm::confirm_standard(&prompt, yes_global) {
             return Err(GitPurgeError::SafetyViolation(
-                "Deletion was not confirmed.".to_string()
+                "Deletion was not confirmed.".to_string(),
             ));
         }
     }
@@ -172,6 +186,7 @@ pub fn handle_delete(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn handle_archive(
     engine: &Engine,
     repo_id: &RepoId,
@@ -241,11 +256,17 @@ pub fn handle_archive(
                 })
             );
         } else {
-            println!("Archive plan (dry-run) · repo={} · target={} · strategy={:?}", repo_id.0, target, strategy);
+            println!(
+                "Archive plan (dry-run) · repo={} · target={} · strategy={:?}",
+                repo_id.0, target, strategy
+            );
             for b in &branches_to_archive {
                 println!("  - {}", b.0);
             }
-            println!("{} branches selected for archiving. Run with --execute to apply changes.", branches_to_archive.len());
+            println!(
+                "{} branches selected for archiving. Run with --execute to apply changes.",
+                branches_to_archive.len()
+            );
         }
         return Ok(());
     }
@@ -258,7 +279,7 @@ pub fn handle_archive(
     );
     if !crate::confirm::confirm_standard(&prompt, yes_global) {
         return Err(GitPurgeError::SafetyViolation(
-            "Archiving was not confirmed.".to_string()
+            "Archiving was not confirmed.".to_string(),
         ));
     }
 

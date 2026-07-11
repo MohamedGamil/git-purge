@@ -1,13 +1,16 @@
 //! `git-purge` CLI — thin adapter over `gitpurge-core` (CONVENTIONS §2).
 
-use std::path::Path;
 use clap::Parser;
-use gitpurge_core::{Engine, GitPurgeError, Result, model::{RepoId, Repository, GitUrl}};
+use gitpurge_core::{
+    model::{GitUrl, RepoId, Repository},
+    Engine, GitPurgeError, Result,
+};
+use std::path::Path;
 
 mod cli;
+mod cmd;
 mod confirm;
 mod exit;
-mod cmd;
 
 fn run() -> Result<()> {
     let args = cli::Cli::parse();
@@ -19,14 +22,15 @@ fn run() -> Result<()> {
     // 2. Open the engine
     let engine = Engine::open(config)?;
 
-
-
     // 4. Dispatch subcommands
     match &args.command {
         Some(cli::Commands::Repo { action }) => {
             cmd::repo::handle(&engine, config_path, args.json, args.execute, action)?;
         }
-        Some(cli::Commands::Scan { no_refresh, filters }) => {
+        Some(cli::Commands::Scan {
+            no_refresh,
+            filters,
+        }) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
             cmd::scan::handle_scan(&engine, &repo_id, *no_refresh, filters, args.json)?;
         }
@@ -110,25 +114,28 @@ fn run() -> Result<()> {
         }) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
             cmd::diff::handle_diff(
-                &engine,
-                &repo_id,
-                ref_a,
-                ref_b,
-                *stat,
-                *name_only,
-                *patch,
-                args.json,
+                &engine, &repo_id, ref_a, ref_b, *stat, *name_only, *patch, args.json,
             )?;
         }
         Some(cli::Commands::Show { ref_spec, path }) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
             cmd::diff::handle_show(&engine, &repo_id, ref_spec, path, args.json)?;
         }
-        Some(cli::Commands::Report { r#type: _, format: _, out: _, baseline: _, filters: _ }) => {
+        Some(cli::Commands::Report {
+            r#type: _,
+            format: _,
+            out: _,
+            baseline: _,
+            filters: _,
+        }) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
             cmd::stubs::handle_report(&engine, &repo_id, args.json)?;
         }
-        Some(cli::Commands::History { limit: _, metric: _, since: _ }) => {
+        Some(cli::Commands::History {
+            limit: _,
+            metric: _,
+            since: _,
+        }) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
             cmd::stubs::handle_history(&engine, &repo_id, args.json)?;
         }
@@ -138,7 +145,12 @@ fn run() -> Result<()> {
         Some(cli::Commands::Ui) => {
             cmd::stubs::handle_ui()?;
         }
-        Some(cli::Commands::InstallCli { user: _, system: _, dir: _, force: _ }) => {
+        Some(cli::Commands::InstallCli {
+            user: _,
+            system: _,
+            dir: _,
+            force: _,
+        }) => {
             cmd::stubs::handle_install_cli()?;
         }
         Some(cli::Commands::Completions { shell }) => {
@@ -201,7 +213,10 @@ fn resolve_repo(
     }
 
     let cwd = std::env::current_dir().map_err(|e| {
-        GitPurgeError::Config(format!("Failed to resolve current working directory: {}", e))
+        GitPurgeError::Config(format!(
+            "Failed to resolve current working directory: {}",
+            e
+        ))
     })?;
 
     let mut git_dir = cwd.clone();
