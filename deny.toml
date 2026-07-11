@@ -14,7 +14,7 @@ ignore = []
 
 [licenses]
 version = 2
-# Permissive licenses only, matching our dual MIT OR Apache-2.0 project license.
+# Permissive licenses only, matching our Apache-2.0 project license.
 allow = [
     "MIT",
     "Apache-2.0",

@@ -1,92 +1,100 @@
 # Contributing to Git Purge
 
-Thanks for helping build Git Purge! This guide covers local setup, the quality gates
-you must pass, and how to open a good PR. The canonical rules live in
-[`delivery/CONVENTIONS.md`](delivery/CONVENTIONS.md) and
-[`delivery/AGENT_GUIDE.md`](delivery/AGENT_GUIDE.md) — **read `CONVENTIONS.md` first;
-it overrides everything.**
+Thank you for your interest in contributing to Git Purge! This document provides
+guidelines and information for contributors.
 
-## Golden rules (non-negotiable)
+## Code of Conduct
 
-1. **Logic lives in `gitpurge-core`.** The CLI (`gitpurge-cli`) and the Tauri backend
-   (`gitpurge-desktop`) are thin adapters — they translate user intent and render
-   results. They contain **zero** git/DB/keychain logic and must **not** depend on
-   `gix`, `git2`, or `rusqlite` directly.
-2. **Dry-run is the default** for every mutating command. Mutations require an
-   explicit `--execute` (CLI) or a confirmed action (UI).
-3. **Backup before destroy.** No destructive operation runs without a prior _verified_
-   backup snapshot (unless the user explicitly passes `--no-backup`). If you add a
-   destructive path, you add the backup wrapper and a test that proves it.
-4. **No secrets or PII in logs, errors, snapshots, or reports.** Ever.
-5. **No hardcoded paths, repos, users, or ages.** Everything is config or arguments —
-   resolve paths through the `directories` crate.
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+By participating, you are expected to uphold this code.
 
-## Dev setup
+## Getting Started
 
-### Rust (core + CLI, always required)
+### Prerequisites
+
+- **Rust** stable toolchain (MSRV 1.88) — install via [rustup](https://rustup.rs/)
+- **Git** 2.30+
+- **Node.js** 20 LTS (for desktop frontend development only)
+
+### Setup
 
 ```bash
-rustup toolchain install stable        # rust-toolchain.toml pins the exact version (1.82)
-cargo install cargo-nextest cargo-deny cargo-insta
+# Clone the repository
+git clone https://github.com/MohamedGamil/git-purge.git
+cd git-purge
+
+# Build the workspace (excluding desktop until Tauri deps are installed)
+cargo build --workspace --exclude gitpurge-desktop
+
+# Run tests
+cargo nextest run --workspace --exclude gitpurge-desktop
+
+# Run the CLI
+cargo run --bin git-purge -- --help
 ```
 
-### Frontend (only if working on the desktop app)
-
-```bash
-corepack enable && corepack prepare pnpm@9 --activate
-cd apps/desktop && pnpm install
-```
-
-You will also need your platform's Tauri v2 prerequisites (WebKitGTK on Linux,
-WebView2 on Windows, Xcode CLT on macOS) — see `docs/13-distribution-and-ci.md`.
-
-## The local gate (must all pass before you push)
-
-```bash
-# Rust
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo nextest run --all
-cargo deny check
-
-# Frontend (desktop tasks only)
-pnpm -C apps/desktop lint
-pnpm -C apps/desktop test
-pnpm -C apps/desktop exec vue-tsc --noEmit
-```
-
-CI runs the same gate on Linux, macOS, and Windows. A red gate blocks merge.
-
-## Commits & branches
-
-- **Conventional Commits** for messages:
-  `feat|fix|docs|chore|refactor|test|ci|build(scope): summary`.
-- **Branch naming:** `feat/P<phase>-T<n>-<slug>` (e.g. `feat/P3-T2-delete-cmd`),
-  following the phases in [`docs/ROADMAP.md`](docs/ROADMAP.md).
-
-## PR checklist (paste into every PR)
+### Project Structure
 
 ```
-- [ ] Conforms to CONVENTIONS.md (names, versions, layout, safety model)
-- [ ] Logic lives in gitpurge-core; CLI/UI are thin
-- [ ] Dry-run default preserved; destructive paths backed up first
-- [ ] Unit tests + ≥1 feature test added; all gates green locally
-- [ ] No secrets/PII in logs, errors, or fixtures
-- [ ] Docs/ADR updated if decisions or behavior changed
-- [ ] Requirement(s) R__ referenced; DoD row(s) satisfied
+git-purge/
+├── crates/
+│   ├── gitpurge-core/   # Shared domain library (the "brain")
+│   └── gitpurge-cli/    # CLI binary (thin adapter)
+├── apps/
+│   └── desktop/         # Tauri v2 desktop app (thin adapter)
+├── docs/                # Specification documents
+├── delivery/            # Phase delivery plans and conventions
+└── .github/workflows/   # CI configuration
 ```
 
-## Testing bar
+### Architecture Rules
 
-- Unit tests colocated (`#[cfg(test)]`); integration tests in `crates/*/tests/`.
-- Use the deterministic `testkit` fixture-repo builders — **no network or
-  machine-specific state in tests.**
-- CLI is snapshot-tested with `assert_cmd` + `insta`.
-- Target ≥ 80% line coverage on `gitpurge-core`; every safety invariant has a
-  dedicated regression test.
+1. **gitpurge-core** is the only crate with domain logic. It must never depend on
+   CLI or UI concerns.
+2. **gitpurge-cli** and **gitpurge-desktop** are thin adapters. They must never
+   contain git operations, database access, or business logic directly.
+3. All external concerns (git, auth, DB, reporting) go through port traits defined
+   in `gitpurge-core`.
 
-## When specs are ambiguous
+For full details, see [CONVENTIONS.md](delivery/CONVENTIONS.md) and
+[02-architecture.md](docs/02-architecture.md).
 
-Prefer the safest, simplest interpretation consistent with `CONVENTIONS.md` and the
-safety model, implement it, and note the assumption in your PR. Escalate only true
-forks (irreversible or user-preference decisions).
+## Development Workflow
+
+### Branching
+
+- `main` — always releasable
+- Feature branches: `feat/<short-description>`
+- Bug fixes: `fix/<short-description>`
+
+### Before Submitting a PR
+
+1. **Format**: `cargo fmt --all`
+2. **Lint**: `cargo clippy --workspace --exclude gitpurge-desktop --all-targets -- -D warnings`
+3. **Test**: `cargo nextest run --workspace --exclude gitpurge-desktop`
+4. **Commit messages**: follow [Conventional Commits](https://www.conventionalcommits.org/)
+
+### Commit Message Format
+
+```
+<type>(<scope>): <short summary>
+
+<optional body>
+
+<optional footer>
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `ci`
+
+Scopes: `core`, `cli`, `desktop`, `docs`, `ci`
+
+## Reporting Issues
+
+- Use GitHub Issues
+- Include: OS, Rust version, steps to reproduce, expected vs actual behavior
+- For security vulnerabilities, see [SECURITY.md](SECURITY.md)
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the
+[Apache License 2.0](LICENSE).

@@ -8,7 +8,7 @@ A CLI-first Rust utility (with an optional Tauri + Vue desktop UI) for cleaning 
 stale, merged, and abandoned git branches without ever losing work.
 
 [![CI](https://github.com/MohamedGamil/git-purge/actions/workflows/ci.yml/badge.svg)](https://github.com/MohamedGamil/git-purge/actions/workflows/ci.yml)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](#license)
 
 </div>
 
@@ -117,7 +117,7 @@ confirmations in automation, and `git-purge ui` to launch the desktop app.
 
 ## Build from source
 
-Requires the Rust toolchain (MSRV 1.82, pinned via `rust-toolchain.toml`). For the
+Requires the Rust toolchain (MSRV 1.88, pinned via `rust-toolchain.toml`). For the
 desktop app you also need Node 20 + pnpm 9 and your platform's Tauri prerequisites.
 
 ```bash
@@ -151,12 +151,8 @@ issues: see [`SECURITY.md`](SECURITY.md).
 
 ## License
 
-Licensed under either of
+Licensed under the [Apache License, Version 2.0](LICENSE).
 
-- MIT license ([`LICENSE-MIT`](LICENSE-MIT))
-- Apache License, Version 2.0 ([`LICENSE-APACHE`](LICENSE-APACHE))
-
-at your option. Unless you explicitly state otherwise, any contribution
-intentionally submitted for inclusion in the work by you, as defined in the
-Apache-2.0 license, shall be dual licensed as above, without any additional terms or
-conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you shall be licensed under the Apache License 2.0,
+without any additional terms or conditions.

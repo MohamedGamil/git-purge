@@ -1,0 +1,41 @@
+# gitpurge-cli — thin CLI adapter over gitpurge-core (CONVENTIONS §2).
+# This crate MUST NOT depend on gix / git2 / rusqlite / keyring directly.
+# All git/DB/keychain logic goes through gitpurge-core ports.
+[package]
+name = "gitpurge-cli"
+description = "CLI for Git Purge: safe git branch cleanup."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "git-purge"
+path = "src/main.rs"
+
+[dependencies]
+gitpurge-core = { path = "../gitpurge-core" }
+
+# CLI presentation (CONVENTIONS §9)
+clap = { workspace = true }
+miette = { workspace = true }
+comfy-table = { workspace = true }
+indicatif = { workspace = true }
+dialoguer = { workspace = true }
+owo-colors = { workspace = true }
+anstyle = { workspace = true }
+
+# serialization (for --json output)
+serde_json = { workspace = true }
+
+# observability
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+assert_cmd = { workspace = true }
+insta = { workspace = true }
+tempfile = { workspace = true }

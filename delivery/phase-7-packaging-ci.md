@@ -13,7 +13,7 @@ automation: `ci.yml` runs the full gate matrix on push/PR, and `release.yml` tri
 on a `v*` tag, builds the whole matrix, and attaches all artifacts plus checksums and
 signatures to a GitHub Release. Consistent with
 [13-distribution-and-ci.md](../docs/13-distribution-and-ci.md) and licensed
-**MIT OR Apache-2.0**.
+**Apache-2.0**.
 
 **Milestone:** M5 — Shippable 1.0 (packaging + release automation).
 

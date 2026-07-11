@@ -17,7 +17,7 @@
 | CLI binary name | `git-purge` (also usable as the git subcommand `git purge` when on `PATH`) |
 | Desktop app name | **Git Purge** (product), bundle id `com.gitpurge.desktop` |
 | GitHub repo | `MohamedGamil/git-purge` |
-| License | Dual **MIT OR Apache-2.0** (Rust ecosystem convention) |
+| License | **Apache-2.0** |
 | Primary language | Rust (core + CLI + Tauri backend) |
 | UI stack | Vue 3 + Vite + TypeScript |
 
@@ -38,7 +38,7 @@ non-negotiable and is what Requirement 6 (shared abstractions) demands.
 
 | Tool | Pinned target | Notes |
 | :--- | :--- | :--- |
-| Rust | stable, MSRV **1.82** | Pin via `rust-toolchain.toml`. |
+| Rust | stable, MSRV **1.88** | Pin via `rust-toolchain.toml`. Deps require ≥1.88 (time, icu, home). |
 | Rust edition | 2021 | |
 | Tauri | **v2.x** | Not v1. Use `tauri = "2"`, `@tauri-apps/api@^2`. |
 | Node | **20 LTS** | For building the frontend only; not a runtime dep. |

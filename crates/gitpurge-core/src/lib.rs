@@ -13,8 +13,9 @@
 //! - **Domain model** ([`model`]) — the vocabulary: repositories, branches, commits,
 //!   classifications, policies, snapshots, plans, reports.
 //! - **Ports (traits)** — [`git::GitBackend`], [`auth::SecretStore`],
-//!   [`history::HistoryStore`], [`report::ReportSink`] — every external concern is a
-//!   trait so tests can substitute deterministic fakes.
+//!   [`history::HistoryStore`], [`report::ReportSink`], [`clock::Clock`],
+//!   [`progress::ProgressSink`] — every external concern is a trait so tests can
+//!   substitute deterministic fakes.
 //! - **Services / facade** — [`Engine`] orchestrates the use-cases (scan, plan,
 //!   backup, execute, restore, diff, report, history) over the injected ports.
 //!
@@ -30,6 +31,7 @@
 pub mod action;
 pub mod auth;
 pub mod backup;
+pub mod clock;
 pub mod config;
 pub mod diff;
 pub mod error;
@@ -37,6 +39,7 @@ pub mod git;
 pub mod history;
 pub mod model;
 pub mod policy;
+pub mod progress;
 pub mod report;
 pub mod scan;
 
@@ -66,13 +69,26 @@ use crate::report::ReportFormat;
 /// cancellation token once implemented (see `docs/02` §5).
 #[derive(Debug)]
 pub struct Engine {
-    // TODO(P0-T3): hold the resolved config plus boxed ports:
-    //   git: Box<dyn git::GitBackend>, secrets: Box<dyn auth::SecretStore>,
-    //   history: Box<dyn history::HistoryStore>, clock: Box<dyn Clock>, ...
+    // TODO(P0-T4): replace with boxed port fields:
+    //   git: Box<dyn git::GitBackend>,
+    //   secrets: Box<dyn auth::SecretStore>,
+    //   history: Box<dyn history::HistoryStore>,
+    //   report_sink: Box<dyn report::ReportSink>,
+    //   clock: Box<dyn clock::Clock>,
+    //   progress: Box<dyn progress::ProgressSink>,
     // Ports are injected so tests can substitute in-memory fakes (docs/02 §3).
     #[allow(dead_code)]
     config: Config,
 }
+
+// Compile-time assertion: Engine must be Send + Sync because all port traits
+// require Send + Sync. If this fails to compile, a port trait is missing the bound.
+const _: () = {
+    fn _assert_send_sync<T: Send + Sync>() {}
+    fn _check() {
+        _assert_send_sync::<Engine>();
+    }
+};
 
 impl Engine {
     /// Open an engine with the given configuration, wiring up the default production
@@ -82,7 +98,7 @@ impl Engine {
     /// Returns [`GitPurgeError`] if storage locations cannot be resolved/created or a
     /// port fails to initialize.
     pub fn open(config: Config) -> Result<Self> {
-        // TODO(P0-T3): construct and inject the production ports here.
+        // TODO(P0-T4): construct and inject the production ports here.
         Ok(Self { config })
     }
 
