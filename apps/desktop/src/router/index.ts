@@ -12,32 +12,37 @@ const router = createRouter({
     {
       path: '/branches',
       name: 'branches',
-      component: () => import('../views/DashboardView.vue'), // stubbed to DashboardView for Phase 4 foundation
+      component: () => import('../views/BranchesView.vue'),
     },
     {
       path: '/backups',
       name: 'backups',
-      component: () => import('../views/DashboardView.vue'),
+      component: () => import('../views/BackupsView.vue'),
     },
     {
       path: '/diff',
       name: 'diff',
-      component: () => import('../views/DashboardView.vue'),
+      component: () => import('../views/DiffView.vue'),
     },
     {
       path: '/history',
       name: 'history',
-      component: () => import('../views/DashboardView.vue'),
+      component: () => import('../views/HistoryView.vue'),
     },
     {
       path: '/auth',
       name: 'auth',
-      component: () => import('../views/DashboardView.vue'),
+      component: () => import('../views/AuthView.vue'),
     },
     {
       path: '/settings',
       name: 'settings',
-      component: () => import('../views/DashboardView.vue'),
+      component: () => import('../views/SettingsView.vue'),
+    },
+    {
+      path: '/plan',
+      name: 'plan',
+      component: () => import('../views/PlanView.vue'),
     },
   ],
 });

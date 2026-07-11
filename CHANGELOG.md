@@ -25,12 +25,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Verbs: `repo add/list/remove/set-default`, `scan`, `plan`, `delete`, `archive`, `backup`, `restore`, `diff`, `show`.
   - Stubs: `report`, `history`, `auth`, `ui`, `completions`, `install-cli`.
   - TTY-aware confirmation prompts for standard/strong mutation gates.
-- **Desktop UI Foundations** (Phase 4):
+- **Desktop UI Subsystem** (Phase 4):
   - Completed scaffolding of Tauri v2 backend with Vue 3, Vite, TypeScript, and Pinia.
   - Implemented 26 Tauri command handlers wrapping `gitpurge-core::Engine` with progress events and tokio cancellation.
   - Added architecture guard test ensuring no direct references to git/db dependencies in the desktop crate.
   - Designed One Dark Pro and One Light themes using CSS semantic variables.
-  - Built App sidebar navigation shell and mockup dashboard verifying Tauri IPC connectivity.
+  - Built App sidebar navigation shell.
+  - Created Pinia store managing repository lists, active scan details, and execution tasks.
+  - Built Dashboard view with native repository addition via `@tauri-apps/plugin-dialog` directory picker.
+  - Built Branches Explorer with status/classification badges, sorting, filtering, selection, and direct comparison.
+  - Built Plan Preview & Execute flow showing dry-run logs, unmerged safety confirmations, execution progress, and cancellation.
+  - Built Backups and Snapshots browser with ref list, integrity verification, pruning, and restore action.
+  - Built Compare/Diff view showing ahead/behind count and list of changed files.
+  - Built placeholder panels for History & Trends (Phase 5) and Remote Auth manager (Phase 6).
+  - Built Settings view configuring theme toggler, stale age threshold, naming regex, protected/excluded globs, and custom backups path.
   - Generated premium high-resolution RGBA icon assets (`32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.png`, `icon.ico`, `icon.icns`) for Tauri.
 - **Domain model**: Repository, Branch, Commit, Tag, Ref, Classification, Policy,
   Snapshot, Plan, Action, RunReport, Config, and all supporting value objects.

@@ -302,6 +302,30 @@ export async function cancel(taskId: string): Promise<void> {
   return invoke<void>('cancel', { taskId });
 }
 
+export async function historyGet(repoId: string): Promise<any> {
+  return invoke<any>('history_get', { repoId });
+}
+
+export async function reportGenerate(repoId: string, format: string): Promise<any> {
+  return invoke<any>('report_generate', { repoId, format });
+}
+
+export async function authAdd(credential: any): Promise<any> {
+  return invoke<any>('auth_add', { credential });
+}
+
+export async function authList(): Promise<any> {
+  return invoke<any>('auth_list');
+}
+
+export async function authRemove(id: string): Promise<void> {
+  return invoke<void>('auth_remove', { id });
+}
+
+export async function authTest(id: string): Promise<boolean> {
+  return invoke<boolean>('auth_test', { id });
+}
+
 // --- Progress Event Listener ---
 
 export function listenProgress(callback: (event: ProgressEvent) => void): Promise<UnlistenFn> {

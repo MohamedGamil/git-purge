@@ -3,7 +3,7 @@
     <header class="dashboard-header">
       <div>
         <h1>Dashboard</h1>
-        <p class="subtitle">Welcome to Git Purge. Safely manage your repository branches.</p>
+        <p class="subtitle">Safely purge stale branches — with a net under every operation.</p>
       </div>
       <div class="theme-toggle">
         <label for="theme-select">Theme: </label>
@@ -18,7 +18,7 @@
     <div class="stats-grid">
       <div class="card stat-card">
         <h3>Tracked Repositories</h3>
-        <div class="stat-value">{{ repos.length }}</div>
+        <div class="stat-value">{{ store.repos.length }}</div>
       </div>
       <div class="card stat-card">
         <h3>Total Branches</h3>
@@ -33,28 +33,61 @@
     <section class="repos-section">
       <div class="section-header">
         <h2>Tracked Repositories</h2>
-        <button class="btn btn-primary" @click="addNewRepo">Add Repository</button>
+        <button class="btn btn-primary" @click="handleBrowseFolder" :disabled="store.loading">
+          <span class="icon-spacing">📁</span> Add Repository
+        </button>
       </div>
 
-      <div v-if="loading" class="loading-state">
-        Loading repositories...
+      <div v-if="store.loading" class="loading-state">
+        <span class="spinner"></span> Loading repositories...
       </div>
 
-      <div v-else-if="repos.length === 0" class="empty-state card">
-        <p>No repositories tracked yet. Click "Add Repository" to get started.</p>
+      <div v-else-if="store.repos.length === 0" class="empty-state card">
+        <p>No repositories tracked yet. Click "Add Repository" to select a git folder.</p>
       </div>
 
       <div v-else class="repos-list">
-        <div v-for="repo in repos" :key="repo.id" class="repo-item card">
-          <div class="repo-info">
-            <h3>{{ repo.name }}</h3>
-            <p class="repo-path" v-if="repo.localPath"><code>{{ repo.localPath }}</code></p>
-            <p class="repo-url" v-if="repo.remoteUrl"><code>{{ repo.remoteUrl }}</code></p>
+        <div v-for="repo in store.repos" :key="repo.id" class="repo-item card">
+          <div class="repo-main">
+            <div class="repo-info">
+              <h3>{{ repo.name }}</h3>
+              <p class="repo-path" v-if="repo.localPath"><code>{{ repo.localPath }}</code></p>
+              <p class="repo-url" v-if="repo.remoteUrl"><code>{{ repo.remoteUrl }}</code></p>
+            </div>
+            <div class="repo-stats">
+              <span class="badge badge-info">{{ repo.branchCount }} Branches</span>
+              <span class="badge badge-warning">{{ repo.stale }} Stale</span>
+              <span class="badge badge-danger">{{ repo.unmerged }} Unmerged</span>
+            </div>
           </div>
-          <div class="repo-stats">
-            <span class="badge badge-info">{{ repo.branchCount }} Branches</span>
-            <span class="badge badge-warning">{{ repo.stale }} Stale</span>
-            <span class="badge badge-danger">{{ repo.unmerged }} Unmerged</span>
+
+          <div class="repo-actions">
+            <button class="btn btn-secondary btn-sm" @click="exploreRepo(repo.id)">
+              🌿 Explore
+            </button>
+            <button class="btn btn-secondary btn-sm" @click="viewBackups(repo.id)">
+              💾 Backups
+            </button>
+            <button class="btn btn-danger-alt btn-sm" @click="confirmDeleteId = repo.id">
+              🗑️ Remove
+            </button>
+          </div>
+
+          <!-- Inline Remove Confirmation Dialog (Premium UI) -->
+          <div v-if="confirmDeleteId === repo.id" class="remove-confirm-overlay">
+            <div class="remove-confirm-box card">
+              <h4>Remove Repository?</h4>
+              <p>This stops tracking the repository in Git Purge.</p>
+              <label class="checkbox-container">
+                <input type="checkbox" v-model="dropBackups" />
+                <span class="checkmark"></span>
+                Also delete all backup snapshots for this repo
+              </label>
+              <div class="confirm-actions">
+                <button class="btn btn-secondary btn-sm" @click="confirmDeleteId = null">Cancel</button>
+                <button class="btn btn-danger btn-sm" @click="removeRepo(repo.id)">Confirm Remove</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -62,33 +95,37 @@
 
     <section class="ipc-verification card">
       <h2>IPC Connectivity Status</h2>
-      <div class="status-indicator" :class="{ 'connected': !loading && !error }">
+      <div class="status-indicator" :class="{ 'connected': !store.loading && !store.error }">
         <span class="status-dot"></span>
         <span>{{ statusMessage }}</span>
       </div>
-      <p v-if="error" class="error-text">Connection Error: {{ error }}</p>
+      <p v-if="store.error" class="error-text">Connection Error: {{ store.error }}</p>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { open } from '@tauri-apps/plugin-dialog';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
-import { repoList, repoAdd, type RepoSummary } from '../api/ipc';
+import { useReposStore } from '../stores/repos';
+
+const router = useRouter();
+const store = useReposStore();
 
 const { theme, setTheme } = useTheme();
 const currentTheme = ref<ThemeMode>(theme.value);
 
-const repos = ref<RepoSummary[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
+const confirmDeleteId = ref<string | null>(null);
+const dropBackups = ref(false);
 
-const totalBranches = computed(() => repos.value.reduce((acc, r) => acc + r.branchCount, 0));
-const totalStale = computed(() => repos.value.reduce((acc, r) => acc + r.stale, 0));
+const totalBranches = computed(() => store.repos.reduce((acc, r) => acc + r.branchCount, 0));
+const totalStale = computed(() => store.repos.reduce((acc, r) => acc + r.stale, 0));
 
 const statusMessage = computed(() => {
-  if (loading.value) return 'Connecting to Rust backend...';
-  if (error.value) return 'Disconnected from Backend';
+  if (store.loading) return 'Connecting to Rust backend...';
+  if (store.error) return 'Disconnected from Backend';
   return 'IPC Bridge Active and Connected';
 });
 
@@ -96,32 +133,49 @@ const handleThemeChange = () => {
   setTheme(currentTheme.value);
 };
 
-const fetchRepos = async () => {
-  loading.value = true;
-  error.value = null;
+const handleBrowseFolder = async () => {
   try {
-    repos.value = await repoList();
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      title: 'Select Git Repository'
+    });
+
+    if (selected && typeof selected === 'string') {
+      // Parse folder name for the display name
+      const name = selected.split(/[/\\]/).pop() || 'Git Repo';
+      await store.addRepo(selected, undefined, name);
+    }
   } catch (err: any) {
-    error.value = err?.message || 'Failed to communicate with the Rust backend.';
-  } finally {
-    loading.value = false;
+    alert('Failed to pick directory: ' + (err?.message || err));
   }
 };
 
-const addNewRepo = async () => {
+const exploreRepo = async (id: string) => {
+  await store.selectRepo(id);
+  router.push('/branches');
+};
+
+const viewBackups = async (id: string) => {
+  store.activeRepoId = id;
   try {
-    // For now, this is a mock call to add a repo since native pickers require tauri-plugin-dialog
-    // This verifies adding repos via IPC works.
-    const path = '/home/mgamil/git-purge'; // local path to default project
-    await repoAdd(path, undefined, 'Git Purge (Local)');
-    await fetchRepos();
+    store.activeRepoDetail = await store.repos.find(r => r.id === id) ? await store.selectRepo(id) as any : null;
+  } catch {}
+  router.push('/backups');
+};
+
+const removeRepo = async (id: string) => {
+  try {
+    await store.removeRepo(id, dropBackups.value);
+    confirmDeleteId.value = null;
+    dropBackups.value = false;
   } catch (err: any) {
-    alert('Failed to add repository: ' + (err?.message || err));
+    alert('Failed to remove repository: ' + err.message);
   }
 };
 
 onMounted(() => {
-  fetchRepos();
+  store.fetchRepos();
 });
 </script>
 
@@ -145,6 +199,7 @@ onMounted(() => {
 .dashboard-header h1 {
   color: var(--on-surface-strong);
   font-weight: 600;
+  font-size: 24px;
 }
 
 .subtitle {
@@ -213,6 +268,20 @@ onMounted(() => {
   align-items: center;
   padding: var(--spacing-xl);
   color: var(--muted);
+  gap: var(--spacing-sm);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .repos-list {
@@ -223,13 +292,21 @@ onMounted(() => {
 
 .repo-item {
   display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  position: relative;
+}
+
+.repo-main {
+  display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .repo-info h3 {
   color: var(--on-surface-strong);
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .repo-path, .repo-url {
@@ -243,6 +320,80 @@ onMounted(() => {
   gap: var(--spacing-sm);
 }
 
+.repo-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-sm);
+}
+
+.btn-sm {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 12px;
+}
+
+.btn-danger-alt {
+  background-color: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(224, 108, 117, 0.3);
+}
+
+.btn-danger-alt:hover {
+  background-color: rgba(224, 108, 117, 0.1);
+  border-color: var(--danger);
+}
+
+.icon-spacing {
+  margin-right: 4px;
+}
+
+.remove-confirm-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  z-index: 10;
+}
+
+.remove-confirm-box {
+  width: 90%;
+  max-width: 400px;
+  background-color: var(--surface-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.remove-confirm-box h4 {
+  color: var(--on-surface-strong);
+}
+
+.remove-confirm-box p {
+  font-size: 13px;
+  color: var(--on-surface);
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 13px;
+  color: var(--on-surface);
+  cursor: pointer;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
 .ipc-verification {
   display: flex;
   flex-direction: column;
@@ -251,7 +402,7 @@ onMounted(() => {
 }
 
 .ipc-verification h2 {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
