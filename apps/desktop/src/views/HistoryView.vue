@@ -297,7 +297,19 @@ const downloadReportFile = async () => {
       await saveFile(filePath, reportContent.value);
     }
   } catch (err: any) {
-    alert('Failed to save report: ' + (err?.message || err));
+    console.error('Tauri save dialog failed, falling back to blob download:', err);
+    try {
+      const mime = reportFormat.value === 'json' ? 'application/json' : reportFormat.value === 'html' ? 'text/html' : 'text/markdown';
+      const blob = new Blob([reportContent.value], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = defaultFilename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (fallbackErr: any) {
+      alert('Failed to save report: ' + (fallbackErr?.message || fallbackErr));
+    }
   }
 };
 

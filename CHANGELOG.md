@@ -11,8 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Introduced `DESIGN.md` defining brand personality, layout grids, components, typography scales, and shape design requirements.
 - Implemented and mapped design color tokens for both dark (default) and light themes.
+- Enabled remote branch deletion selection, planning, and execution with premium warning prompts in both the Branches view and Plan execution screen.
+- Implemented native OS save dialog integration utilizing `tauri-plugin-dialog` to bypass webview Content Security Policy (CSP) limitations on Blob downloads.
+- Added branch locality (local vs remote) markers to backup references table in Backups view.
 
 ### Changed
+
+- Configured repository listings on the main dashboard to always sort alphabetically ascending by name.
+- Styled all delete/destructive buttons with high-contrast, theme-aware danger-level red tokens (`#e06c75` in dark mode, `#ba1a1a` in light mode).
+- Granted default dialog capabilities in `default.json` to authorize `ask` and `save` native dialogs, and implemented robust try-catch fallbacks to standard `confirm()` / HTML5 downloads to prevent silent promise rejection errors.
 
 - Implemented thread-level parallel branch classification using Rayon inside the `Scanner::classify` loop to optimize commit graph walks and ancestry checks.
 - Implemented an in-memory scan cache in the central `Engine` that stores `ScanResult` metadata mapped by repository ID and is invalidated only when references/HEAD OID or policy configurations change, making repository listings and cleanup planning instantaneous when state remains unchanged.

@@ -145,6 +145,7 @@ export interface ClientSnapshotDetail {
     commitCount: number;
     upstream?: string;
     merge: 'merged' | 'unmerged';
+    locality: 'local' | 'remote';
   }[];
 }
 
@@ -267,8 +268,8 @@ let mockSnapshotDetails: Record<string, ClientSnapshotDetail> = {
     refCount: 3,
     verified: true,
     refs: [
-      { branch: 'feature/auth', tipSha: 'b2c3d4e5f6g7', commitCount: 15, upstream: 'origin/feature/auth', merge: 'merged' },
-      { branch: 'temp-fix', tipSha: 'd4e5f6g7h8i9', commitCount: 2, merge: 'merged' }
+      { branch: 'feature/auth', tipSha: 'b2c3d4e5f6g7', commitCount: 15, upstream: 'origin/feature/auth', merge: 'merged', locality: 'local' },
+      { branch: 'temp-fix', tipSha: 'd4e5f6g7h8i9', commitCount: 2, merge: 'merged', locality: 'local' }
     ]
   }
 };
@@ -457,7 +458,8 @@ export async function backupCreate(repoId: string, options: ClientBackupOptions,
         branch: ref,
         tipSha: 'abc' + Math.random().toString(36).slice(2, 6),
         commitCount: 5,
-        merge: 'merged'
+        merge: 'merged',
+        locality: ref.startsWith('origin/') ? 'remote' : 'local'
       }))
     };
     
@@ -580,7 +582,8 @@ export async function deleteBranches(repoId: string, plan: ClientPlan, exec: Cli
           branch: a.refName,
           tipSha: 'abc123000',
           commitCount: 3,
-          merge: a.classification.merge
+          merge: a.classification.merge,
+          locality: a.classification.locality
         }))
       };
     }

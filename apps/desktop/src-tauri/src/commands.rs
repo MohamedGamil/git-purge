@@ -185,6 +185,7 @@ pub struct ClientSnapshotRef {
     pub commit_count: usize,
     pub upstream: Option<String>,
     pub merge: String,
+    pub locality: String,
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -643,16 +644,24 @@ pub fn map_snapshot_detail(core_snap: &Snapshot) -> ClientSnapshotDetail {
     let refs = core_snap
         .refs
         .iter()
-        .map(|r| ClientSnapshotRef {
-            branch: r.branch.0.clone(),
-            tip_sha: r.tip.0.clone(),
-            commit_count: r.commit_count as usize,
-            upstream: r.upstream.clone(),
-            merge: match r.merged_at_capture {
-                gitpurge_core::model::MergeState::Merged => "merged",
-                _ => "unmerged",
+        .map(|r| {
+            let locality = if r.original_full_ref.starts_with("refs/remotes/") {
+                "remote"
+            } else {
+                "local"
+            };
+            ClientSnapshotRef {
+                branch: r.branch.0.clone(),
+                tip_sha: r.tip.0.clone(),
+                commit_count: r.commit_count as usize,
+                upstream: r.upstream.clone(),
+                merge: match r.merged_at_capture {
+                    gitpurge_core::model::MergeState::Merged => "merged",
+                    _ => "unmerged",
+                }
+                .to_string(),
+                locality: locality.to_string(),
             }
-            .to_string(),
         })
         .collect();
 

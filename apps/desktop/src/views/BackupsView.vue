@@ -106,6 +106,9 @@
                     <tr v-for="ref in snapshotDetail.refs" :key="ref.branch">
                       <td>
                         <span class="branch-name"><code>{{ ref.branch }}</code></span>
+                        <span :class="ref.locality === 'local' ? 'badge badge-info badge-tiny' : 'badge badge-purple badge-tiny'" style="margin-left: var(--spacing-xs);">
+                          {{ ref.locality }}
+                        </span>
                         <span class="upstream-lbl" v-if="ref.upstream">tracks <code>{{ ref.upstream }}</code></span>
                       </td>
                       <td><code>{{ ref.tipSha.substring(0, 7) }}</code></td>

@@ -35,7 +35,8 @@ export const useReposStore = defineStore('repos', {
       this.loading = true;
       this.error = null;
       try {
-        this.repos = await repoList();
+        const list = await repoList();
+        this.repos = list.sort((a, b) => a.name.localeCompare(b.name));
       } catch (err: any) {
         this.error = err?.message || 'Failed to fetch repositories';
       } finally {

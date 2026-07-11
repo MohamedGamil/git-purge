@@ -6,6 +6,6 @@
     "core:default",
     "core:event:allow-listen",
     "core:window:allow-set-theme",
-    "dialog:allow-open"
+    "dialog:default"
   ]
 }

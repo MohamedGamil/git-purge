@@ -426,7 +426,18 @@ const downloadReportFile = async () => {
       await saveFile(filePath, reportContent.value);
     }
   } catch (err: any) {
-    alert('Failed to save report: ' + (err?.message || err));
+    console.error('Tauri save dialog failed, falling back to blob download:', err);
+    try {
+      const blob = new Blob([reportContent.value], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = defaultFilename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (fallbackErr: any) {
+      alert('Failed to save report: ' + (fallbackErr?.message || fallbackErr));
+    }
   }
 };
 
@@ -665,16 +676,26 @@ const triggerCompare = () => {
 const triggerBulkAction = async (action: 'delete' | 'archive') => {
   if (selectedBranches.value.length > 0 && store.activeRepoId) {
     if (action === 'delete') {
-      const hasRemote = selectedBranches.value.some(name => {
-        const branch = store.branches.find(b => b.name === name);
-        return branch && branch.classification.locality === 'remote';
-      });
-      if (hasRemote) {
-        const confirmed = await ask(
+      try {
+        const hasRemote = selectedBranches.value.some(name => {
+          const branch = store.branches.find(b => b.name === name);
+          return branch && branch.classification.locality === 'remote';
+        });
+        if (hasRemote) {
+          const confirmed = await ask(
+            '⚠️ Warning: You have selected remote branches for deletion.\n\n' +
+            'This will permanently delete the branches directly from the remote Git server.\n\n' +
+            'Are you sure you want to proceed?',
+            { title: 'Warning: Remote Ref Deletion', kind: 'warning' }
+          );
+          if (!confirmed) return;
+        }
+      } catch (err: any) {
+        console.error('Tauri ask dialog failed, falling back to confirm:', err);
+        const confirmed = confirm(
           '⚠️ Warning: You have selected remote branches for deletion.\n\n' +
           'This will permanently delete the branches directly from the remote Git server.\n\n' +
-          'Are you sure you want to proceed?',
-          { title: 'Warning: Remote Ref Deletion', kind: 'warning' }
+          'Are you sure you want to proceed?'
         );
         if (!confirmed) return;
       }
