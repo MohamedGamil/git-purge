@@ -312,7 +312,7 @@ impl HistoryStore for SqliteHistoryStore {
     fn get_history(&self, repo: &RepoId) -> Result<TrendHistory> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT captured_at, total, active, stale, merged, unmerged, non_standard, deleted, archived
+            "SELECT captured_at, total, active, stale, merged, unmerged, non_standard, deleted, archived, protected
              FROM metrics
              WHERE repo_id = ?1
              ORDER BY captured_at ASC;"
@@ -329,6 +329,7 @@ impl HistoryStore for SqliteHistoryStore {
                 let non_standard: i64 = row.get(6)?;
                 let deleted: Option<i64> = row.get(7)?;
                 let archived: Option<i64> = row.get(8)?;
+                let protected: Option<i64> = row.get(9)?;
 
                 let recorded_at = time::OffsetDateTime::parse(
                     &captured_at_str,
@@ -346,6 +347,7 @@ impl HistoryStore for SqliteHistoryStore {
                     deleted_count: deleted.unwrap_or(0) as usize,
                     archived_count: archived.unwrap_or(0) as usize,
                     non_standard_count: non_standard as usize,
+                    protected_count: protected.unwrap_or(0) as usize,
                 })
             })
             .map_err(|e| crate::GitPurgeError::Config(format!("Failed to query metrics: {}", e)))?;

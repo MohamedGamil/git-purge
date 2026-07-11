@@ -54,6 +54,8 @@ pub struct TrendEntry {
     pub archived_count: usize,
     /// Non-standard branches.
     pub non_standard_count: usize,
+    /// Protected branches.
+    pub protected_count: usize,
 }
 
 /// The full trend history for a repository.

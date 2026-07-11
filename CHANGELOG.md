@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Rebuilt the desktop frontend theme variable configuration in `tokens.css` to define and unify color schemes using the new design token variables.
+- Optimized repository list loading on the Dashboard by caching repository metrics in the trend database, avoiding redundant live Git scans and reducing list load time from seconds to sub-milliseconds.
+
 
 ### Fixed
 
