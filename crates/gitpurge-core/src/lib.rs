@@ -107,8 +107,12 @@ impl Engine {
     pub fn open(config: Config) -> Result<Self> {
         let git = Box::new(crate::git::CompositeGitBackend::new());
         let secrets = Box::new(crate::auth::FakeSecretStore::default());
-        let history = Box::new(crate::history::FakeHistoryStore::default());
-        let report_sink = Box::new(crate::report::FakeReportSink::default());
+        let db_path = config.resolve_data_dir().join("history.db");
+        let backups_root = config.backups_root.clone().unwrap_or_else(|| {
+            config.resolve_data_dir().join("backups")
+        });
+        let history = Box::new(crate::history::SqliteHistoryStore::new(&db_path, backups_root)?);
+        let report_sink = Box::new(crate::report::FileReportSink::new(config.resolve_data_dir(), None));
         let clock = Box::new(crate::clock::SystemClock);
         let progress = Box::new(crate::progress::NoopProgressSink);
 
@@ -160,6 +164,7 @@ impl Engine {
 
     /// Register a repository in the local in-memory store.
     pub fn register_repo(&self, repo: Repository) -> Result<()> {
+        self.history.save_repo(&repo)?;
         let mut repos = self.repos.lock().unwrap();
         repos.insert(repo.id.clone(), repo);
         Ok(())
@@ -280,6 +285,46 @@ impl Engine {
             ..Default::default()
         };
         crate::scan::filter_and_sort_classifications(&mut scan_result.classifications, &ref_filter);
+
+        // Record a read-only "scan" run
+        let total = scan_result.total_branches;
+        let active = scan_result.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Active)).count();
+        let stale = scan_result.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Stale)).count();
+        let merged = scan_result.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Merged)).count();
+        let unmerged = scan_result.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Unmerged)).count();
+        let non_standard = scan_result.classifications.iter().filter(|c| !matches!(c.naming, crate::model::NamingVerdict::Standard | crate::model::NamingVerdict::Exempt { .. })).count();
+
+        let metrics = crate::model::RunMetrics {
+            total,
+            active,
+            stale,
+            merged,
+            unmerged,
+            non_standard,
+            local_count: Some(scan_result.classifications.iter().filter(|c| matches!(c.scope, crate::model::BranchScope::Local)).count()),
+            remote_count: Some(scan_result.classifications.iter().filter(|c| matches!(c.scope, crate::model::BranchScope::Remote)).count()),
+            protected: Some(scan_result.classifications.iter().filter(|c| !matches!(c.protection, crate::model::Protection::Unprotected)).count()),
+            deleted: Some(0),
+            archived: Some(0),
+            restored: Some(0),
+        };
+
+        let report = RunReport {
+            id: ulid::Ulid::new().to_string(),
+            started_at: self.clock.now(),
+            repo: repo.clone(),
+            mode: ExecMode::DryRun,
+            snapshot: None,
+            results: Vec::new(),
+            success_count: 0,
+            failure_count: 0,
+            skipped_count: 0,
+            command: "scan".to_string(),
+            metrics: Some(metrics),
+            branch_snapshots: Some(scan_result.classifications.clone()),
+        };
+
+        let _ = self.history.record_run(&report);
 
         Ok(scan_result)
     }
@@ -445,6 +490,14 @@ impl Engine {
 
     /// Execute a resolved plan.
     pub fn execute(&self, plan: &Plan, mode: ExecMode, no_backup: bool) -> Result<RunReport> {
+        let started_at = self.clock.now();
+        let run_id = ulid::Ulid::new().to_string();
+        let command = if plan.actions.iter().any(|a| a.kind == ActionKind::Archive) {
+            "archive".to_string()
+        } else {
+            "delete".to_string()
+        };
+
         let repo = {
             let repos = self.repos.lock().unwrap();
             repos.get(&plan.repo).cloned().ok_or_else(|| {
@@ -463,6 +516,8 @@ impl Engine {
                 });
             }
             return Ok(RunReport {
+                id: run_id,
+                started_at,
                 repo: plan.repo.clone(),
                 mode: ExecMode::DryRun,
                 snapshot: None,
@@ -470,6 +525,9 @@ impl Engine {
                 success_count: 0,
                 failure_count: 0,
                 skipped_count: plan.actions.len(),
+                command,
+                metrics: None,
+                branch_snapshots: None,
             });
         }
 
@@ -522,7 +580,39 @@ impl Engine {
         let snapshots = self.history.list_snapshots(&plan.repo)?;
         let snapshot_id = snapshots.first().map(|s| s.id.clone());
 
+        // Perform post-operation scan to compute post-op metrics
+        let post_scan = self.scan(&plan.repo, ScanOptions::default()).unwrap_or_else(|_| ScanResult {
+            repo: plan.repo.clone(),
+            classifications: Vec::new(),
+            total_branches: 0,
+            excluded_count: 0,
+        });
+
+        let total = post_scan.total_branches;
+        let active = post_scan.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Active)).count();
+        let stale = post_scan.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Stale)).count();
+        let merged = post_scan.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Merged)).count();
+        let unmerged = post_scan.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Unmerged)).count();
+        let non_standard = post_scan.classifications.iter().filter(|c| !matches!(c.naming, crate::model::NamingVerdict::Standard | crate::model::NamingVerdict::Exempt { .. })).count();
+
+        let metrics = crate::model::RunMetrics {
+            total,
+            active,
+            stale,
+            merged,
+            unmerged,
+            non_standard,
+            local_count: Some(post_scan.classifications.iter().filter(|c| matches!(c.scope, crate::model::BranchScope::Local)).count()),
+            remote_count: Some(post_scan.classifications.iter().filter(|c| matches!(c.scope, crate::model::BranchScope::Remote)).count()),
+            protected: Some(post_scan.classifications.iter().filter(|c| !matches!(c.protection, crate::model::Protection::Unprotected)).count()),
+            deleted: Some(success_count),
+            archived: Some(0),
+            restored: Some(0),
+        };
+
         let report = RunReport {
+            id: run_id,
+            started_at,
             repo: plan.repo.clone(),
             mode: ExecMode::Execute,
             snapshot: snapshot_id,
@@ -530,6 +620,9 @@ impl Engine {
             success_count,
             failure_count,
             skipped_count,
+            command,
+            metrics: Some(metrics),
+            branch_snapshots: Some(post_scan.classifications),
         };
 
         self.history.record_run(&report)?;
@@ -744,15 +837,69 @@ impl Engine {
     }
 
     /// Generate an audit/trend report in the requested format.
-    pub fn report(&self, repo: &RepoId, fmt: ReportFormat) -> Result<crate::report::Report> {
-        let _ = (repo, fmt);
-        todo!("report — phase P5")
+    pub fn report(
+        &self,
+        repo: &RepoId,
+        report_type: crate::report::ReportType,
+        fmt: ReportFormat,
+    ) -> Result<crate::report::Report> {
+        let repo_model = {
+            let repos = self.repos.lock().unwrap();
+            repos.get(repo).cloned().ok_or_else(|| {
+                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo))
+            })?
+        };
+
+        // 1. Run a scan to get the current classifications
+        let scan_result = self.scan(repo, ScanOptions::default())?;
+
+        // 2. Fetch trend history
+        let history = self.history.get_history(repo)?;
+
+        // 3. Generate content based on format and type
+        let generated_at = self.clock.now();
+        let content = match report_type {
+            crate::report::ReportType::Audit => match fmt {
+                ReportFormat::Markdown => {
+                    crate::report::markdown::generate_audit_report(&repo_model, &scan_result, generated_at)
+                }
+                ReportFormat::Json => {
+                    crate::report::json::generate_json_report(&repo_model, &scan_result, Some(&history), generated_at)?
+                }
+                ReportFormat::Html => {
+                    crate::report::html::generate_html_report(&repo_model, &scan_result, Some(&history), generated_at)
+                }
+            },
+            crate::report::ReportType::Trend => match fmt {
+                ReportFormat::Markdown => {
+                    crate::report::markdown::generate_trend_report(&repo_model, &history, generated_at, None)
+                }
+                ReportFormat::Json => {
+                    crate::report::json::generate_json_report(&repo_model, &scan_result, Some(&history), generated_at)?
+                }
+                ReportFormat::Html => {
+                    crate::report::html::generate_html_report(&repo_model, &scan_result, Some(&history), generated_at)
+                }
+            },
+        };
+
+        let report = crate::report::Report {
+            repo: repo.clone(),
+            report_type,
+            format: fmt,
+            content,
+            generated_at,
+        };
+
+        // 4. Write/archive the report using the configured report sink
+        self.report_sink.write_report(&report)?;
+
+        Ok(report)
     }
 
     /// Fetch the recorded trend history for a repository.
-    pub fn history(&self, repo: &RepoId) -> Result<crate::history::TrendHistory> {
-        let _ = repo;
-        todo!("history — phase P5")
+    pub fn history(&self, repo: &RepoId) -> Result<crate::model::TrendHistory> {
+        self.history.get_history(repo)
     }
 }
 
@@ -1195,5 +1342,51 @@ mod tests {
             crate::backup::BackupMirrorManager::new(&engine.config.lock().unwrap());
         let mirror_path = mirror_manager.resolve_mirror_path(&repo_id);
         assert!(mirror_path.exists());
+    }
+
+    #[test]
+    fn test_golden_reports() {
+        let repo_fixture = testkit::merged_repo();
+        let repo_id = RepoId("test-report-repo".to_string());
+        
+        let config = Config {
+            backups_root: None,
+            default_policy: Policy::default(),
+            ..Default::default()
+        };
+
+        let git_backend = Box::new(crate::git::CompositeGitBackend::new());
+        let secrets = Box::new(crate::auth::FakeSecretStore::default());
+        let history = Box::new(crate::history::FakeHistoryStore::default());
+        let report_sink = Box::new(crate::report::FakeReportSink::default());
+        let clock = Box::new(FakeClock::new(
+            time::macros::datetime!(2026-07-05 12:00:00 UTC),
+        ));
+        let progress = Box::new(crate::progress::NoopProgressSink);
+
+        let engine = Engine::new(
+            config,
+            git_backend,
+            secrets,
+            history,
+            report_sink,
+            clock,
+            progress,
+        );
+
+        let repo_model = Repository {
+            id: repo_id.clone(),
+            display_name: "test-report-repo".to_string(),
+            local_path: Some(repo_fixture.path().to_path_buf()),
+            remote_url: None,
+            default_branch: None,
+            provider: crate::model::ProviderHint::Unknown,
+            added_at: time::macros::datetime!(2026-07-01 12:00:00 UTC),
+            last_scanned_at: None,
+        };
+        engine.register_repo(repo_model).unwrap();
+
+        let report = engine.report(&repo_id, crate::report::ReportType::Audit, ReportFormat::Markdown).unwrap();
+        insta::assert_snapshot!("audit_report_markdown", report.content);
     }
 }

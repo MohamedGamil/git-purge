@@ -1545,12 +1545,21 @@ pub async fn report_generate(
     repo_id: String,
     format: String,
 ) -> Result<serde_json::Value, SerializableError> {
-    let _ = (state, repo_id, format);
-    Err(SerializableError {
-        code: "UNSUPPORTED".to_string(),
-        message: "Reports command not yet implemented (Phase P5)".to_string(),
-        hint: None,
-    })
+    let engine = &state.engine;
+    let fmt = match format.as_str() {
+        "json" => gitpurge_core::report::ReportFormat::Json,
+        "html" => gitpurge_core::report::ReportFormat::Html,
+        _ => gitpurge_core::report::ReportFormat::Markdown,
+    };
+
+    let report = engine
+        .report(&RepoId(repo_id), gitpurge_core::report::ReportType::Audit, fmt)
+        .map_err(map_error)?;
+
+    Ok(serde_json::json!({
+        "content": report.content,
+        "generatedAt": report.generated_at.to_string(),
+    }))
 }
 
 #[tauri::command]
@@ -1558,12 +1567,28 @@ pub async fn history_get(
     state: State<'_, AppState>,
     repo_id: String,
 ) -> Result<serde_json::Value, SerializableError> {
-    let _ = (state, repo_id);
-    Err(SerializableError {
-        code: "UNSUPPORTED".to_string(),
-        message: "History command not yet implemented (Phase P5)".to_string(),
-        hint: None,
-    })
+    let engine = &state.engine;
+    let history = engine.history(&RepoId(repo_id)).map_err(map_error)?;
+
+    let serializable_entries: Vec<serde_json::Value> = history
+        .entries
+        .into_iter()
+        .map(|entry| {
+            serde_json::json!({
+                "recordedAt": entry.recorded_at.to_string(),
+                "totalBranches": entry.total_branches,
+                "activeCount": entry.active_count,
+                "staleCount": entry.stale_count,
+                "mergedCount": entry.merged_count,
+                "unmergedCount": entry.unmerged_count,
+                "deletedCount": entry.deleted_count,
+                "archivedCount": entry.archived_count,
+                "nonStandardCount": entry.non_standard_count,
+            })
+        })
+        .collect();
+
+    Ok(serde_json::json!(serializable_entries))
 }
 
 #[tauri::command]

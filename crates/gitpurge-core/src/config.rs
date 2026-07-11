@@ -16,6 +16,9 @@ use crate::model::{Policy, RepoId, Repository};
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Config {
+    /// Override the data root directory (history DB, backups, reports).
+    pub data_dir: Option<PathBuf>,
+
     /// Root directory under which per-repo bare mirrors and snapshots live.
     /// `None` => the resolved default `<data_dir>/git-purge/backups/`.
     pub backups_root: Option<PathBuf>,
@@ -36,6 +39,15 @@ pub struct Config {
 }
 
 impl Config {
+    /// Resolve the data root directory (CONVENTIONS §5).
+    pub fn resolve_data_dir(&self) -> PathBuf {
+        self.data_dir.clone().unwrap_or_else(|| {
+            let proj_dirs = directories::ProjectDirs::from("com", "gitpurge", "git-purge")
+                .expect("Failed to resolve project directories");
+            proj_dirs.data_dir().to_path_buf()
+        })
+    }
+
     /// Resolve the config file path via the `directories` crate.
     pub fn default_path() -> Result<PathBuf> {
         let proj_dirs =

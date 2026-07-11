@@ -3,45 +3,25 @@
 //! `HistoryStore` abstracts the SQLite trend database so the service layer
 //! (and tests) don't depend on `rusqlite` directly.
 
-use serde::{Deserialize, Serialize};
+/// SQLite adapter for history/trends.
+pub mod sqlite;
+/// DDL schema migrations.
+pub mod migrate;
+/// Trend calculations and comparison algorithms.
+pub mod trends;
+
+pub use sqlite::SqliteHistoryStore;
 
 use crate::error::Result;
-use crate::model::{RepoId, RunReport, Snapshot, SnapshotId};
-
-/// A single data point in the trend history.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TrendEntry {
-    /// When this data point was recorded.
-    pub recorded_at: time::OffsetDateTime,
-    /// Total branches at time of scan.
-    pub total_branches: usize,
-    /// Merged branches.
-    pub merged_count: usize,
-    /// Unmerged branches.
-    pub unmerged_count: usize,
-    /// Stale branches.
-    pub stale_count: usize,
-    /// Active branches.
-    pub active_count: usize,
-    /// Branches deleted in this run.
-    pub deleted_count: usize,
-    /// Branches archived in this run.
-    pub archived_count: usize,
-}
-
-/// The full trend history for a repository.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TrendHistory {
-    /// The repo.
-    pub repo: RepoId,
-    /// Ordered data points (oldest first).
-    pub entries: Vec<TrendEntry>,
-}
+use crate::model::{RepoId, Repository, RunReport, Snapshot, SnapshotId, TrendEntry, TrendHistory};
 
 /// Port for run recording and trend queries.
 ///
 /// Implementations must be `Send + Sync` for shared `Engine` access.
 pub trait HistoryStore: Send + Sync + std::fmt::Debug {
+    /// Save or update a repository's metadata in the history store.
+    fn save_repo(&self, repo: &Repository) -> Result<()>;
+
     /// Record a completed run.
     fn record_run(&self, report: &RunReport) -> Result<()>;
 
@@ -80,6 +60,10 @@ impl FakeHistoryStore {
 }
 
 impl HistoryStore for FakeHistoryStore {
+    fn save_repo(&self, _repo: &Repository) -> Result<()> {
+        Ok(())
+    }
+
     fn record_run(&self, _report: &RunReport) -> Result<()> {
         Ok(())
     }

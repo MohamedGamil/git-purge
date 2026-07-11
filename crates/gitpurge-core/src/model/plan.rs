@@ -171,6 +171,10 @@ pub enum ActionResult {
 /// A recorded execution and its metrics (feeds trend history, R7).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunReport {
+    /// Unique identifier for this run.
+    pub id: String,
+    /// When the run started.
+    pub started_at: time::OffsetDateTime,
     /// The repo the run targeted.
     pub repo: RepoId,
     /// The execution mode.
@@ -185,4 +189,10 @@ pub struct RunReport {
     pub failure_count: usize,
     /// Count of skipped actions (dry-run).
     pub skipped_count: usize,
+    /// The command name (e.g., 'scan', 'delete', 'archive').
+    pub command: String,
+    /// The metrics captured at the end of this run.
+    pub metrics: Option<super::RunMetrics>,
+    /// Optional snapshot of all branch classifications at the time of the run.
+    pub branch_snapshots: Option<Vec<super::Classification>>,
 }

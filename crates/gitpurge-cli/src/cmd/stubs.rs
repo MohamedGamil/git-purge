@@ -2,25 +2,6 @@
 
 use gitpurge_core::{Engine, GitPurgeError, Result};
 
-pub fn handle_report(
-    _engine: &Engine,
-    _repo: &gitpurge_core::model::RepoId,
-    _json: bool,
-) -> Result<()> {
-    Err(GitPurgeError::Other(
-        "The 'report' command is not yet implemented (Phase P5).".to_string(),
-    ))
-}
-
-pub fn handle_history(
-    _engine: &Engine,
-    _repo: &gitpurge_core::model::RepoId,
-    _json: bool,
-) -> Result<()> {
-    Err(GitPurgeError::Other(
-        "The 'history' command is not yet implemented (Phase P5).".to_string(),
-    ))
-}
 
 pub fn handle_auth(_engine: &Engine, _action: &crate::cli::AuthAction, _json: bool) -> Result<()> {
     Err(GitPurgeError::Other(

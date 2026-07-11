@@ -13,11 +13,10 @@ pub struct BackupMirrorManager {
 impl BackupMirrorManager {
     /// Create a new mirror manager using the given configuration.
     pub fn new(config: &Config) -> Self {
-        let backups_root = config.backups_root.clone().unwrap_or_else(|| {
-            let proj_dirs = directories::ProjectDirs::from("com", "gitpurge", "git-purge")
-                .expect("Failed to resolve project directories");
-            proj_dirs.data_dir().join("backups")
-        });
+        let backups_root = config
+            .backups_root
+            .clone()
+            .unwrap_or_else(|| config.resolve_data_dir().join("backups"));
         Self { backups_root }
     }
 

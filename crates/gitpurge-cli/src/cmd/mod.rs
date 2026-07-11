@@ -3,5 +3,6 @@ pub mod delete;
 pub mod diff;
 
 pub mod repo;
+pub mod reporting;
 pub mod scan;
 pub mod stubs;

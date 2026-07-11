@@ -122,22 +122,37 @@ fn run() -> Result<()> {
             cmd::diff::handle_show(&engine, &repo_id, ref_spec, path, args.json)?;
         }
         Some(cli::Commands::Report {
-            r#type: _,
-            format: _,
-            out: _,
-            baseline: _,
+            r#type,
+            format,
+            out,
+            baseline,
             filters: _,
         }) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
-            cmd::stubs::handle_report(&engine, &repo_id, args.json)?;
+            cmd::reporting::handle_report(
+                &engine,
+                &repo_id,
+                *r#type,
+                *format,
+                out.clone(),
+                baseline.clone(),
+                args.json,
+            )?;
         }
         Some(cli::Commands::History {
-            limit: _,
-            metric: _,
-            since: _,
+            limit,
+            metric,
+            since,
         }) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
-            cmd::stubs::handle_history(&engine, &repo_id, args.json)?;
+            cmd::reporting::handle_history(
+                &engine,
+                &repo_id,
+                *limit,
+                metric.clone(),
+                since.clone(),
+                args.json,
+            )?;
         }
         Some(cli::Commands::Auth { action }) => {
             cmd::stubs::handle_auth(&engine, action, args.json)?;

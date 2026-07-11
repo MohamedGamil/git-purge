@@ -1,0 +1,65 @@
+---
+source: crates/gitpurge-core/src/lib.rs
+expression: report.content
+---
+# Git Purge Audit Report — test-report-repo
+
+Generated at: 2026-07-05 12:00 UTC
+
+## 📊 Repository Overall Stats
+
+| Metric | Count | Percentage | Description |
+| --- | --- | --- | --- |
+| **Total Branches** | 3 | 100.0% | All tracked branches in the mirror |
+| **Active Branches** | 3 | 100.0% | Branches with commits in the active window |
+| **Stale Branches** | 0 | 0.0% | Branches with last commit older than threshold |
+| **Merged Branches** | 1 | 33.3% | Branches fully merged into the default branch |
+| **Unmerged Branches** | 2 | 66.7% | Branches with unmerged work |
+| **Non-Standard Naming** | 3 | 100.0% | Branches violating the naming policy |
+
+## 🗑️ Branches Recommended for Deletion
+
+| Branch Name | Last Commit Date | Author | Type | Reason |
+| --- | --- | --- | --- | --- |
+| `merged-branch` | 2026-07-02 | Test Author | Local | Fully merged |
+
+### 💻 Quick Commands
+```bash
+git-purge delete --repo test-report-repo --branch merged-branch --execute
+```
+
+## ⚠️ Naming Standards Violations (Branching Strategy)
+
+| Branch Name | Last Commit Date | Author | Issue Identified |
+| --- | --- | --- | --- |
+| `main` | 2026-07-11 | Test Author | Missing category prefix (should contain a '/' e.g. feature/name) |
+| `merged-branch` | 2026-07-02 | Test Author | Missing category prefix (should contain a '/' e.g. feature/name) |
+| `unmerged-branch` | 2026-07-03 | Test Author | Missing category prefix (should contain a '/' e.g. feature/name) |
+
+## 📅 Categorization of Stale Branches by Age
+
+No stale branches found.
+
+## 🔍 Stale Branches: Review Required (Unmerged)
+
+No unmerged stale branches requiring review.
+
+## 🗂️ Categorization by Branch Prefix / Purpose
+
+### Features (0 branches)
+
+### Bug Fixes (0 branches)
+
+### Hotfixes (0 branches)
+
+### Releases (0 branches)
+
+### Ticket-Based (0 branches)
+
+### Other/Uncategorized (3 branches)
+
+| Branch Name | Last Commit Date | Author | Merged? | Type |
+| --- | --- | --- | --- | --- |
+| `main` | 2026-07-11 | Test Author | ❌ No | Local |
+| `merged-branch` | 2026-07-02 | Test Author | ✅ Yes | Local |
+| `unmerged-branch` | 2026-07-03 | Test Author | ❌ No | Local |

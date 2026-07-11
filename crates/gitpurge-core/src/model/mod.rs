@@ -14,6 +14,7 @@ mod plan;
 mod policy;
 mod repo;
 mod snapshot;
+mod trend;
 mod value_objects;
 
 pub use classification::*;
@@ -22,4 +23,5 @@ pub use plan::*;
 pub use policy::*;
 pub use repo::*;
 pub use snapshot::*;
+pub use trend::*;
 pub use value_objects::*;
