@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Introduced `DESIGN.md` defining brand personality, layout grids, components, typography scales, and shape design requirements.
+- Implemented and mapped design color tokens for both dark (default) and light themes.
+
+### Changed
+
+- Rebuilt the desktop frontend theme variable configuration in `tokens.css` to define and unify color schemes using the new design token variables.
+
 ### Fixed
 
 - Centralized and secured date parsing in the Vue/TS desktop frontend to handle RFC3339/ISO-8601 date strings from the Rust backend with timezone offsets or whitespace separators reliably, preventing browser-specific `Invalid Date` errors.
