@@ -63,6 +63,7 @@ fn main() {
             commands::settings_save,
             commands::install_cli,
             commands::cancel,
+            commands::save_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -309,8 +309,10 @@ import {
   backupList, 
   backupShow, 
   listenProgress, 
-  cancel 
+  cancel,
+  saveFile
 } from '../api/ipc';
+import { ask, save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatLocalDate, formatLocalDateTime, formatLocalTime } from '../utils/date';
 
 const router = useRouter();
@@ -405,15 +407,27 @@ const copyReportToClipboard = async () => {
   }
 };
 
-const downloadReportFile = () => {
+const downloadReportFile = async () => {
   const activeRepoName = store.activeRepoDetail?.name || 'repo';
-  const blob = new Blob([reportContent.value], { type: 'text/markdown' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `git-purge-${selectedReportType.value}-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.md`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const defaultFilename = `git-purge-${selectedReportType.value}-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.md`;
+
+  try {
+    const filePath = await save({
+      filters: [
+        {
+          name: 'Markdown Report',
+          extensions: ['md']
+        }
+      ],
+      defaultPath: defaultFilename
+    });
+
+    if (filePath) {
+      await saveFile(filePath, reportContent.value);
+    }
+  } catch (err: any) {
+    alert('Failed to save report: ' + (err?.message || err));
+  }
 };
 
 // Hash sum based duplication check for snapshots
@@ -648,8 +662,24 @@ const triggerCompare = () => {
   }
 };
 
-const triggerBulkAction = (action: 'delete' | 'archive') => {
+const triggerBulkAction = async (action: 'delete' | 'archive') => {
   if (selectedBranches.value.length > 0 && store.activeRepoId) {
+    if (action === 'delete') {
+      const hasRemote = selectedBranches.value.some(name => {
+        const branch = store.branches.find(b => b.name === name);
+        return branch && branch.classification.locality === 'remote';
+      });
+      if (hasRemote) {
+        const confirmed = await ask(
+          '⚠️ Warning: You have selected remote branches for deletion.\n\n' +
+          'This will permanently delete the branches directly from the remote Git server.\n\n' +
+          'Are you sure you want to proceed?',
+          { title: 'Warning: Remote Ref Deletion', kind: 'warning' }
+        );
+        if (!confirmed) return;
+      }
+    }
+
     router.push({
       path: '/plan',
       query: {

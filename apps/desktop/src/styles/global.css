@@ -84,8 +84,8 @@ code, pre {
 }
 
 .btn-danger {
-  background-color: var(--danger);
-  color: #ffffff;
+  background-color: var(--btn-danger-bg);
+  color: var(--btn-danger-text);
 }
 
 .btn-danger:hover {

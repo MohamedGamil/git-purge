@@ -145,6 +145,8 @@
   --selection: var(--color-dark-surface-container-high);
   --focus-ring: var(--color-dark-primary);
   --overlay: rgba(0, 0, 0, 0.55);
+  --btn-danger-bg: #e06c75;
+  --btn-danger-text: #ffffff;
   color-scheme: dark;
 }
 
@@ -172,6 +174,8 @@
   --selection: var(--color-light-surface-container);
   --focus-ring: var(--color-light-primary);
   --overlay: rgba(30, 32, 38, 0.35);
+  --btn-danger-bg: #ba1a1a;
+  --btn-danger-text: #ffffff;
   color-scheme: light;
 }
 
@@ -200,6 +204,8 @@
     --selection: var(--color-dark-surface-container-high);
     --focus-ring: var(--color-dark-primary);
     --overlay: rgba(0, 0, 0, 0.55);
+    --btn-danger-bg: #e06c75;
+    --btn-danger-text: #ffffff;
     color-scheme: dark;
   }
 }
@@ -228,6 +234,8 @@
     --selection: var(--color-light-surface-container);
     --focus-ring: var(--color-light-primary);
     --overlay: rgba(30, 32, 38, 0.35);
+    --btn-danger-bg: #ba1a1a;
+    --btn-danger-text: #ffffff;
     color-scheme: light;
   }
 }

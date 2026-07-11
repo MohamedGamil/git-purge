@@ -112,6 +112,11 @@
         <div v-else class="execution-setup card">
           <h3>Safety Safeguards</h3>
 
+          <!-- Remote Actions Warning -->
+          <div v-if="hasRemoteActions" class="warning-box" style="margin-top: var(--spacing-xs); margin-bottom: var(--spacing-sm);">
+            ⚠️ <strong>Caution:</strong> This plan contains <strong>remote</strong> branch deletions. Deleting remote branches will permanently delete refs on the remote Git server.
+          </div>
+
           <div class="safety-options">
             <label class="checkbox-container select-none">
               <input type="checkbox" v-model="noBackup" />
@@ -194,6 +199,10 @@ const activeRepo = computed(() => {
 
 const hasDestructiveActions = computed(() => {
   return planResult.value?.actions.some(a => a.destructive) || false;
+});
+
+const hasRemoteActions = computed(() => {
+  return planResult.value?.actions.some(a => a.classification.locality === 'remote') || false;
 });
 
 const canExecute = computed(() => {

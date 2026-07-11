@@ -156,7 +156,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useReposStore } from '../stores/repos';
-import { historyGet, reportGenerate } from '../api/ipc';
+import { historyGet, reportGenerate, saveFile } from '../api/ipc';
+import { save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatChartDate } from '../utils/date';
 
 interface HistoryEntry {
@@ -276,17 +277,28 @@ const copyToClipboard = async () => {
   }
 };
 
-const downloadReportFile = () => {
+const downloadReportFile = async () => {
   const activeRepoName = store.activeRepoDetail?.name || 'repo';
   const ext = reportFormat.value === 'json' ? 'json' : reportFormat.value === 'html' ? 'html' : 'md';
-  const mime = reportFormat.value === 'json' ? 'application/json' : reportFormat.value === 'html' ? 'text/html' : 'text/markdown';
-  const blob = new Blob([reportContent.value], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `git-purge-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.${ext}`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const defaultFilename = `git-purge-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.${ext}`;
+
+  try {
+    const filePath = await save({
+      filters: [
+        {
+          name: reportFormat.value === 'json' ? 'JSON' : reportFormat.value === 'html' ? 'HTML' : 'Markdown',
+          extensions: [ext]
+        }
+      ],
+      defaultPath: defaultFilename
+    });
+
+    if (filePath) {
+      await saveFile(filePath, reportContent.value);
+    }
+  } catch (err: any) {
+    alert('Failed to save report: ' + (err?.message || err));
+  }
 };
 
 watch(() => store.activeRepoId, (newId) => {

@@ -734,6 +734,14 @@ export async function cancel(taskId: string): Promise<void> {
   return invoke<void>('cancel', { taskId });
 }
 
+export async function saveFile(path: string, content: string): Promise<void> {
+  if (isMock) {
+    console.log(`Mock saving file to ${path} with length ${content.length}`);
+    return Promise.resolve();
+  }
+  return invoke<void>('save_file', { path, content });
+}
+
 export async function historyGet(repoId: string): Promise<any> {
   if (isMock) {
     return Promise.resolve(JSON.parse(JSON.stringify(mockHistory[repoId] || [])));

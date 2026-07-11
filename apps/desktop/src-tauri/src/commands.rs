@@ -1082,11 +1082,20 @@ pub async fn plan(
     filter: ClientActionFilter,
 ) -> Result<ClientPlan, SerializableError> {
     let engine = &state.engine;
+    let raw_refs = filter.refs.clone().unwrap_or_default();
     let core_filter = map_action_filter(filter);
     let plan = engine
         .plan(&RepoId(repo_id), &core_filter)
         .map_err(map_error)?;
-    Ok(map_plan(plan))
+    let mut client_plan = map_plan(plan);
+
+    if !raw_refs.is_empty() {
+        client_plan.actions.retain(|action| {
+            raw_refs.contains(&action.ref_name)
+        });
+    }
+
+    Ok(client_plan)
 }
 
 pub fn map_action_filter(filter: ClientActionFilter) -> ActionFilter {
@@ -1098,7 +1107,10 @@ pub fn map_action_filter(filter: ClientActionFilter) -> ActionFilter {
         .refs
         .unwrap_or_default()
         .into_iter()
-        .map(BranchName)
+        .map(|r| {
+            let stripped = r.strip_prefix("origin/").unwrap_or(&r);
+            BranchName(stripped.to_string())
+        })
         .collect();
     let exclude_globs = filter
         .exclude
@@ -1890,6 +1902,15 @@ pub async fn cancel(state: State<'_, AppState>, task_id: String) -> Result<(), S
     Ok(())
 }
 
+#[tauri::command]
+pub fn save_file(path: String, content: String) -> Result<(), SerializableError> {
+    std::fs::write(&path, content).map_err(|e| SerializableError {
+        code: "WRITE_ERROR".to_string(),
+        message: format!("Failed to write file: {}", e),
+        hint: Some("Verify folder permissions and space".to_string()),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1982,6 +2003,25 @@ mod tests {
         assert_eq!(summary.protected_count, 8);
 
         // Clean up temp directory
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_save_file_command() {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("gitpurge-save-test-{}", now));
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        let file_path = temp_dir.join("test_write.txt");
+        let path_str = file_path.to_string_lossy().to_string();
+        let res = save_file(path_str.clone(), "Hello World".to_string());
+        assert!(res.is_ok());
+        let read_back = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(read_back, "Hello World");
+
         let _ = fs::remove_dir_all(&temp_dir);
     }
 }
