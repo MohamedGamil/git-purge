@@ -157,6 +157,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useReposStore } from '../stores/repos';
 import { historyGet, reportGenerate } from '../api/ipc';
+import { parseSafeDate, formatChartDate } from '../utils/date';
 
 interface HistoryEntry {
   recordedAt: string;
@@ -198,7 +199,7 @@ const loadHistory = async () => {
     const raw = await historyGet(selectedRepoId.value);
     // Sort chronologically
     historyData.value = (raw as HistoryEntry[]).sort(
-      (a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()
+      (a, b) => parseSafeDate(a.recordedAt).getTime() - parseSafeDate(b.recordedAt).getTime()
     );
   } catch (err: any) {
     unsupportedMsg.value = err?.message || 'History is currently unavailable.';
@@ -234,10 +235,7 @@ const chartPoints = computed(() => {
       ? (index / (entries.length - 1)) * (width - 40) + 20
       : width / 2;
     const y = height - (entry.staleCount / maxVal) * (height - 40) - 20;
-    const dateLabel = new Date(entry.recordedAt).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric'
-    });
+    const dateLabel = formatChartDate(entry.recordedAt);
     return { x, y, value: entry.staleCount, label: dateLabel };
   });
 });

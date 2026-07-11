@@ -311,6 +311,7 @@ import {
   listenProgress, 
   cancel 
 } from '../api/ipc';
+import { parseSafeDate, formatLocalDate, formatLocalDateTime, formatLocalTime } from '../utils/date';
 
 const router = useRouter();
 const store = useReposStore();
@@ -330,10 +331,7 @@ const latestSnapshotId = ref('');
 const latestSnapshotDate = ref('');
 
 const formattedLatestSnapshotDate = computed(() => {
-  if (!latestSnapshotDate.value) return '';
-  const d = new Date(latestSnapshotDate.value);
-  if (isNaN(d.getTime())) return latestSnapshotDate.value;
-  return d.toLocaleString();
+  return formatLocalDateTime(latestSnapshotDate.value);
 });
 
 // Report Generation state
@@ -352,21 +350,11 @@ const filterNaming = ref('all');
 const sortBy = ref('name');
 
 const formattedScannedAt = computed(() => {
-  if (!store.scannedAt) return '';
-  try {
-    return new Date(store.scannedAt).toLocaleTimeString();
-  } catch {
-    return store.scannedAt;
-  }
+  return formatLocalTime(store.scannedAt);
 });
 
 const formattedDate = (dateStr: string) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) {
-    return dateStr;
-  }
-  return d.toLocaleDateString();
+  return formatLocalDate(dateStr);
 };
 
 const triggerScan = async () => {
@@ -598,7 +586,7 @@ const filteredBranches = computed(() => {
     } else if (sortBy.value === 'age') {
       return b.ageDays - a.ageDays;
     } else if (sortBy.value === 'commits') {
-      return new Date(b.committedAt).getTime() - new Date(a.committedAt).getTime();
+      return parseSafeDate(b.committedAt).getTime() - parseSafeDate(a.committedAt).getTime();
     } else if (sortBy.value === 'status') {
       const aProt = a.classification.protected ? 1 : 0;
       const bProt = b.classification.protected ? 1 : 0;

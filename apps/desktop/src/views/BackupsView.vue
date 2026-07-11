@@ -222,6 +222,7 @@ import {
   type ClientVerifyReport,
   type ClientPruneReport
 } from '../api/ipc';
+import { formatLocalDateTime } from '../utils/date';
 
 const store = useReposStore();
 
@@ -251,12 +252,7 @@ const restoreForce = ref(false);
 const restoring = ref(false);
 
 const formattedDate = (dateStr: string) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) {
-    return dateStr;
-  }
-  return d.toLocaleString();
+  return formatLocalDateTime(dateStr);
 };
 
 const formatBytes = (bytes: number) => {
