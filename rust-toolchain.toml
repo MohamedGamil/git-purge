@@ -1,0 +1,18 @@
+# Pins the Rust toolchain for reproducible builds (CONVENTIONS §3).
+# MSRV is 1.82; we pin exactly so CI and every contributor agree.
+# Swap `channel = "1.82"` for `channel = "stable"` only if you intend to always
+# track the latest stable (then rely on clippy.toml `msrv` to guard 1.82 usage).
+[toolchain]
+channel = "1.82"
+components = ["rustfmt", "clippy"]
+# Cross targets used by release.yml (CONVENTIONS §14). Contributors on a single
+# platform don't need these installed; CI adds them per matrix leg.
+# targets = [
+#   "x86_64-unknown-linux-gnu",
+#   "x86_64-unknown-linux-musl",
+#   "aarch64-unknown-linux-gnu",
+#   "x86_64-pc-windows-msvc",
+#   "x86_64-apple-darwin",
+#   "aarch64-apple-darwin",
+# ]
+profile = "default"

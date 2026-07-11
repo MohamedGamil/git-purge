@@ -1,0 +1,51 @@
+# cargo-deny configuration (CONVENTIONS §12, docs/02-architecture.md §1).
+# Enforces the supply-chain gates: advisories, license allow-list, dependency
+# bans, and source restrictions. Run locally with `cargo deny check`.
+
+[graph]
+# Check the full dependency graph across all targets we ship for.
+all-features = true
+
+[advisories]
+version = 2
+# Fail on any RUSTSEC advisory or unmaintained/yanked crate.
+yanked = "deny"
+ignore = []
+
+[licenses]
+version = 2
+# Permissive licenses only, matching our dual MIT OR Apache-2.0 project license.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "Zlib",
+    "MPL-2.0",
+]
+confidence-threshold = 0.9
+# Bundled SQLite ships as public domain / blessing; add clarifications here if
+# cargo-deny cannot detect a license for a specific crate.
+exceptions = []
+
+[bans]
+# Prefer a single version of each crate; flag accidental duplicate trees.
+multiple-versions = "warn"
+wildcard-dependencies = "deny"
+# ARCHITECTURE GUARD (docs/02 §1): the CLI and desktop crates must NOT depend on
+# the git engines or the DB directly — only gitpurge-core may. A dedicated
+# architecture test enforces this too; the ban list documents the intent.
+deny = []
+skip = []
+skip-tree = []
+
+[sources]
+# Only crates.io by default. Add any vetted git sources explicitly.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -1,0 +1,81 @@
+# Git Purge — Cargo virtual workspace root.
+# Canonical crate names & versions are defined in delivery/CONVENTIONS.md (§2, §3).
+# This is a *virtual* manifest: it has no [package], only workspace configuration.
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/gitpurge-core",
+    "crates/gitpurge-cli",
+    "apps/desktop/src-tauri",
+]
+
+# Shared package metadata inherited by every member via `foo.workspace = true`.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MohamedGamil/git-purge"
+homepage = "https://github.com/MohamedGamil/git-purge"
+authors = ["Mohamed Gamil and the Git Purge contributors"]
+
+# Centralized dependency versions (CONVENTIONS §3). Members opt in with
+# `serde = { workspace = true }` so versions stay consistent across the tree.
+# NOTE: no `anyhow` — the workspace standardizes on `thiserror` for typed errors
+# (CONVENTIONS §11); application-level crates use `miette` for reporting.
+[workspace.dependencies]
+# --- serialization / errors ---
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+toml = "0.8"
+
+# --- async / observability ---
+tokio = { version = "1", default-features = false }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# --- git engines (used ONLY by gitpurge-core, never by CLI/desktop) ---
+gix = "0.66"
+git2 = "0.19"
+
+# --- storage / platform ---
+rusqlite = { version = "0.32", features = ["bundled"] }
+keyring = "3"
+directories = "5"
+zeroize = "1"
+
+# --- misc core ---
+regex = "1"
+time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
+
+# --- CLI presentation ---
+clap = { version = "4", features = ["derive", "env"] }
+miette = { version = "7", features = ["fancy"] }
+comfy-table = "7"
+indicatif = "0.17"
+dialoguer = "0.11"
+owo-colors = "4"
+anstyle = "1"
+
+# --- desktop (Tauri v2) ---
+tauri = { version = "2", features = [] }
+tauri-build = { version = "2", features = [] }
+
+# --- dev / test ---
+insta = { version = "1", features = ["json"] }
+assert_cmd = "2"
+proptest = "1"
+tempfile = "3"
+
+# Release profile: small, fast, self-contained binaries (CONVENTIONS §14 — the
+# "single self-contained binary, zero-setup" distribution goal).
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+# panic = "abort" is optional: it shrinks binaries and drops unwinding tables, but
+# breaks `#[should_panic]` tests and some Tauri unwinding assumptions. Enable per
+# target in P7 packaging if measured to help; left commented for safety.
+# panic = "abort"

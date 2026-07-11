@@ -1,0 +1,49 @@
+# gitpurge-core — all domain logic. The shared brain (CONVENTIONS §2).
+# This is the ONLY crate allowed to depend on gix / git2 / rusqlite / keyring.
+[package]
+name = "gitpurge-core"
+description = "Core library for Git Purge: safe git branch cleanup (policy, backup, restore, reporting)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[features]
+default = []
+# `testkit` exposes deterministic fixture-repo builders for tests in this crate
+# and in downstream crates (CONVENTIONS §13). Off by default so it never ships.
+testkit = ["dep:tempfile"]
+
+[dependencies]
+# serialization / errors
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
+
+# git engines (behind the GitBackend trait — CONVENTIONS §4)
+gix = { workspace = true }
+git2 = { workspace = true }
+
+# storage / platform
+rusqlite = { workspace = true }
+keyring = { workspace = true }
+directories = { workspace = true }
+zeroize = { workspace = true }
+
+# misc
+regex = { workspace = true }
+time = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros", "sync"] }
+
+# Optional: only pulled in with the `testkit` feature.
+tempfile = { workspace = true, optional = true }
+
+[dev-dependencies]
+insta = { workspace = true }
+proptest = { workspace = true }
+tempfile = { workspace = true }

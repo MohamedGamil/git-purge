@@ -1,0 +1,8 @@
+# rustfmt configuration (CONVENTIONS §12: `cargo fmt` is a CI gate).
+edition = "2021"
+max_width = 100
+# The options below are stable on 1.82. Nightly-only formatting is intentionally
+# avoided so `cargo fmt` behaves identically for every contributor.
+newline_style = "Unix"
+use_field_init_shorthand = true
+use_try_shorthand = true

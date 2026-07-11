@@ -1,0 +1,38 @@
+# --- Rust ---
+/target
+**/*.rs.bk
+*.pdb
+
+# --- Tauri (Rust build output + generated code) ---
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
+apps/desktop/src-tauri/Cargo.lock
+
+# --- Node / frontend ---
+node_modules
+apps/desktop/dist
+apps/desktop/dist-ssr
+apps/desktop/.vite
+*.local
+
+# --- Tooling / coverage ---
+.nextest
+*.profraw
+/coverage
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editors / IDEs ---
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
