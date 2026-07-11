@@ -91,8 +91,31 @@ impl GitBackend for Git2Backend {
         let mut git2_remote = git2_repo.find_remote(remote).map_err(|e| {
             crate::GitPurgeError::Git(format!("Failed to find remote '{}': {}", remote, e))
         })?;
+
+        let mut callbacks = git2::RemoteCallbacks::new();
+
+        // Wire SSH agent and fallback default credentials
+        callbacks.credentials(|_url, username_from_url, _allowed_types| {
+            let user = username_from_url.unwrap_or("git");
+            git2::Cred::ssh_key_from_agent(user).or_else(|_| git2::Cred::default())
+        });
+
+        // Fail push if remote rejects the reference update
+        callbacks.push_update_reference(|refname, status| {
+            if let Some(err) = status {
+                Err(git2::Error::from_str(&format!(
+                    "Remote rejected reference update for '{}': {}",
+                    refname, err
+                )))
+            } else {
+                Ok(())
+            }
+        });
+
         let refspec = format!(":refs/heads/{}", branch.0);
         let mut push_opts = git2::PushOptions::new();
+        push_opts.remote_callbacks(callbacks);
+
         git2_remote
             .push(&[&refspec], Some(&mut push_opts))
             .map_err(|e| {
@@ -101,6 +124,13 @@ impl GitBackend for Git2Backend {
                     e
                 ))
             })?;
+
+        // Explicitly clean up local remote-tracking reference to ensure consistency
+        let tracking_ref_name = format!("refs/remotes/{}/{}", remote, branch.0);
+        if let Ok(mut tracking_ref) = git2_repo.find_reference(&tracking_ref_name) {
+            let _ = tracking_ref.delete();
+        }
+
         Ok(())
     }
 

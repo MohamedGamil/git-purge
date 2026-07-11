@@ -36,6 +36,7 @@ desktop.ini
 !.vscode/extensions.json
 *.swp
 *~
+*.log
 
 # --- Scratch / Agentic-AI ---
 .scratch/

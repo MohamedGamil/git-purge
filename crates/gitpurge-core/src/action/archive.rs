@@ -74,91 +74,100 @@ pub fn archive_branches(
 
     // 2. Perform merges for each source branch
     for source in branches_to_archive {
-        let source_branch = repo
-            .find_branch(&source.0, git2::BranchType::Local)
-            .or_else(|_| {
-                repo.find_branch(&format!("origin/{}", source.0), git2::BranchType::Remote)
-            })
-            .map_err(|e| {
-                GitPurgeError::RefNotFound(format!(
-                    "Archive source branch '{}' not found: {}",
-                    source.0, e
-                ))
-            })?;
-        let source_commit = source_branch
-            .into_reference()
-            .peel_to_commit()
-            .map_err(|e| {
-                GitPurgeError::Git(format!("Failed to peel source branch to commit: {}", e))
-            })?;
+        let res = (|| -> Result<()> {
+            let source_branch = repo
+                .find_branch(&source.0, git2::BranchType::Local)
+                .or_else(|_| {
+                    repo.find_branch(&format!("origin/{}", source.0), git2::BranchType::Remote)
+                })
+                .map_err(|e| {
+                    GitPurgeError::RefNotFound(format!(
+                        "Archive source branch '{}' not found: {}",
+                        source.0, e
+                    ))
+                })?;
+            let source_commit = source_branch
+                .into_reference()
+                .peel_to_commit()
+                .map_err(|e| {
+                    GitPurgeError::Git(format!("Failed to peel source branch to commit: {}", e))
+                })?;
 
-        match strategy {
-            ArchiveStrategy::Ours => {
-                // Ours: merge commit keeping target branch's tree (discard source diff, keep history)
-                let tree = target_commit
-                    .tree()
-                    .map_err(|e| GitPurgeError::Git(format!("Failed to get target tree: {}", e)))?;
-                let merge_oid = repo
-                    .commit(
-                        Some(&format!("refs/heads/{}", target_branch)),
-                        &sig,
-                        &sig,
-                        &format!("Archive merge branch '{}' (ours)", source.0),
-                        &tree,
-                        &[&target_commit, &source_commit],
-                    )
-                    .map_err(|e| {
-                        GitPurgeError::Git(format!("Failed to create ours merge commit: {}", e))
-                    })?;
-                target_commit = repo.find_commit(merge_oid).unwrap();
-            }
-            ArchiveStrategy::Theirs => {
-                // Theirs: merge prefers source branch's files on conflict
-                let mut index = repo
-                    .merge_commits(&target_commit, &source_commit, None)
-                    .map_err(|e| GitPurgeError::Git(format!("Failed to merge commits: {}", e)))?;
+            match strategy {
+                ArchiveStrategy::Ours => {
+                    // Ours: merge commit keeping target branch's tree (discard source diff, keep history)
+                    let tree = target_commit
+                        .tree()
+                        .map_err(|e| GitPurgeError::Git(format!("Failed to get target tree: {}", e)))?;
+                    let merge_oid = repo
+                        .commit(
+                            Some(&format!("refs/heads/{}", target_branch)),
+                            &sig,
+                            &sig,
+                            &format!("Archive merge branch '{}' (ours)", source.0),
+                            &tree,
+                            &[&target_commit, &source_commit],
+                        )
+                        .map_err(|e| {
+                            GitPurgeError::Git(format!("Failed to create ours merge commit: {}", e))
+                        })?;
+                    target_commit = repo.find_commit(merge_oid).unwrap();
+                }
+                ArchiveStrategy::Theirs => {
+                    // Theirs: merge prefers source branch's files on conflict
+                    let mut index = repo
+                        .merge_commits(&target_commit, &source_commit, None)
+                        .map_err(|e| GitPurgeError::Git(format!("Failed to merge commits: {}", e)))?;
 
-                if index.has_conflicts() {
-                    let mut their_entries = Vec::new();
-                    let conflicts = index.conflicts().map_err(|e| {
-                        GitPurgeError::Git(format!("Failed to retrieve conflicts: {}", e))
-                    })?;
-                    for conflict in conflicts {
-                        let conflict = conflict
-                            .map_err(|e| GitPurgeError::Git(format!("Conflict error: {}", e)))?;
-                        if let Some(their_entry) = conflict.their {
-                            their_entries.push(their_entry);
+                    if index.has_conflicts() {
+                        let mut their_entries = Vec::new();
+                        let conflicts = index.conflicts().map_err(|e| {
+                            GitPurgeError::Git(format!("Failed to retrieve conflicts: {}", e))
+                        })?;
+                        for conflict in conflicts {
+                            let conflict = conflict
+                                .map_err(|e| GitPurgeError::Git(format!("Conflict error: {}", e)))?;
+                            if let Some(their_entry) = conflict.their {
+                                their_entries.push(their_entry);
+                            }
+                        }
+                        for their_entry in their_entries {
+                            index.add(&their_entry).map_err(|e| {
+                                GitPurgeError::Git(format!("Failed to add their conflict entry: {}", e))
+                            })?;
                         }
                     }
-                    for their_entry in their_entries {
-                        index.add(&their_entry).map_err(|e| {
-                            GitPurgeError::Git(format!("Failed to add their conflict entry: {}", e))
-                        })?;
-                    }
-                }
 
-                let tree_id = index.write_tree_to(&repo).map_err(|e| {
-                    GitPurgeError::Git(format!("Failed to write merged index to tree: {}", e))
-                })?;
-                let tree = repo.find_tree(tree_id).map_err(|e| {
-                    GitPurgeError::Git(format!("Failed to find merged tree: {}", e))
-                })?;
-
-                let merge_oid = repo
-                    .commit(
-                        Some(&format!("refs/heads/{}", target_branch)),
-                        &sig,
-                        &sig,
-                        &format!("Archive merge branch '{}' (theirs)", source.0),
-                        &tree,
-                        &[&target_commit, &source_commit],
-                    )
-                    .map_err(|e| {
-                        GitPurgeError::Git(format!("Failed to create theirs merge commit: {}", e))
+                    let tree_id = index.write_tree_to(&repo).map_err(|e| {
+                        GitPurgeError::Git(format!("Failed to write merged index to tree: {}", e))
                     })?;
-                target_commit = repo.find_commit(merge_oid).unwrap();
+                    let tree = repo.find_tree(tree_id).map_err(|e| {
+                        GitPurgeError::Git(format!("Failed to find merged tree: {}", e))
+                    })?;
+
+                    let merge_oid = repo
+                        .commit(
+                            Some(&format!("refs/heads/{}", target_branch)),
+                            &sig,
+                            &sig,
+                            &format!("Archive merge branch '{}' (theirs)", source.0),
+                            &tree,
+                            &[&target_commit, &source_commit],
+                        )
+                        .map_err(|e| {
+                            GitPurgeError::Git(format!("Failed to create theirs merge commit: {}", e))
+                        })?;
+                    target_commit = repo.find_commit(merge_oid).unwrap();
+                }
             }
+            Ok(())
+        })();
+
+        match &res {
+            Ok(()) => crate::log_operation("ARCHIVE", &source.0, "local/remote", "SUCCESS"),
+            Err(e) => crate::log_operation("ARCHIVE", &source.0, "local/remote", &format!("FAILED: {}", e)),
         }
+        res?;
     }
 
     // 3. Push to remote if requested

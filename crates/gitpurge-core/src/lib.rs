@@ -632,34 +632,19 @@ impl Engine {
             });
         }
 
-        let branches_to_delete: Vec<BranchName> = plan
-            .actions
-            .iter()
-            .filter(|a| a.kind == ActionKind::Delete)
-            .map(|a| a.branch.clone())
-            .collect();
-
-        let classifications: Vec<_> = plan
-            .actions
-            .iter()
-            .map(|a| a.classification.clone())
-            .collect();
-
         let results = crate::action::execute_deletions_with_guard(
             &self.config.lock().unwrap(),
             self.git.as_ref(),
             self.history.as_ref(),
             &repo,
-            &classifications,
-            &branches_to_delete,
+            &plan.actions,
             no_backup,
-            |branch| {
-                let action = plan.actions.iter().find(|a| a.branch == *branch).unwrap();
+            |action| {
                 if action.scope == crate::model::BranchScope::Remote {
                     let remote = action.remote.as_deref().unwrap_or("origin");
-                    self.git.delete_remote_branch(&repo, remote, branch)
+                    self.git.delete_remote_branch(&repo, remote, &action.branch)
                 } else {
-                    self.git.delete_local_branch(&repo, branch)
+                    self.git.delete_local_branch(&repo, &action.branch)
                 }
             },
             |_, _| true,
@@ -1412,22 +1397,15 @@ mod tests {
 
         // 2. Execute plan with simulated failure during deletion to trigger SAFE-05
         let mut is_restore_called = false;
-        let classifications: Vec<_> = plan
-            .actions
-            .iter()
-            .map(|a| a.classification.clone())
-            .collect();
-        let branches = vec![BranchName("unmerged-branch".to_string())];
 
         let run_res = crate::action::execute_deletions_with_guard(
             &engine.config.lock().unwrap(),
             engine.git.as_ref(),
             engine.history.as_ref(),
             engine.repos.lock().unwrap().get(&repo_id).unwrap(),
-            &classifications,
-            &branches,
+            &plan.actions,
             false,
-            |_branch| {
+            |_action| {
                 let mut r = source_repo
                     .find_reference("refs/heads/unmerged-branch")
                     .unwrap();
@@ -1628,5 +1606,28 @@ mod tests {
         // 4. Manual cache clear (belt and suspenders)
         engine.scan_cache.lock().unwrap().clear();
         assert_eq!(engine.scan_cache.lock().unwrap().len(), 0);
+    }
+}
+
+/// Log an operation (delete or archive) to a file for debugging.
+pub fn log_operation(op: &str, branch: &str, scope: &str, result: &str) {
+    use std::fs::OpenOptions;
+    use std::io::Write;
+    
+    let log_dir = if let Some(bd) = directories::BaseDirs::new() {
+        bd.home_dir().join(".git-purge")
+    } else if let Ok(home) = std::env::var("HOME") {
+        std::path::PathBuf::from(home).join(".git-purge")
+    } else {
+        std::path::PathBuf::from("/home/mgamil").join(".git-purge")
+    };
+
+    let _ = std::fs::create_dir_all(&log_dir);
+    let log_path = log_dir.join("git-purge-operations.log");
+
+    let now = time::OffsetDateTime::now_utc().to_string();
+    let log_line = format!("[{}] OP: {} | BRANCH: {} | SCOPE: {} | RESULT: {}\n", now, op, branch, scope, result);
+    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(log_path) {
+        let _ = file.write_all(log_line.as_bytes());
     }
 }

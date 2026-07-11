@@ -5,7 +5,7 @@ use crate::error::Result;
 use crate::git::GitBackend;
 use crate::history::HistoryStore;
 use crate::model::{
-    Action, ActionKind, ActionResult, BranchName, Repository, RestoreSpec, SnapshotId,
+    Action, ActionResult, BranchName, Repository, RestoreSpec, SnapshotId,
 };
 
 /// Execute a list of branch deletions with a pre-op backup snapshot and verification.
@@ -16,34 +16,43 @@ pub fn execute_deletions_with_guard<F>(
     git_backend: &dyn GitBackend,
     history_store: &dyn HistoryStore,
     repo: &Repository,
-    classifications: &[crate::model::Classification],
-    branches_to_delete: &[BranchName],
+    actions_to_delete: &[Action],
     no_backup: bool,
-    mut delete_fn: impl FnMut(&BranchName) -> Result<()>,
+    mut delete_fn: impl FnMut(&Action) -> Result<()>,
     mut offer_restore: F,
 ) -> Result<Vec<ActionResult>>
 where
     F: FnMut(&BranchName, &SnapshotId) -> bool,
 {
-    if branches_to_delete.is_empty() {
+    if actions_to_delete.is_empty() {
         return Ok(Vec::new());
     }
 
     let snapshot_id = if no_backup {
         None
     } else {
+        let branches_to_backup: Vec<BranchName> = actions_to_delete
+            .iter()
+            .map(|a| a.branch.clone())
+            .collect();
+
+        let classifications: Vec<_> = actions_to_delete
+            .iter()
+            .map(|a| a.classification.clone())
+            .collect();
+
         // 1. Create a pre-op snapshot (SAFE-04)
         let backup_opts = crate::model::BackupOptions {
             trigger: Some(crate::model::SnapshotTrigger::PreDelete),
             verify: true,
-            only_branches: branches_to_delete.to_vec(),
+            only_branches: branches_to_backup,
         };
 
         let mut snapshot = crate::backup::create_snapshot(
             config,
             git_backend,
             repo,
-            classifications,
+            &classifications,
             &backup_opts,
         )?;
 
@@ -65,81 +74,31 @@ where
 
     let mut results = Vec::new();
 
-    // 3. Execute the delete operation for each branch
-    for branch_name in branches_to_delete {
-        let class = classifications
-            .iter()
-            .find(|c| c.branch == *branch_name)
-            .cloned()
-            .unwrap_or_else(|| {
-                // fallback if not found in classifications
-                crate::model::Classification {
-                    branch: branch_name.clone(),
-                    scope: crate::model::BranchScope::Local,
-                    merge_state: crate::model::MergeState::Unknown,
-                    activity: crate::model::Activity::Active,
-                    age: std::time::Duration::from_secs(0),
-                    protection: crate::model::Protection::Unprotected,
-                    naming: crate::model::NamingVerdict::Standard,
-                    tracking: crate::model::TrackingFacet {
-                        ahead: 0,
-                        behind: 0,
-                        upstream_gone: false,
-                        compared_against: crate::model::RefBasis::DefaultBranch,
-                    },
-                    tip: crate::model::Commit {
-                        oid: crate::model::Oid(
-                            "0000000000000000000000000000000000000000".to_string(),
-                        ),
-                        short: "0000000".to_string(),
-                        author: crate::model::Signature {
-                            name: "System".to_string(),
-                            email: "system@gitpurge".to_string(),
-                            when: time::OffsetDateTime::now_utc(),
-                        },
-                        committer: crate::model::Signature {
-                            name: "System".to_string(),
-                            email: "system@gitpurge".to_string(),
-                            when: time::OffsetDateTime::now_utc(),
-                        },
-                        author_date: time::OffsetDateTime::now_utc(),
-                        commit_date: time::OffsetDateTime::now_utc(),
-                        subject: "Initial".to_string(),
-                        parents: Vec::new(),
-                    },
-                    recommendation: crate::model::Recommendation::NoAction,
-                }
-            });
-
-        let action = Action {
-            kind: ActionKind::Delete,
-            branch: branch_name.clone(),
-            scope: class.scope,
-            remote: if class.scope == crate::model::BranchScope::Remote {
-                Some("origin".to_string())
-            } else {
-                None
-            },
-            classification: class,
-            reason: "Safe branch deletion".to_string(),
+    // 3. Execute the delete operation for each action
+    for action in actions_to_delete {
+        let scope_str = match action.scope {
+            crate::model::BranchScope::Local => "local",
+            crate::model::BranchScope::Remote => "remote",
         };
 
-        match delete_fn(branch_name) {
+        match delete_fn(action) {
             Ok(()) => {
-                results.push(ActionResult::Success { action });
+                results.push(ActionResult::Success { action: action.clone() });
+                crate::log_operation("DELETE", &action.branch.0, scope_str, "SUCCESS");
             }
             Err(e) => {
                 let error_msg = e.to_string();
                 results.push(ActionResult::Failed {
-                    action,
+                    action: action.clone(),
                     error: error_msg.clone(),
                 });
+                crate::log_operation("DELETE", &action.branch.0, scope_str, &format!("FAILED: {}", error_msg));
 
                 // SAFE-05: Offer restore
                 if let Some(ref snap_id) = snapshot_id {
-                    if offer_restore(branch_name, snap_id) {
+                    if offer_restore(&action.branch, snap_id) {
                         let restore_spec = RestoreSpec {
-                            branch: branch_name.clone(),
+                            branch: action.branch.clone(),
                             as_tag: false,
                             target_name: None,
                             force: true, // force since we are restoring from failed delete

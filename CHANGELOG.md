@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed a critical bug in `execute_deletions_with_guard` that prevented remote branch deletions from executing by refactoring it to iterate over complete `Action` structures instead of only names, ensuring proper local vs remote branch routing.
+- Fixed silent remote push rejections by registering a `push_update_reference` callback in `delete_remote_branch` to check reference status updates and propagate push errors correctly.
+- Wired SSH agent callbacks and fallback default credentials in `delete_remote_branch` to support authenticated push deletions on real remote repositories.
+- Explicitly deleted local remote-tracking reference `refs/remotes/<remote>/<branch>` after successful push deletion in `delete_remote_branch` to guarantee UI list consistency on subsequent scans.
 - Centralized and secured date parsing in the Vue/TS desktop frontend to handle RFC3339/ISO-8601 date strings from the Rust backend with timezone offsets or whitespace separators reliably, preventing browser-specific `Invalid Date` errors.
 - Fixed silent swallowing of snapshot loading errors in `SqliteHistoryStore` by propagating failures using the `?` operator, and added a comprehensive suite of unit tests for actual SQLite-based snapshot storage and retrieval.
 
