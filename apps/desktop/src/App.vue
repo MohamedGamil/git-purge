@@ -52,6 +52,9 @@
       </nav>
 
       <div class="sidebar-footer">
+        <div v-if="!isOnline" class="network-warning" title="Your device is offline or the VPN connection is lost. Git remote synchronization is temporarily disabled.">
+          <span class="warning-dot"></span> Offline
+        </div>
         <span>v0.1.1</span>
       </div>
     </aside>
@@ -64,9 +67,26 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useTheme } from './composables/useTheme';
 
 useTheme();
+
+const isOnline = ref(navigator.onLine);
+
+const updateOnlineStatus = () => {
+  isOnline.value = navigator.onLine;
+};
+
+onMounted(() => {
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('online', updateOnlineStatus);
+  window.removeEventListener('offline', updateOnlineStatus);
+});
 </script>
 
 <style>
@@ -156,5 +176,35 @@ useTheme();
   height: 100%;
   overflow: hidden;
   background-color: var(--bg);
+}
+
+.network-warning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  padding: 6px;
+  border-radius: var(--radius-sm, 4px);
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 11px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.warning-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
 }
 </style>

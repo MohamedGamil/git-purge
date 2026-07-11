@@ -25,7 +25,7 @@
 //! preceded by a verified backup snapshot; protected refs are structurally excluded
 //! from destructive plans. These invariants are enforced in the service layer, never
 //! left to callers.
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![warn(missing_docs)]
 
 /// Domain action model.
@@ -104,7 +104,14 @@ const _: () = {
 impl Engine {
     /// Open an engine with the given configuration, wiring up the default production
     /// adapters (gix/git2 git backend, keyring secret store, SQLite history store).
+    #[allow(unsafe_code)]
     pub fn open(config: Config) -> Result<Self> {
+        // Configure libgit2 network connection and operation timeouts to protect against offline state/VPN loss.
+        unsafe {
+            let _ = git2::opts::set_server_connect_timeout_in_milliseconds(5000);
+            let _ = git2::opts::set_server_timeout_in_milliseconds(15000);
+        }
+
         let git = Box::new(crate::git::CompositeGitBackend::new());
         let secrets = Box::new(crate::auth::FakeSecretStore::default());
         let db_path = config.resolve_data_dir().join("history.db");

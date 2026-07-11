@@ -84,8 +84,14 @@ export const useReposStore = defineStore('repos', {
       this.error = null;
       try {
         this.activeRepoDetail = await repoShow(repoId);
-        // Automatically perform a fast scan to load the branches list
-        await this.runScan(repoId, { includeRemote: true });
+        // Try including remote tracking first, fall back to local-only if it fails (VPN/offline)
+        try {
+          await this.runScan(repoId, { includeRemote: true });
+        } catch (scanErr: any) {
+          console.warn('Remote check failed (possibly VPN offline). Falling back to local branch scan:', scanErr);
+          await this.runScan(repoId, { includeRemote: false });
+          this.error = 'Remote tracking unreachable (VPN/network offline). Displaying local branches only.';
+        }
       } catch (err: any) {
         this.error = err?.message || 'Failed to load repository details';
       } finally {
