@@ -51,6 +51,10 @@ pub enum GitPurgeError {
     #[error("git backend error: {0}")]
     Git(String),
 
+    /// A requested capability is not supported by the backend.
+    #[error("requested capability not supported by backend: {0}")]
+    BackendUnsupported(String),
+
     /// The underlying history/trends store failed.
     #[error("history store error: {0}")]
     History(String),
@@ -81,6 +85,7 @@ impl GitPurgeError {
             Self::Config(_) => "config_error",
             Self::Auth(_) => "auth_error",
             Self::Git(_) => "git_error",
+            Self::BackendUnsupported(_) => "backend_unsupported",
             Self::History(_) => "history_error",
             Self::Io(_) => "io_error",
             Self::Other(_) => "error",

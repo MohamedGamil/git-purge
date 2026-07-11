@@ -39,13 +39,8 @@ pub enum CredentialKind {
 /// No method may include secret material in error messages, `Debug` output, or logs.
 pub trait SecretStore: Send + Sync + std::fmt::Debug {
     /// Store a credential for a repo + remote.
-    fn store(
-        &self,
-        repo: &RepoId,
-        remote: &str,
-        kind: CredentialKind,
-        secret: &[u8],
-    ) -> Result<()>;
+    fn store(&self, repo: &RepoId, remote: &str, kind: CredentialKind, secret: &[u8])
+        -> Result<()>;
 
     /// Retrieve a credential for a repo + remote.
     fn retrieve(&self, repo: &RepoId, remote: &str) -> Result<Option<Credential>>;

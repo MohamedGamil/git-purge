@@ -9,6 +9,14 @@
 //! - **git2 (libgit2)** — fallback for operations gix doesn't cover.
 //! - **System `git` shell-out** — last-resort adapter.
 
+pub mod composite;
+pub mod git2_backend;
+pub mod gix_backend;
+
+pub use composite::CompositeGitBackend;
+pub use git2_backend::Git2Backend;
+pub use gix_backend::GixBackend;
+
 use crate::error::Result;
 use crate::model::{Branch, BranchName, BranchScope, Commit, Oid, Ref, RefSpec, Repository, Tag};
 
@@ -40,11 +48,7 @@ pub trait GitBackend: Send + Sync + std::fmt::Debug {
     fn list_refs(&self, repo: &Repository) -> Result<Vec<Ref>>;
 
     /// List branches, optionally filtered by scope.
-    fn list_branches(
-        &self,
-        repo: &Repository,
-        scope: Option<BranchScope>,
-    ) -> Result<Vec<Branch>>;
+    fn list_branches(&self, repo: &Repository, scope: Option<BranchScope>) -> Result<Vec<Branch>>;
 
     /// List tags.
     fn list_tags(&self, repo: &Repository) -> Result<Vec<Tag>>;
@@ -65,12 +69,7 @@ pub trait GitBackend: Send + Sync + std::fmt::Debug {
     fn read_blob(&self, repo: &Repository, at: &RefSpec, path: &str) -> Result<Vec<u8>>;
 
     /// Compute diff stats between two refs.
-    fn diff_refs(
-        &self,
-        repo: &Repository,
-        a: &RefSpec,
-        b: &RefSpec,
-    ) -> Result<Vec<FileDiffStat>>;
+    fn diff_refs(&self, repo: &Repository, a: &RefSpec, b: &RefSpec) -> Result<Vec<FileDiffStat>>;
 
     /// Delete a local branch.
     fn delete_local_branch(&self, repo: &Repository, branch: &BranchName) -> Result<()>;
