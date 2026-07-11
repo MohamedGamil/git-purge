@@ -18,6 +18,8 @@ path = "src/main.rs"
 
 [dependencies]
 gitpurge-core = { path = "../gitpurge-core" }
+thiserror = { workspace = true }
+time = { workspace = true }
 
 # CLI presentation (CONVENTIONS §9)
 clap = { workspace = true }

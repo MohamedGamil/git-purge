@@ -69,16 +69,16 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use crate::model::{
-    Action, ActionFilter, ActionKind, ActionResult, BackupOptions, BranchName, BranchScope, ExecMode, MergeState, Plan,
-    Protection, Recommendation, RefSpec, RepoId, Repository, RestoreOutcome, RestoreSpec,
-    RunReport, ScanOptions, ScanResult, Snapshot, SnapshotId,
+    Action, ActionFilter, ActionKind, ActionResult, BackupOptions, BranchName, BranchScope,
+    ExecMode, MergeState, Plan, Protection, Recommendation, RefSpec, RepoId, Repository,
+    RestoreOutcome, RestoreSpec, RunReport, ScanOptions, ScanResult, Snapshot, SnapshotId,
 };
 use crate::report::ReportFormat;
 
 /// The public facade over `gitpurge-core`.
 #[derive(Debug)]
 pub struct Engine {
-    config: Config,
+    config: Mutex<Config>,
     git: Box<dyn git::GitBackend>,
     #[allow(dead_code)]
     secrets: Box<dyn auth::SecretStore>,
@@ -112,15 +112,21 @@ impl Engine {
         let clock = Box::new(crate::clock::SystemClock);
         let progress = Box::new(crate::progress::NoopProgressSink);
 
+        let repos_map = config
+            .repos
+            .iter()
+            .map(|r| (r.id.clone(), r.clone()))
+            .collect();
+
         Ok(Self {
-            config,
+            config: Mutex::new(config),
             git,
             secrets,
             history,
             report_sink,
             clock,
             progress,
-            repos: Mutex::new(HashMap::new()),
+            repos: Mutex::new(repos_map),
         })
     }
 
@@ -134,15 +140,21 @@ impl Engine {
         clock: Box<dyn clock::Clock>,
         progress: Box<dyn progress::ProgressSink>,
     ) -> Self {
+        let repos_map = config
+            .repos
+            .iter()
+            .map(|r| (r.id.clone(), r.clone()))
+            .collect();
+
         Self {
-            config,
+            config: Mutex::new(config),
             git,
             secrets,
             history,
             report_sink,
             clock,
             progress,
-            repos: Mutex::new(HashMap::new()),
+            repos: Mutex::new(repos_map),
         }
     }
 
@@ -150,6 +162,81 @@ impl Engine {
     pub fn register_repo(&self, repo: Repository) -> Result<()> {
         let mut repos = self.repos.lock().unwrap();
         repos.insert(repo.id.clone(), repo);
+        Ok(())
+    }
+
+    /// Add a repository to the tracked list in config and save.
+    pub fn add_repo(&self, repo: Repository) -> Result<()> {
+        self.register_repo(repo.clone())?;
+        // Sync config
+        let mut config = self.config.lock().unwrap();
+        if !config.repos.iter().any(|r| r.id == repo.id) {
+            config.repos.push(repo);
+        } else {
+            // Update existing
+            if let Some(existing) = config.repos.iter_mut().find(|r| r.id == repo.id) {
+                *existing = repo;
+            }
+        }
+        Ok(())
+    }
+
+    /// Remove a repository from the tracked list.
+    pub fn remove_repo(&self, id: &RepoId) -> Result<()> {
+        {
+            let mut repos = self.repos.lock().unwrap();
+            repos.remove(id);
+        }
+        let mut config = self.config.lock().unwrap();
+        config.repos.retain(|r| r.id != *id);
+        if config.default_repo.as_ref() == Some(id) {
+            config.default_repo = None;
+        }
+        Ok(())
+    }
+
+    /// List all tracked repositories.
+    pub fn list_repos(&self) -> Result<Vec<Repository>> {
+        let repos = self.repos.lock().unwrap();
+        Ok(repos.values().cloned().collect())
+    }
+
+    /// Get tracked repository details by ID.
+    pub fn get_repo(&self, id: &RepoId) -> Result<Option<Repository>> {
+        let repos = self.repos.lock().unwrap();
+        Ok(repos.get(id).cloned())
+    }
+
+    /// Set the default repository.
+    pub fn set_default_repo(&self, id: RepoId) -> Result<()> {
+        let mut config = self.config.lock().unwrap();
+        config.default_repo = Some(id);
+        Ok(())
+    }
+
+    /// Get the default repository ID.
+    pub fn default_repo_id(&self) -> Option<RepoId> {
+        let config = self.config.lock().unwrap();
+        config.default_repo.clone()
+    }
+
+    /// Save the current config to disk.
+    pub fn save_config(&self, path: Option<&Path>) -> Result<()> {
+        let config = self.config.lock().unwrap().clone();
+        config.save(path)?;
+        Ok(())
+    }
+
+    /// Purge backups bare mirror for a repository from disk.
+    pub fn purge_repo_backups(&self, id: &RepoId) -> Result<()> {
+        let config_guard = self.config.lock().unwrap();
+        let mirror_manager = crate::backup::BackupMirrorManager::new(&config_guard);
+        let mirror_path = mirror_manager.resolve_mirror_path(id);
+        if mirror_path.exists() {
+            std::fs::remove_dir_all(mirror_path).map_err(|e| {
+                crate::GitPurgeError::Git(format!("Failed to delete bare mirror directory: {}", e))
+            })?;
+        }
         Ok(())
     }
 
@@ -162,7 +249,7 @@ impl Engine {
             })?
         };
 
-        let mut policy = self.config.default_policy.clone();
+        let mut policy = self.config.lock().unwrap().default_policy.clone();
         if let Some(age_override) = opts.age_override {
             policy.age = age_override;
         }
@@ -309,22 +396,27 @@ impl Engine {
         let repo = {
             let repos = self.repos.lock().unwrap();
             repos.get(repo_id).cloned().ok_or_else(|| {
-                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo_id))
+                crate::GitPurgeError::RepoNotFound(format!(
+                    "Repository not registered: {:?}",
+                    repo_id
+                ))
             })?
         };
 
         let scan_opts = ScanOptions::default();
         let scan_res = self.scan(repo_id, scan_opts)?;
 
+        let config_guard = self.config.lock().unwrap();
         let snapshot = crate::backup::create_snapshot(
-            &self.config,
+            &config_guard,
             self.git.as_ref(),
             &repo,
             &scan_res.classifications,
             &opts,
         )?;
 
-        let verify_report = crate::backup::verify_snapshot(&self.config, repo_id, &snapshot.id, false)?;
+        let verify_report =
+            crate::backup::verify_snapshot(&config_guard, repo_id, &snapshot.id, false)?;
         if !verify_report.ok {
             return Err(crate::GitPurgeError::Snapshot(format!(
                 "Backup snapshot '{}' failed verification.",
@@ -341,18 +433,23 @@ impl Engine {
     }
 
     /// Execute a resolved plan.
-    pub fn execute(&self, plan: &Plan, mode: ExecMode) -> Result<RunReport> {
+    pub fn execute(&self, plan: &Plan, mode: ExecMode, no_backup: bool) -> Result<RunReport> {
         let repo = {
             let repos = self.repos.lock().unwrap();
             repos.get(&plan.repo).cloned().ok_or_else(|| {
-                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", plan.repo))
+                crate::GitPurgeError::RepoNotFound(format!(
+                    "Repository not registered: {:?}",
+                    plan.repo
+                ))
             })?
         };
 
         if mode == ExecMode::DryRun {
             let mut results = Vec::new();
             for action in &plan.actions {
-                results.push(ActionResult::Skipped { action: action.clone() });
+                results.push(ActionResult::Skipped {
+                    action: action.clone(),
+                });
             }
             return Ok(RunReport {
                 repo: plan.repo.clone(),
@@ -365,20 +462,27 @@ impl Engine {
             });
         }
 
-        let branches_to_delete: Vec<BranchName> = plan.actions.iter()
+        let branches_to_delete: Vec<BranchName> = plan
+            .actions
+            .iter()
             .filter(|a| a.kind == ActionKind::Delete)
             .map(|a| a.branch.clone())
             .collect();
 
-        let classifications: Vec<_> = plan.actions.iter().map(|a| a.classification.clone()).collect();
+        let classifications: Vec<_> = plan
+            .actions
+            .iter()
+            .map(|a| a.classification.clone())
+            .collect();
 
         let results = crate::action::execute_deletions_with_guard(
-            &self.config,
+            &self.config.lock().unwrap(),
             self.git.as_ref(),
             self.history.as_ref(),
             &repo,
             &classifications,
             &branches_to_delete,
+            no_backup,
             |branch| {
                 let action = plan.actions.iter().find(|a| a.branch == *branch).unwrap();
                 if action.scope == crate::model::BranchScope::Remote {
@@ -388,14 +492,21 @@ impl Engine {
                     self.git.delete_local_branch(&repo, branch)
                 }
             },
-            |_, _| {
-                true
-            },
+            |_, _| true,
         )?;
 
-        let success_count = results.iter().filter(|r| matches!(r, ActionResult::Success { .. })).count();
-        let failure_count = results.iter().filter(|r| matches!(r, ActionResult::Failed { .. })).count();
-        let skipped_count = results.iter().filter(|r| matches!(r, ActionResult::Skipped { .. })).count();
+        let success_count = results
+            .iter()
+            .filter(|r| matches!(r, ActionResult::Success { .. }))
+            .count();
+        let failure_count = results
+            .iter()
+            .filter(|r| matches!(r, ActionResult::Failed { .. }))
+            .count();
+        let skipped_count = results
+            .iter()
+            .filter(|r| matches!(r, ActionResult::Skipped { .. }))
+            .count();
 
         let snapshots = self.history.list_snapshots(&plan.repo)?;
         let snapshot_id = snapshots.first().map(|s| s.id.clone());
@@ -417,17 +528,94 @@ impl Engine {
 
     /// Restore a ref from a snapshot.
     pub fn restore(&self, snap: &SnapshotId, spec: RestoreSpec) -> Result<RestoreOutcome> {
-        let snapshot = self.history.get_snapshot(snap)?
-            .ok_or_else(|| crate::GitPurgeError::Snapshot(format!("Snapshot not found: {}", snap.0)))?;
+        let snapshot = self.history.get_snapshot(snap)?.ok_or_else(|| {
+            crate::GitPurgeError::Snapshot(format!("Snapshot not found: {}", snap.0))
+        })?;
 
         let repo = {
             let repos = self.repos.lock().unwrap();
             repos.get(&snapshot.repo).cloned().ok_or_else(|| {
-                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", snapshot.repo))
+                crate::GitPurgeError::RepoNotFound(format!(
+                    "Repository not registered: {:?}",
+                    snapshot.repo
+                ))
             })?
         };
 
-        crate::backup::restore_snapshot(&self.config, &repo, snap, &spec)
+        crate::backup::restore_snapshot(&self.config.lock().unwrap(), &repo, snap, &spec)
+    }
+
+    /// Archive branches into a target legacy/archive branch.
+    pub fn archive(
+        &self,
+        repo_id: &RepoId,
+        branches: &[BranchName],
+        target_branch: &str,
+        strategy: crate::action::ArchiveStrategy,
+        push: bool,
+    ) -> Result<()> {
+        let repo = {
+            let repos = self.repos.lock().unwrap();
+            repos.get(repo_id).cloned().ok_or_else(|| {
+                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo_id))
+            })?
+        };
+
+        crate::action::archive_branches(
+            &self.config.lock().unwrap(),
+            &repo,
+            branches,
+            target_branch,
+            strategy,
+            push,
+        )
+    }
+
+    /// List all backup snapshots for a repository.
+    pub fn list_snapshots(&self, repo_id: &RepoId) -> Result<Vec<Snapshot>> {
+        self.history.list_snapshots(repo_id)
+    }
+
+    /// Get details of a specific snapshot.
+    pub fn get_snapshot(&self, snap_id: &SnapshotId) -> Result<Option<Snapshot>> {
+        self.history.get_snapshot(snap_id)
+    }
+
+    /// Delete a snapshot's metadata.
+    pub fn delete_snapshot(&self, snap_id: &SnapshotId) -> Result<()> {
+        self.history.delete_snapshot(snap_id)
+    }
+
+    /// Verify the integrity of a backup snapshot in the bare mirror.
+    pub fn backup_verify(&self, repo_id: &RepoId, snap_id: &SnapshotId) -> Result<crate::backup::VerifyReport> {
+        crate::backup::verify_snapshot(&self.config.lock().unwrap(), repo_id, snap_id, false)
+    }
+
+    /// Prune old snapshots for a repository based on a retention policy.
+    pub fn backup_prune(
+        &self,
+        repo_id: &RepoId,
+        policy: &crate::model::RetentionPolicy,
+        mode: ExecMode,
+    ) -> Result<crate::model::PruneReport> {
+        crate::backup::prune_snapshots(
+            &self.config.lock().unwrap(),
+            self.history.as_ref(),
+            repo_id,
+            policy,
+            mode,
+        )
+    }
+
+    /// Fetch from remote (default 'origin') for a repository.
+    pub fn fetch(&self, repo_id: &RepoId) -> Result<()> {
+        let repo = {
+            let repos = self.repos.lock().unwrap();
+            repos.get(repo_id).cloned().ok_or_else(|| {
+                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo_id))
+            })?
+        };
+        self.git.fetch(&repo, "origin")
     }
 
     /// Diff two refs.
@@ -522,6 +710,22 @@ impl Engine {
         }
     }
 
+    /// Read the raw content of a file at a ref/commit.
+    pub fn show_file(
+        &self,
+        repo: &RepoId,
+        at: &RefSpec,
+        path: &Path,
+    ) -> Result<Vec<u8>> {
+        let repo_model = {
+            let repos = self.repos.lock().unwrap();
+            repos.get(repo).cloned().ok_or_else(|| {
+                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo))
+            })?
+        };
+        self.git.read_blob(&repo_model, at, path.to_str().unwrap_or(""))
+    }
+
     /// Generate an audit/trend report in the requested format.
     pub fn report(&self, repo: &RepoId, fmt: ReportFormat) -> Result<crate::report::Report> {
         let _ = (repo, fmt);
@@ -556,6 +760,7 @@ mod tests {
             backups_root: None,
             default_policy: policy,
             protected: Vec::new(),
+            ..Default::default()
         };
 
         let git_backend = Box::new(crate::git::CompositeGitBackend::new());
@@ -633,13 +838,15 @@ mod tests {
     fn test_backup_create_and_verify() {
         let repo_fixture = testkit::merged_repo();
         let repo_id = RepoId("test-backup-repo".to_string());
-        
+
         let config = Config::default();
         let git_backend = Box::new(crate::git::CompositeGitBackend::new());
         let secrets = Box::new(crate::auth::FakeSecretStore::default());
         let history = Box::new(crate::history::FakeHistoryStore::new());
         let report_sink = Box::new(crate::report::FakeReportSink::default());
-        let clock = Box::new(FakeClock::new(time::macros::datetime!(2026-07-05 12:00:00 UTC)));
+        let clock = Box::new(FakeClock::new(
+            time::macros::datetime!(2026-07-05 12:00:00 UTC),
+        ));
         let progress = Box::new(crate::progress::NoopProgressSink);
 
         let engine = Engine::new(
@@ -675,35 +882,44 @@ mod tests {
         assert!(snapshot.verified);
 
         // 2. Verify snapshot
-        let verify_res = crate::backup::verify_snapshot(&engine.config, &repo_id, &snapshot.id, false).unwrap();
+        let verify_res =
+            crate::backup::verify_snapshot(&engine.config.lock().unwrap(), &repo_id, &snapshot.id, false).unwrap();
         assert!(verify_res.ok);
 
         // 3. Corrupt snapshot by deleting a backup reference in the mirror
-        let mirror_manager = crate::backup::BackupMirrorManager::new(&engine.config);
+        let mirror_manager = crate::backup::BackupMirrorManager::new(&engine.config.lock().unwrap());
         let mirror_path = mirror_manager.resolve_mirror_path(&repo_id);
         let mirror_repo = git2::Repository::open_bare(&mirror_path).unwrap();
-        
-        let target_ref = format!("refs/gitpurge/backups/{}/refs/heads/merged-branch", snapshot.id.0);
+
+        let target_ref = format!(
+            "refs/gitpurge/backups/{}/refs/heads/merged-branch",
+            snapshot.id.0
+        );
         let mut r = mirror_repo.find_reference(&target_ref).unwrap();
         r.delete().unwrap();
 
         // 4. Verify snapshot should now detect corruption
-        let verify_res2 = crate::backup::verify_snapshot(&engine.config, &repo_id, &snapshot.id, false).unwrap();
+        let verify_res2 =
+            crate::backup::verify_snapshot(&engine.config.lock().unwrap(), &repo_id, &snapshot.id, false).unwrap();
         assert!(!verify_res2.ok);
-        assert!(verify_res2.problems.contains(&crate::backup::VerifyProblem::MissingRef));
+        assert!(verify_res2
+            .problems
+            .contains(&crate::backup::VerifyProblem::MissingRef));
     }
 
     #[test]
     fn test_restore_safeties() {
         let repo_fixture = testkit::merged_repo();
         let repo_id = RepoId("test-restore-repo".to_string());
-        
+
         let config = Config::default();
         let git_backend = Box::new(crate::git::CompositeGitBackend::new());
         let secrets = Box::new(crate::auth::FakeSecretStore::default());
         let history = Box::new(crate::history::FakeHistoryStore::new());
         let report_sink = Box::new(crate::report::FakeReportSink::default());
-        let clock = Box::new(FakeClock::new(time::macros::datetime!(2026-07-05 12:00:00 UTC)));
+        let clock = Box::new(FakeClock::new(
+            time::macros::datetime!(2026-07-05 12:00:00 UTC),
+        ));
         let progress = Box::new(crate::progress::NoopProgressSink);
 
         let engine = Engine::new(
@@ -729,14 +945,20 @@ mod tests {
         engine.register_repo(repo_model).unwrap();
 
         // 1. Create backup snapshot
-        let snapshot = engine.backup_create(&repo_id, BackupOptions::default()).unwrap();
+        let snapshot = engine
+            .backup_create(&repo_id, BackupOptions::default())
+            .unwrap();
 
         // 2. Delete branch in source repository
         let source_repo = git2::Repository::open(repo_fixture.path()).unwrap();
-        let mut r = source_repo.find_reference("refs/heads/merged-branch").unwrap();
+        let mut r = source_repo
+            .find_reference("refs/heads/merged-branch")
+            .unwrap();
         let original_oid = r.target().unwrap();
         r.delete().unwrap();
-        assert!(source_repo.find_reference("refs/heads/merged-branch").is_err());
+        assert!(source_repo
+            .find_reference("refs/heads/merged-branch")
+            .is_err());
 
         // 3. Restore branch
         let spec = RestoreSpec {
@@ -750,7 +972,9 @@ mod tests {
         assert_eq!(outcome.tip.0, original_oid.to_string());
 
         // 4. Verify branch is restored in source repo
-        let restored_ref = source_repo.find_reference("refs/heads/merged-branch").unwrap();
+        let restored_ref = source_repo
+            .find_reference("refs/heads/merged-branch")
+            .unwrap();
         assert_eq!(restored_ref.target().unwrap(), original_oid);
 
         // 5. SAFE-06: Restore again without force should fail
@@ -762,7 +986,10 @@ mod tests {
         };
         let err = engine.restore(&snapshot.id, spec_no_force);
         assert!(err.is_err());
-        assert!(matches!(err.unwrap_err(), crate::GitPurgeError::SafetyViolation(_)));
+        assert!(matches!(
+            err.unwrap_err(),
+            crate::GitPurgeError::SafetyViolation(_)
+        ));
 
         // 6. Restore again with force should succeed
         let spec_force = RestoreSpec {
@@ -791,13 +1018,15 @@ mod tests {
     fn test_auto_restore_on_failure() {
         let repo_fixture = testkit::merged_repo();
         let repo_id = RepoId("test-failed-delete-repo".to_string());
-        
+
         let config = Config::default();
         let git_backend = Box::new(crate::git::CompositeGitBackend::new());
         let secrets = Box::new(crate::auth::FakeSecretStore::default());
         let history = Box::new(crate::history::FakeHistoryStore::new());
         let report_sink = Box::new(crate::report::FakeReportSink::default());
-        let clock = Box::new(FakeClock::new(time::macros::datetime!(2026-07-05 12:00:00 UTC)));
+        let clock = Box::new(FakeClock::new(
+            time::macros::datetime!(2026-07-05 12:00:00 UTC),
+        ));
         let progress = Box::new(crate::progress::NoopProgressSink);
 
         let engine = Engine::new(
@@ -832,51 +1061,70 @@ mod tests {
 
         // Verify the branch exists before we try to delete it
         let source_repo = git2::Repository::open(repo_fixture.path()).unwrap();
-        assert!(source_repo.find_reference("refs/heads/unmerged-branch").is_ok());
+        assert!(source_repo
+            .find_reference("refs/heads/unmerged-branch")
+            .is_ok());
 
         // 2. Execute plan with simulated failure during deletion to trigger SAFE-05
         let mut is_restore_called = false;
-        let classifications: Vec<_> = plan.actions.iter().map(|a| a.classification.clone()).collect();
+        let classifications: Vec<_> = plan
+            .actions
+            .iter()
+            .map(|a| a.classification.clone())
+            .collect();
         let branches = vec![BranchName("unmerged-branch".to_string())];
-        
+
         let run_res = crate::action::execute_deletions_with_guard(
-            &engine.config,
+            &engine.config.lock().unwrap(),
             engine.git.as_ref(),
             engine.history.as_ref(),
-            &engine.repos.lock().unwrap().get(&repo_id).unwrap(),
+            engine.repos.lock().unwrap().get(&repo_id).unwrap(),
             &classifications,
             &branches,
+            false,
             |_branch| {
-                let mut r = source_repo.find_reference("refs/heads/unmerged-branch").unwrap();
+                let mut r = source_repo
+                    .find_reference("refs/heads/unmerged-branch")
+                    .unwrap();
                 r.delete().unwrap();
-                
-                Err(crate::GitPurgeError::Git("Simulated delete failure".to_string()))
+
+                Err(crate::GitPurgeError::Git(
+                    "Simulated delete failure".to_string(),
+                ))
             },
             |_, _| {
                 is_restore_called = true;
                 true // accept the restore
             },
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(run_res.len(), 1);
-        assert!(matches!(run_res[0], crate::model::ActionResult::Failed { .. }));
+        assert!(matches!(
+            run_res[0],
+            crate::model::ActionResult::Failed { .. }
+        ));
         assert!(is_restore_called);
 
         // Verify that the branch was automatically restored!
-        assert!(source_repo.find_reference("refs/heads/unmerged-branch").is_ok());
+        assert!(source_repo
+            .find_reference("refs/heads/unmerged-branch")
+            .is_ok());
     }
 
     #[test]
     fn test_disk_size_sublinear() {
         let repo_fixture = testkit::merged_repo();
         let repo_id = RepoId("test-size-repo".to_string());
-        
+
         let config = Config::default();
         let git_backend = Box::new(crate::git::CompositeGitBackend::new());
         let secrets = Box::new(crate::auth::FakeSecretStore::default());
         let history = Box::new(crate::history::FakeHistoryStore::new());
         let report_sink = Box::new(crate::report::FakeReportSink::default());
-        let clock = Box::new(FakeClock::new(time::macros::datetime!(2026-07-05 12:00:00 UTC)));
+        let clock = Box::new(FakeClock::new(
+            time::macros::datetime!(2026-07-05 12:00:00 UTC),
+        ));
         let progress = Box::new(crate::progress::NoopProgressSink);
 
         let engine = Engine::new(
@@ -904,7 +1152,9 @@ mod tests {
         // Create 5 snapshots of the repository without any changes
         let mut snapshots = Vec::new();
         for _ in 0..5 {
-            let snap = engine.backup_create(&repo_id, BackupOptions::default()).unwrap();
+            let snap = engine
+                .backup_create(&repo_id, BackupOptions::default())
+                .unwrap();
             snapshots.push(snap);
         }
 
@@ -913,7 +1163,7 @@ mod tests {
         assert_eq!(listed.len(), 5);
 
         // Verify the bare mirror directory exists and objects are shared
-        let mirror_manager = crate::backup::BackupMirrorManager::new(&engine.config);
+        let mirror_manager = crate::backup::BackupMirrorManager::new(&engine.config.lock().unwrap());
         let mirror_path = mirror_manager.resolve_mirror_path(&repo_id);
         assert!(mirror_path.exists());
     }

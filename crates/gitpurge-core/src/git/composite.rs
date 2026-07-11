@@ -118,7 +118,8 @@ mod tests {
         let refs = backend.list_refs(&repo_model).unwrap();
         assert!(refs.iter().any(|r| r.short == "main"));
 
-        // Mutates route to Git2 (stubs return Ok in P1)
+        // Mutates route to Git2
+        repo_fixture.git(&["branch", "some-branch"]);
         assert!(backend
             .delete_local_branch(&repo_model, &BranchName("some-branch".to_string()))
             .is_ok());

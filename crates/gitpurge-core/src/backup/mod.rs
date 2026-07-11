@@ -5,13 +5,13 @@
 //! N snapshots share the object database, so cost is ~O(changed objects), not O(N × repo).
 
 pub mod mirror;
-pub mod snapshot;
-pub mod verify;
 pub mod prune;
 pub mod restore;
+pub mod snapshot;
+pub mod verify;
 
 pub use mirror::BackupMirrorManager;
-pub use snapshot::create_snapshot;
-pub use verify::{verify_snapshot, VerifyReport, VerifyProblem, RefCheck};
 pub use prune::prune_snapshots;
 pub use restore::restore_snapshot;
+pub use snapshot::create_snapshot;
+pub use verify::{verify_snapshot, RefCheck, VerifyProblem, VerifyReport};

@@ -15,9 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   port traits (GitBackend, SecretStore, HistoryStore, ReportSink, Clock,
   ProgressSink), and Engine facade with full API surface (scan, plan, backup,
   execute, restore, diff, show_tree, report, history).
-- **CLI** (`git-purge`): clap-based CLI with full command surface — repo, scan,
-  plan, backup, delete, archive, restore, diff, show, report, history, auth,
-  ui, install-cli, completions.
+- **Backup & Restore Subsystem** (Phase 2):
+  - Completed `verify.rs` for snapshot manifest, reference tip, and commit reachability validation.
+  - Completed `prune.rs` supporting `RetentionPolicy` rules and physical resource reclaiming.
+  - Completed `restore.rs` implementing local ref fetching back to source repositories with `SAFE-06` guardrails.
+  - Completed `guard.rs` facilitating automatic pre-op backup (`SAFE-04`) and callback-driven auto-restore on mutation failure (`SAFE-05`).
+- **CLI Commands** (Phase 3):
+  - Clap skeleton supporting global flags, XDG config routing, human-friendly tables, and raw `--json` envelopes.
+  - Verbs: `repo add/list/remove/set-default`, `scan`, `plan`, `delete`, `archive`, `backup`, `restore`, `diff`, `show`.
+  - Stubs: `report`, `history`, `auth`, `ui`, `completions`, `install-cli`.
+  - TTY-aware confirmation prompts for standard/strong mutation gates.
 - **Desktop stub** (`gitpurge-desktop`): Tauri v2 workspace member (UI lands in
   Phase 4).
 - **Domain model**: Repository, Branch, Commit, Tag, Ref, Classification, Policy,

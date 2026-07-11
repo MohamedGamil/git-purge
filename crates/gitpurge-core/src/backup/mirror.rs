@@ -1,9 +1,9 @@
 //! Bare-mirror manager (P2-T1, CONVENTIONS §6, docs/08 §2).
 
-use std::path::PathBuf;
-use crate::error::Result;
-use crate::model::{Repository, RepoId};
 use crate::config::Config;
+use crate::error::Result;
+use crate::model::{RepoId, Repository};
+use std::path::PathBuf;
 
 /// Manages bare git mirrors used for backing up repositories.
 pub struct BackupMirrorManager {
@@ -23,13 +23,17 @@ impl BackupMirrorManager {
 
     /// Resolve the on-disk path to the bare mirror for a repository.
     pub fn resolve_mirror_path(&self, repo_id: &RepoId) -> PathBuf {
-        let sanitized_id: String = repo_id.0.chars().map(|c| {
-            if c.is_alphanumeric() || c == '-' || c == '_' {
-                c
-            } else {
-                '_'
-            }
-        }).collect();
+        let sanitized_id: String = repo_id
+            .0
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
         self.backups_root.join(format!("{}.git", sanitized_id))
     }
 
@@ -38,14 +42,16 @@ impl BackupMirrorManager {
         let mirror_path = self.resolve_mirror_path(&repo.id);
 
         let mirror_repo = if mirror_path.exists() {
-            git2::Repository::open_bare(&mirror_path)
-                .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open bare mirror: {}", e)))?
+            git2::Repository::open_bare(&mirror_path).map_err(|e| {
+                crate::GitPurgeError::Git(format!("Failed to open bare mirror: {}", e))
+            })?
         } else {
             if let Some(parent) = mirror_path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
-            git2::Repository::init_bare(&mirror_path)
-                .map_err(|e| crate::GitPurgeError::Git(format!("Failed to init bare mirror: {}", e)))?
+            git2::Repository::init_bare(&mirror_path).map_err(|e| {
+                crate::GitPurgeError::Git(format!("Failed to init bare mirror: {}", e))
+            })?
         };
 
         Ok(mirror_repo)
@@ -58,8 +64,14 @@ impl BackupMirrorManager {
         })?;
 
         let source_path_str = source_path.to_string_lossy();
-        let mut remote = mirror_repo.remote_anonymous(&source_path_str)
-            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to create anonymous remote for mirror: {}", e)))?;
+        let mut remote = mirror_repo
+            .remote_anonymous(&source_path_str)
+            .map_err(|e| {
+                crate::GitPurgeError::Git(format!(
+                    "Failed to create anonymous remote for mirror: {}",
+                    e
+                ))
+            })?;
 
         let refspecs = &[
             "+refs/heads/*:refs/heads/*",
@@ -68,8 +80,11 @@ impl BackupMirrorManager {
         ];
 
         let mut fetch_opts = git2::FetchOptions::new();
-        remote.fetch(refspecs, Some(&mut fetch_opts), None)
-            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to fetch objects to mirror: {}", e)))?;
+        remote
+            .fetch(refspecs, Some(&mut fetch_opts), None)
+            .map_err(|e| {
+                crate::GitPurgeError::Git(format!("Failed to fetch objects to mirror: {}", e))
+            })?;
 
         Ok(())
     }

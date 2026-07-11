@@ -103,7 +103,8 @@ impl HistoryStore for FakeHistoryStore {
 
     fn list_snapshots(&self, repo: &RepoId) -> Result<Vec<Snapshot>> {
         let snaps = self.snapshots.lock().unwrap();
-        let mut result: Vec<Snapshot> = snaps.values()
+        let mut result: Vec<Snapshot> = snaps
+            .values()
             .filter(|s| s.repo == *repo)
             .cloned()
             .collect();

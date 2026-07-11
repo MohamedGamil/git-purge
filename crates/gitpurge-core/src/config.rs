@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::model::Policy;
+use crate::model::{Policy, RepoId, Repository};
 
 /// Top-level user configuration, deserialized from `config.toml`.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -27,13 +27,21 @@ pub struct Config {
     /// Extra user-supplied protected branch names, unioned with the immutable
     /// well-known set (`main`, `master`, `develop`, `staging`, `production`, `HEAD`).
     pub protected: Vec<String>,
+
+    /// Tracked repositories managed by Git Purge.
+    pub repos: Vec<Repository>,
+
+    /// The default repository ID to use when `--repo` is not supplied.
+    pub default_repo: Option<RepoId>,
 }
 
 impl Config {
     /// Resolve the config file path via the `directories` crate.
     pub fn default_path() -> Result<PathBuf> {
-        let proj_dirs = directories::ProjectDirs::from("com", "gitpurge", "git-purge")
-            .ok_or_else(|| crate::GitPurgeError::Config("Could not resolve home/project directory".to_string()))?;
+        let proj_dirs =
+            directories::ProjectDirs::from("com", "gitpurge", "git-purge").ok_or_else(|| {
+                crate::GitPurgeError::Config("Could not resolve home/project directory".to_string())
+            })?;
         Ok(proj_dirs.config_dir().join("config.toml"))
     }
 
@@ -55,8 +63,9 @@ impl Config {
         let content = std::fs::read_to_string(&path)
             .map_err(|e| crate::GitPurgeError::Config(format!("Failed to read config: {}", e)))?;
 
-        let config: Config = toml::from_str(&content)
-            .map_err(|e| crate::GitPurgeError::Config(format!("Failed to parse config TOML: {}", e)))?;
+        let config: Config = toml::from_str(&content).map_err(|e| {
+            crate::GitPurgeError::Config(format!("Failed to parse config TOML: {}", e))
+        })?;
 
         Ok(config)
     }
@@ -72,15 +81,18 @@ impl Config {
         };
 
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| crate::GitPurgeError::Config(format!("Failed to create config dir: {}", e)))?;
+            std::fs::create_dir_all(parent).map_err(|e| {
+                crate::GitPurgeError::Config(format!("Failed to create config dir: {}", e))
+            })?;
         }
 
-        let content = toml::to_string_pretty(self)
-            .map_err(|e| crate::GitPurgeError::Config(format!("Failed to serialize config: {}", e)))?;
+        let content = toml::to_string_pretty(self).map_err(|e| {
+            crate::GitPurgeError::Config(format!("Failed to serialize config: {}", e))
+        })?;
 
-        std::fs::write(&path, content)
-            .map_err(|e| crate::GitPurgeError::Config(format!("Failed to write config file: {}", e)))?;
+        std::fs::write(&path, content).map_err(|e| {
+            crate::GitPurgeError::Config(format!("Failed to write config file: {}", e))
+        })?;
 
         Ok(())
     }

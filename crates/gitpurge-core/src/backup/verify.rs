@@ -1,8 +1,8 @@
 //! Snapshot verification (P2-T3, CONVENTIONS §7.5, docs/08 §5.2/§8.3).
 
-use crate::error::Result;
-use crate::model::{Snapshot, SnapshotId, BranchName};
 use crate::backup::mirror::BackupMirrorManager;
+use crate::error::Result;
+use crate::model::{BranchName, Snapshot, SnapshotId};
 
 /// Result of a single ref check.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -50,7 +50,10 @@ pub fn verify_snapshot(
     let mirror_path = mirror_manager.resolve_mirror_path(repo_id);
 
     if !mirror_path.exists() {
-        return Err(crate::GitPurgeError::Snapshot(format!("Bare mirror directory not found: {:?}", mirror_path)));
+        return Err(crate::GitPurgeError::Snapshot(format!(
+            "Bare mirror directory not found: {:?}",
+            mirror_path
+        )));
     }
 
     let mirror_repo = git2::Repository::open_bare(&mirror_path)
@@ -73,11 +76,13 @@ pub fn verify_snapshot(
         crate::GitPurgeError::Snapshot("Meta reference points to no OID".to_string())
     })?;
 
-    let blob = mirror_repo.find_blob(target_oid)
-        .map_err(|e| crate::GitPurgeError::Snapshot(format!("Failed to find metadata blob: {}", e)))?;
+    let blob = mirror_repo.find_blob(target_oid).map_err(|e| {
+        crate::GitPurgeError::Snapshot(format!("Failed to find metadata blob: {}", e))
+    })?;
 
-    let snapshot: Snapshot = serde_json::from_slice(blob.content())
-        .map_err(|e| crate::GitPurgeError::Config(format!("Failed to parse metadata manifest: {}", e)))?;
+    let snapshot: Snapshot = serde_json::from_slice(blob.content()).map_err(|e| {
+        crate::GitPurgeError::Config(format!("Failed to parse metadata manifest: {}", e))
+    })?;
 
     // 2. Check each ref
     let mut per_ref = Vec::new();
@@ -101,9 +106,15 @@ pub fn verify_snapshot(
                         Ok(commit) => {
                             if deep {
                                 // Deep walk connectivity check
-                                let mut revwalk = mirror_repo.revwalk()
-                                    .map_err(|e| crate::GitPurgeError::Git(format!("Failed to get revwalk: {}", e)))?;
-                                if revwalk.push(target_git2_oid).is_err() || revwalk.any(|c| c.is_err()) {
+                                let mut revwalk = mirror_repo.revwalk().map_err(|e| {
+                                    crate::GitPurgeError::Git(format!(
+                                        "Failed to get revwalk: {}",
+                                        e
+                                    ))
+                                })?;
+                                if revwalk.push(target_git2_oid).is_err()
+                                    || revwalk.any(|c| c.is_err())
+                                {
                                     ok = false;
                                     problem = Some(VerifyProblem::FsckError);
                                 }

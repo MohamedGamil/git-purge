@@ -1,157 +1,238 @@
 //! `git-purge` CLI — thin adapter over `gitpurge-core` (CONVENTIONS §2).
-//!
-//! This binary translates CLI arguments into `gitpurge-core::Engine` calls and renders
-//! the results. **No git/DB/keychain logic lives here** — only argument parsing,
-//! output formatting, and exit-code mapping.
 
-use clap::{Parser, Subcommand};
+use std::path::Path;
+use clap::Parser;
+use gitpurge_core::{Engine, GitPurgeError, Result, model::{RepoId, Repository, GitUrl}};
 
-/// Git Purge — safely purge stale branches with a net under every operation.
-#[derive(Debug, Parser)]
-#[command(
-    name = "git-purge",
-    version,
-    about = "Safely purge stale git branches — with a net under every operation.",
-    long_about = "Git Purge is a CLI-first utility for safely cleaning up old and stale \
-                  branches from git repositories. Every destructive operation is dry-run by \
-                  default, backed up before execution, and easily restorable.",
-    after_help = "Use `git-purge <command> --help` for detailed help on each command."
-)]
-struct Cli {
-    /// Subcommand to run.
-    #[command(subcommand)]
-    command: Option<Commands>,
+mod cli;
+mod confirm;
+mod exit;
+mod cmd;
 
-    /// Output as JSON instead of human-readable tables.
-    #[arg(long, global = true)]
-    json: bool,
+fn run() -> Result<()> {
+    let args = cli::Cli::parse();
 
-    /// Suppress colored output.
-    #[arg(long, global = true)]
-    no_color: bool,
+    // 1. Resolve config path and load configuration
+    let config_path = args.config.as_deref().map(Path::new);
+    let config = gitpurge_core::config::Config::load(config_path)?;
 
-    /// Path to config file (default: auto-resolved via XDG/KnownFolders).
-    #[arg(long, global = true)]
-    config: Option<String>,
+    // 2. Open the engine
+    let engine = Engine::open(config)?;
 
-    /// Target repository (id or path). Defaults to the current directory.
-    #[arg(long, global = true)]
-    repo: Option<String>,
 
-    /// Increase verbosity (-v, -vv).
-    #[arg(short, long, global = true, action = clap::ArgAction::Count)]
-    verbose: u8,
 
-    /// Suppress all output except errors.
-    #[arg(short, long, global = true)]
-    quiet: bool,
+    // 4. Dispatch subcommands
+    match &args.command {
+        Some(cli::Commands::Repo { action }) => {
+            cmd::repo::handle(&engine, config_path, args.json, args.execute, action)?;
+        }
+        Some(cli::Commands::Scan { no_refresh, filters }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::scan::handle_scan(&engine, &repo_id, *no_refresh, filters, args.json)?;
+        }
+        Some(cli::Commands::Plan { action, filters }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::scan::handle_plan(&engine, &repo_id, action, filters, args.json)?;
+        }
+        Some(cli::Commands::Backup { action }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::backup::handle_backup(&engine, &repo_id, action, args.execute, args.json)?;
+        }
+        Some(cli::Commands::Delete {
+            include_unmerged,
+            unmerged,
+            no_backup,
+            force_unmerged,
+            continue_on_error,
+            filters,
+        }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::delete::handle_delete(
+                &engine,
+                &repo_id,
+                args.execute,
+                *no_backup,
+                args.yes,
+                *force_unmerged,
+                *include_unmerged,
+                *unmerged,
+                *continue_on_error,
+                filters,
+                args.json,
+            )?;
+        }
+        Some(cli::Commands::Archive {
+            target,
+            strategy,
+            push,
+            filters,
+        }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::delete::handle_archive(
+                &engine,
+                &repo_id,
+                args.execute,
+                target,
+                strategy,
+                *push,
+                args.yes,
+                filters,
+                args.json,
+            )?;
+        }
+        Some(cli::Commands::Restore {
+            snapshot_id,
+            ref_or_glob,
+            as_tag,
+            as_name,
+            target: _,
+            force,
+        }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::backup::handle_restore(
+                &engine,
+                &repo_id,
+                snapshot_id,
+                ref_or_glob,
+                *as_tag,
+                as_name,
+                *force,
+                args.execute,
+                args.json,
+            )?;
+        }
+        Some(cli::Commands::Diff {
+            ref_a,
+            ref_b,
+            stat,
+            name_only,
+            patch,
+        }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::diff::handle_diff(
+                &engine,
+                &repo_id,
+                ref_a,
+                ref_b,
+                *stat,
+                *name_only,
+                *patch,
+                args.json,
+            )?;
+        }
+        Some(cli::Commands::Show { ref_spec, path }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::diff::handle_show(&engine, &repo_id, ref_spec, path, args.json)?;
+        }
+        Some(cli::Commands::Report { r#type: _, format: _, out: _, baseline: _, filters: _ }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::stubs::handle_report(&engine, &repo_id, args.json)?;
+        }
+        Some(cli::Commands::History { limit: _, metric: _, since: _ }) => {
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+            cmd::stubs::handle_history(&engine, &repo_id, args.json)?;
+        }
+        Some(cli::Commands::Auth { action }) => {
+            cmd::stubs::handle_auth(&engine, action, args.json)?;
+        }
+        Some(cli::Commands::Ui) => {
+            cmd::stubs::handle_ui()?;
+        }
+        Some(cli::Commands::InstallCli { user: _, system: _, dir: _, force: _ }) => {
+            cmd::stubs::handle_install_cli()?;
+        }
+        Some(cli::Commands::Completions { shell }) => {
+            cmd::stubs::handle_completions(&format!("{:?}", shell))?;
+        }
+        None => {
+            use clap::CommandFactory;
+            cli::Cli::command().print_help().ok();
+            println!();
+        }
+    }
+
+    Ok(())
 }
 
-/// Top-level subcommands (CONVENTIONS §9).
-#[derive(Debug, Subcommand)]
-enum Commands {
-    /// Manage tracked repositories.
-    Repo {
-        /// Repo subcommand.
-        #[command(subcommand)]
-        action: RepoAction,
-    },
-    /// Classify branches (read-only scan).
-    Scan,
-    /// Show what delete/archive would do (dry-run).
-    Plan,
-    /// Manage backup snapshots.
-    Backup {
-        /// Backup subcommand.
-        #[command(subcommand)]
-        action: BackupAction,
-    },
-    /// Delete stale/merged branches (dry-run default).
-    Delete,
-    /// Archive unmerged branches into a legacy branch.
-    Archive,
-    /// Restore a branch or tag from a snapshot.
-    Restore,
-    /// Compare two branches.
-    Diff,
-    /// View repo/file content at a ref/commit.
-    Show,
-    /// Generate audit and trend reports.
-    Report,
-    /// View trend history.
-    History,
-    /// Manage authentication credentials.
-    Auth {
-        /// Auth subcommand.
-        #[command(subcommand)]
-        action: AuthAction,
-    },
-    /// Launch the desktop UI (if installed).
-    Ui,
-    /// Install git-purge on PATH.
-    InstallCli,
-    /// Generate shell completions.
-    Completions {
-        /// Shell to generate completions for.
-        shell: String,
-    },
-}
+fn resolve_repo(
+    engine: &Engine,
+    config_path: Option<&Path>,
+    repo_arg: Option<&str>,
+) -> Result<RepoId> {
+    if let Some(arg) = repo_arg {
+        let repo_id = RepoId(arg.to_string());
+        if engine.get_repo(&repo_id)?.is_some() {
+            return Ok(repo_id);
+        }
 
-/// Repo subcommands.
-#[derive(Debug, Subcommand)]
-enum RepoAction {
-    /// Add a repository to track.
-    Add,
-    /// List tracked repositories.
-    List,
-    /// Remove a tracked repository.
-    Remove,
-    /// Show details of a tracked repository.
-    Show,
-}
+        let repos = engine.list_repos()?;
+        for r in &repos {
+            if r.display_name == arg {
+                return Ok(r.id.clone());
+            }
+            if let Some(ref lp) = r.local_path {
+                if lp.to_string_lossy() == arg {
+                    return Ok(r.id.clone());
+                }
+            }
+        }
 
-/// Backup subcommands.
-#[derive(Debug, Subcommand)]
-enum BackupAction {
-    /// Create a new backup snapshot.
-    Create,
-    /// List existing snapshots.
-    List,
-    /// Show snapshot details.
-    Show,
-    /// Verify snapshot integrity.
-    Verify,
-    /// Prune old snapshots.
-    Prune,
-}
+        let path = Path::new(arg);
+        let repo = if path.exists() {
+            Repository::new_local(path.to_path_buf())?
+        } else if arg.contains("://") || arg.contains('@') {
+            let git_url = GitUrl::parse(arg)?;
+            Repository::new_remote(git_url)?
+        } else {
+            return Err(GitPurgeError::RepoNotFound(format!(
+                "Repository '{}' not found and is not a valid path or Git URL.",
+                arg
+            )));
+        };
 
-/// Auth subcommands.
-#[derive(Debug, Subcommand)]
-enum AuthAction {
-    /// Add a credential.
-    Add,
-    /// List stored credentials.
-    List,
-    /// Remove a credential.
-    Remove,
-    /// Test a credential.
-    Test,
+        let registered_id = repo.id.clone();
+        engine.add_repo(repo)?;
+        engine.save_config(config_path)?;
+        return Ok(registered_id);
+    }
+
+    if let Some(id) = engine.default_repo_id() {
+        return Ok(id);
+    }
+
+    let cwd = std::env::current_dir().map_err(|e| {
+        GitPurgeError::Config(format!("Failed to resolve current working directory: {}", e))
+    })?;
+
+    let mut git_dir = cwd.clone();
+    let is_git = loop {
+        if git_dir.join(".git").exists() {
+            break true;
+        }
+        if let Some(parent) = git_dir.parent() {
+            git_dir = parent.to_path_buf();
+        } else {
+            break false;
+        }
+    };
+
+    if !is_git {
+        return Err(GitPurgeError::RepoNotFound(
+            "No repository specified, no default repository configured, and current directory is not inside a Git repository.".to_string()
+        ));
+    }
+
+    let repo = Repository::new_local(git_dir)?;
+    let registered_id = repo.id.clone();
+    if engine.get_repo(&registered_id)?.is_none() {
+        engine.add_repo(repo)?;
+        engine.save_config(config_path)?;
+    }
+    Ok(registered_id)
 }
 
 fn main() {
-    let cli = Cli::parse();
-
-    // TODO(P3): initialize tracing, load config, open Engine, dispatch subcommands.
-    match &cli.command {
-        Some(_cmd) => {
-            eprintln!("git-purge: command not yet implemented (phase P3)");
-            std::process::exit(2);
-        }
-        None => {
-            // No subcommand — show help.
-            use clap::CommandFactory;
-            Cli::command().print_help().ok();
-            println!();
-        }
+    if let Err(err) = run() {
+        exit::handle_error(err);
     }
 }

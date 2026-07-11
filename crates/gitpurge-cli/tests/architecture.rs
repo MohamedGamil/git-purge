@@ -13,7 +13,9 @@ fn test_cli_architecture_guard() {
     let content = fs::read_to_string(cargo_toml_path).expect("Failed to read CLI Cargo.toml");
 
     let toml: toml::Value = toml::from_str(&content).expect("Failed to parse CLI Cargo.toml");
-    let deps = toml.get("dependencies").expect("No dependencies section in CLI Cargo.toml");
+    let deps = toml
+        .get("dependencies")
+        .expect("No dependencies section in CLI Cargo.toml");
 
     let banned = &["gix", "git2", "rusqlite", "keyring"];
     for &ban in banned {

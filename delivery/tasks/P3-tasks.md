@@ -1,6 +1,6 @@
 # P3 — Task Cards
 
-> Phase: **3 — CLI adapter** · Status: **Not started** · Est: 10 ED
+> Phase: **3 — CLI adapter** · Status: **Complete** · Est: 10 ED
 > Depends on: P1, P2
 
 ---

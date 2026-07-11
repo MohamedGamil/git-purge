@@ -1,10 +1,10 @@
 //! Snapshot pruning and retention (P2-T5, CONVENTIONS §6, docs/08 §6).
 
-use time::OffsetDateTime;
-use crate::error::Result;
-use crate::model::{RepoId, RetentionPolicy, PruneReport, ExecMode};
 use crate::backup::mirror::BackupMirrorManager;
+use crate::error::Result;
 use crate::history::HistoryStore;
+use crate::model::{ExecMode, PruneReport, RepoId, RetentionPolicy};
+use time::OffsetDateTime;
 
 /// Prune snapshots for a repository based on a retention policy.
 pub fn prune_snapshots(
@@ -77,8 +77,9 @@ pub fn prune_snapshots(
         let mirror_path = mirror_manager.resolve_mirror_path(repo_id);
 
         if mirror_path.exists() {
-            let mirror_repo = git2::Repository::open_bare(&mirror_path)
-                .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open bare mirror for pruning: {}", e)))?;
+            let mirror_repo = git2::Repository::open_bare(&mirror_path).map_err(|e| {
+                crate::GitPurgeError::Git(format!("Failed to open bare mirror for pruning: {}", e))
+            })?;
 
             for snap in &to_delete {
                 // Delete snapshot refs
@@ -116,14 +117,15 @@ pub fn prune_snapshots(
             // Since git2 doesn't support repack/gc directly, we call system git as a fallback.
             let mut cmd = std::process::Command::new("git");
             cmd.arg("gc")
-               .arg("--prune=now")
-               .arg("--quiet")
-               .current_dir(&mirror_path);
+                .arg("--prune=now")
+                .arg("--quiet")
+                .current_dir(&mirror_path);
             if let Ok(output) = cmd.output() {
                 if output.status.success() {
                     // Repack successfully completed! We estimate reclaimed space.
                     // For testing/estimation, we can add a nominal value.
-                    space_reclaimed_bytes += 1024 * 1024 * to_delete.len() as u64; // rough estimate
+                    space_reclaimed_bytes += 1024 * 1024 * to_delete.len() as u64;
+                    // rough estimate
                 }
             }
         }

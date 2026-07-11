@@ -1,6 +1,6 @@
 # Phase 3 — Actions + CLI (delete / archive / restore)
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p3--actions--cli-12-ed), [CONVENTIONS §7/§9/§11](CONVENTIONS.md), [domain model §7](../docs/03-domain-model.md), [05-cli-spec.md](../docs/05-cli-spec.md), [11-safety-model.md](../docs/11-safety-model.md), [12-testing-strategy.md](../docs/12-testing-strategy.md)`
 
 ## Goal
