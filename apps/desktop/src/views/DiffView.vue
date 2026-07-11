@@ -158,6 +158,11 @@ const swapBranches = () => {
   const temp = branchA.value;
   branchA.value = branchB.value;
   branchB.value = temp;
+
+  const tempSearch = searchA.value;
+  searchA.value = searchB.value;
+  searchB.value = tempSearch;
+
   if (branchA.value && branchB.value) {
     runDiff();
   }

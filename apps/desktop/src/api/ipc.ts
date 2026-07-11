@@ -275,7 +275,7 @@ let mockSettings: Settings = {
   theme: 'dark',
   policy: {
     age: '90 days ago',
-    namingRegex: '^(main|master|develop|feature/.*|bugfix/.*|release/.*|hotfix/.*)$',
+    namingRegex: '^(main|master|develop|staging|prod|production|feat/.*|feature/.*|fix/.*|refactor/.*|docs/.*|perf/.*|test/.*|chore/.*|release/.*|hotfix/.*)$',
     protectedRefs: ['main', 'master', 'develop', 'production'],
     excludeGlobs: ['dont-touch/*']
   },

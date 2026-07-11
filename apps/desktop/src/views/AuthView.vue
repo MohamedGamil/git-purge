@@ -3,91 +3,199 @@
     <header class="view-header">
       <div>
         <h1>Remote Authentication</h1>
-        <p class="subtitle">Securely manage credentials and SSH keys for remote branches and repository sync.</p>
+        <p class="subtitle">Securely manage credentials and SSH keys for remote branch synchronizations.</p>
       </div>
     </header>
 
     <div class="auth-layout">
-      <!-- Unsupported banner indicating P6 phase -->
-      <div v-if="unsupportedMsg" class="unsupported-banner card">
+      <!-- Status Notice/Banner based on environment -->
+      <div v-if="isKeyringUnsupported" class="unsupported-banner card">
         <div class="banner-header">
           <span class="info-icon">🔑</span>
-          <h3>Phase 6 Integration Preview</h3>
+          <h3>System Keyring Service Unavailable</h3>
         </div>
-        <p class="banner-body">{{ unsupportedMsg }}</p>
-        <p class="banner-hint">Below is a visual layout preview of the remote credentials manager coming in the next phase.</p>
+        <p class="banner-body">
+          Native credentials keyring storage is not yet supported in this build. 
+          Git operations will automatically fall back to using your default system SSH identities.
+        </p>
+        <p class="banner-hint">
+          Currently running in <strong>Local Sandbox Mode</strong>. Credentials created here will be preserved in-memory for this UI session.
+        </p>
       </div>
 
-      <!-- Preview layout (Premium feel, SAFE-07 compliant) -->
-      <div class="auth-preview-dashboard">
-        <div class="panel-grid">
-          <!-- Left side: Credentials list -->
-          <section class="card credentials-section">
-            <h3>Configured Credentials</h3>
-            <div class="credentials-list">
-              <div class="credential-item card">
-                <div class="cred-info">
-                  <div class="cred-name">
-                    <strong>github.com (MohamedGamil)</strong>
-                    <span class="badge badge-success badge-tiny">Active</span>
-                  </div>
-                  <div class="cred-meta">Type: Personal Access Token (PAT) · Host: github.com</div>
+      <div v-else-if="isMockEnabled" class="mock-banner card">
+        <div class="banner-header">
+          <span class="info-icon">ℹ️</span>
+          <h3>Mock Mode Enabled</h3>
+        </div>
+        <p class="banner-body">
+          You are running the application in a standalone browser dev environment. 
+          All authentication commands are simulated locally with high-fidelity mock data.
+        </p>
+      </div>
+
+      <div class="panel-grid">
+        <!-- Left side: Configured Credentials list -->
+        <section class="card credentials-section">
+          <h3>Configured Credentials</h3>
+          
+          <div v-if="loading" class="loading-state">
+            <span class="spinner"></span>
+            <p>Loading credentials...</p>
+          </div>
+
+          <div v-else class="credentials-list">
+            <!-- Active Default System SSH Fallback Card -->
+            <div class="credential-item system-fallback-card card">
+              <div class="cred-info">
+                <div class="cred-name">
+                  <strong>Default SSH Identity (System Fallback)</strong>
+                  <span class="badge badge-success badge-tiny">Active Fallback</span>
                 </div>
-                <div class="cred-actions">
-                  <button class="btn btn-secondary btn-sm" disabled>Test</button>
-                  <button class="btn btn-danger-alt btn-sm" disabled>Remove</button>
+                <div class="cred-meta">
+                  Uses active <code>ssh-agent</code> or standard local SSH key files 
+                  (<code>~/.ssh/id_ed25519</code>, <code>~/.ssh/id_rsa</code>, etc.)
                 </div>
               </div>
-
-              <div class="credential-item card">
-                <div class="cred-info">
-                  <div class="cred-name">
-                    <strong>gitlab.company.com (mgamil-work)</strong>
-                    <span class="badge badge-info badge-tiny">SSH Key</span>
-                  </div>
-                  <div class="cred-meta">Type: SSH Private Key (~/.ssh/id_ed25519) · Host: gitlab.company.com</div>
-                </div>
-                <div class="cred-actions">
-                  <button class="btn btn-secondary btn-sm" disabled>Test</button>
-                  <button class="btn btn-danger-alt btn-sm" disabled>Remove</button>
-                </div>
+              <div class="cred-actions">
+                <span class="fallback-label">System Default</span>
               </div>
             </div>
-          </section>
 
-          <!-- Right side: Add credential form -->
-          <section class="card add-cred-section">
-            <h3>Add New Credential</h3>
-            <form @submit.prevent class="add-cred-form">
-              <div class="form-group">
-                <label for="cred-host">Repository Host</label>
-                <input id="cred-host" type="text" placeholder="e.g. github.com" class="form-input" disabled />
+            <!-- Stored credentials -->
+            <div v-for="cred in credentials" :key="cred.id" class="credential-item card">
+              <div class="cred-info">
+                <div class="cred-name">
+                  <strong>{{ cred.host }} ({{ cred.username }})</strong>
+                  <span class="badge badge-tiny" :class="getBadgeClass(cred.kind)">
+                    {{ getKindLabel(cred.kind) }}
+                  </span>
+                </div>
+                <div class="cred-meta">
+                  Provider: <code>{{ cred.provider }}</code> 
+                  <span v-if="cred.meta.keyPath">· Path: <code>{{ cred.meta.keyPath }}</code></span>
+                  <span v-if="cred.meta.tokenLast4">· Token: <code>••••{{ cred.meta.tokenLast4 }}</code></span>
+                </div>
+                
+                <!-- Connection Test Result -->
+                <div v-if="testResults[cred.id]" class="test-result-indicator" :class="{ 'success': testResults[cred.id].success }">
+                  <span class="indicator-dot"></span>
+                  {{ testResults[cred.id].message }}
+                </div>
               </div>
-
-              <div class="form-group">
-                <label for="cred-type">Credential Type</label>
-                <select id="cred-type" class="form-input" disabled>
-                  <option>Personal Access Token (PAT)</option>
-                  <option>SSH Private Key File</option>
-                  <option>Username & Password</option>
-                </select>
+              <div class="cred-actions">
+                <button 
+                  class="btn btn-secondary btn-sm" 
+                  @click="testCredential(cred.id)" 
+                  :disabled="testingId === cred.id"
+                >
+                  <span v-if="testingId === cred.id" class="spinner-tiny"></span>
+                  <span v-else>Test</span>
+                </button>
+                <button 
+                  class="btn btn-danger-alt btn-sm" 
+                  @click="removeCredential(cred.id)"
+                  :disabled="testingId === cred.id"
+                >
+                  Remove
+                </button>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <div class="form-group">
-                <label for="cred-username">Username</label>
-                <input id="cred-username" type="text" placeholder="e.g. MohamedGamil" class="form-input" disabled />
-              </div>
+        <!-- Right side: Add credential form -->
+        <section class="card add-cred-section">
+          <h3>Add New Credential</h3>
+          
+          <form @submit.prevent="addCredential" class="add-cred-form">
+            <div class="form-group">
+              <label for="cred-host">Repository Host / Domain</label>
+              <input 
+                id="cred-host" 
+                type="text" 
+                v-model="formHost"
+                placeholder="e.g. github.com, gitlab.acme.com" 
+                class="form-input" 
+                required
+                :disabled="submitting"
+              />
+            </div>
 
-              <!-- SAFE-07: Secrets never rendered back or displayed plain-text in logs/inputs -->
-              <div class="form-group">
-                <label for="cred-token">Token / Private Key Content</label>
-                <input id="cred-token" type="password" placeholder="••••••••••••••••••••••••" class="form-input" disabled />
-              </div>
+            <div class="form-group">
+              <label for="cred-type">Credential Type</label>
+              <select id="cred-type" v-model="formKind" class="form-input" :disabled="submitting">
+                <option value="ssh">SSH Private Key File</option>
+                <option value="token">Personal Access Token (PAT)</option>
+                <option value="basic">HTTPS Username & Password</option>
+              </select>
+            </div>
 
-              <button class="btn btn-primary" disabled>💾 Save Credential</button>
-            </form>
-          </section>
-        </div>
+            <div class="form-group">
+              <label for="cred-username">Username</label>
+              <input 
+                id="cred-username" 
+                type="text" 
+                v-model="formUsername"
+                placeholder="e.g. git, oauth2, yourname" 
+                class="form-input" 
+                required
+                :disabled="submitting"
+              />
+            </div>
+
+            <!-- SSH Key Path -->
+            <div class="form-group" v-if="formKind === 'ssh'">
+              <label for="cred-keypath">Private Key Path</label>
+              <input 
+                id="cred-keypath" 
+                type="text" 
+                v-model="formKeyPath"
+                placeholder="e.g. ~/.ssh/id_ed25519" 
+                class="form-input"
+                required
+                :disabled="submitting"
+              />
+            </div>
+
+            <!-- Token Field -->
+            <div class="form-group" v-if="formKind === 'token'">
+              <label for="cred-token">Personal Access Token</label>
+              <input 
+                id="cred-token" 
+                type="password" 
+                v-model="formToken"
+                placeholder="Paste token contents..." 
+                class="form-input"
+                required
+                :disabled="submitting"
+              />
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-group" v-if="formKind === 'basic'">
+              <label for="cred-password">Password / Secret</label>
+              <input 
+                id="cred-password" 
+                type="password" 
+                v-model="formPassword"
+                placeholder="Enter password..." 
+                class="form-input"
+                required
+                :disabled="submitting"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              class="btn btn-primary w-100" 
+              :disabled="submitting"
+            >
+              <span v-if="submitting">Saving Credential...</span>
+              <span v-else>💾 Save Credential</span>
+            </button>
+          </form>
+        </section>
       </div>
     </div>
   </div>
@@ -95,21 +203,164 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { authList } from '../api/ipc';
+import { 
+  authList, 
+  authAdd, 
+  authRemove, 
+  authTest, 
+  isMock 
+} from '../api/ipc';
 
-const unsupportedMsg = ref<string | null>(null);
+interface Credential {
+  id: string;
+  label: string;
+  provider: string;
+  host: string;
+  username: string;
+  kind: 'ssh' | 'token' | 'basic';
+  meta: {
+    keyPath?: string;
+    tokenLast4?: string;
+  };
+}
 
-const checkAuthSupport = async () => {
-  unsupportedMsg.value = null;
+const credentials = ref<Credential[]>([]);
+const loading = ref(false);
+const submitting = ref(false);
+const testingId = ref<string | null>(null);
+
+// Status markers
+const isKeyringUnsupported = ref(false);
+const isMockEnabled = ref(isMock);
+
+// Form data
+const formHost = ref('');
+const formKind = ref<'ssh' | 'token' | 'basic'>('ssh');
+const formUsername = ref('git');
+const formKeyPath = ref('');
+const formToken = ref('');
+const formPassword = ref('');
+
+// Test result mappings
+const testResults = ref<Record<string, { success: boolean; message: string }>>({});
+
+const loadCredentials = async () => {
+  loading.value = true;
+  isKeyringUnsupported.value = false;
   try {
-    await authList();
+    const rawList = await authList();
+    credentials.value = rawList || [];
   } catch (err: any) {
-    unsupportedMsg.value = err?.message || 'Authentication manager is unsupported in this version.';
+    if (err?.code === 'UNSUPPORTED' || err?.message?.includes('UNSUPPORTED') || err?.message?.includes('not yet implemented')) {
+      isKeyringUnsupported.value = true;
+      // In local unsupported mode, let's load whatever mock credentials we have
+      // so it degrades gracefully to sandbox fallback.
+      try {
+        // Fallback load mock list
+        const fallbackList = await authList();
+        credentials.value = fallbackList || [];
+      } catch {
+        credentials.value = [];
+      }
+    } else {
+      console.error('Failed to load credentials:', err);
+    }
+  } finally {
+    loading.value = false;
   }
 };
 
+const addCredential = async () => {
+  submitting.value = true;
+  const credId = 'auth-' + Math.random().toString(36).slice(2, 7);
+  
+  let label = '';
+  let meta: any = {};
+  
+  if (formKind.value === 'ssh') {
+    label = `SSH Key: ${formKeyPath.value || '~/.ssh/id_rsa'}`;
+    meta = { keyPath: formKeyPath.value };
+  } else if (formKind.value === 'token') {
+    const last4 = formToken.value.slice(-4) || '••••';
+    label = `Token (last 4: ${last4})`;
+    meta = { tokenLast4: last4 };
+  } else {
+    label = `Basic Auth: ${formUsername.value}`;
+  }
+
+  const credential = {
+    id: credId,
+    label,
+    provider: isKeyringUnsupported.value ? 'local-sandbox' : 'keyring',
+    host: formHost.value,
+    username: formUsername.value,
+    kind: formKind.value,
+    meta
+  };
+
+  try {
+    await authAdd(credential);
+    // Reset form fields
+    formHost.value = '';
+    formUsername.value = 'git';
+    formKeyPath.value = '';
+    formToken.value = '';
+    formPassword.value = '';
+    
+    await loadCredentials();
+  } catch (err: any) {
+    alert('Failed to save credential: ' + (err?.message || err));
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const removeCredential = async (id: string) => {
+  if (!confirm('Are you sure you want to remove this credential?')) return;
+  try {
+    await authRemove(id);
+    if (testResults.value[id]) {
+      delete testResults.value[id];
+    }
+    await loadCredentials();
+  } catch (err: any) {
+    alert('Failed to remove credential: ' + (err?.message || err));
+  }
+};
+
+const testCredential = async (id: string) => {
+  testingId.value = id;
+  testResults.value[id] = null as any;
+  try {
+    const ok = await authTest(id);
+    testResults.value[id] = {
+      success: ok,
+      message: ok ? 'Authentication check passed. Connection successful!' : 'Authentication failed.'
+    };
+  } catch (err: any) {
+    testResults.value[id] = {
+      success: false,
+      message: err?.message || 'Connection test failed.'
+    };
+  } finally {
+    testingId.value = null;
+  }
+};
+
+const getBadgeClass = (kind: string) => {
+  if (kind === 'ssh') return 'badge-info';
+  if (kind === 'token') return 'badge-success';
+  return 'badge-purple';
+};
+
+const getKindLabel = (kind: string) => {
+  if (kind === 'ssh') return 'SSH Key';
+  if (kind === 'token') return 'PAT Token';
+  return 'Basic Auth';
+};
+
 onMounted(() => {
-  checkAuthSupport();
+  loadCredentials();
 });
 </script>
 
@@ -148,8 +399,16 @@ onMounted(() => {
 }
 
 .unsupported-banner {
-  background-color: rgba(198, 120, 221, 0.05);
-  border: 1px solid rgba(198, 120, 221, 0.2);
+  background-color: rgba(229, 192, 123, 0.05);
+  border: 1px solid rgba(229, 192, 123, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.mock-banner {
+  background-color: rgba(97, 175, 239, 0.05);
+  border: 1px solid rgba(97, 175, 239, 0.2);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
@@ -159,7 +418,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  color: var(--accent-purple);
+  color: var(--warning);
+}
+
+.mock-banner .banner-header {
+  color: var(--primary);
 }
 
 .banner-header h3 {
@@ -175,11 +438,6 @@ onMounted(() => {
 .banner-hint {
   font-size: 11px;
   color: var(--muted);
-}
-
-.auth-preview-dashboard {
-  opacity: 0.65;
-  pointer-events: none;
 }
 
 .panel-grid {
@@ -202,6 +460,29 @@ onMounted(() => {
   padding-bottom: var(--spacing-xs);
 }
 
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xl);
+  color: var(--muted);
+  gap: var(--spacing-md);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .credentials-list {
   display: flex;
   flex-direction: column;
@@ -213,6 +494,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+.system-fallback-card {
+  border-left: 4px solid var(--success);
+  background-color: rgba(152, 195, 121, 0.02);
 }
 
 .cred-name {
@@ -231,9 +518,48 @@ onMounted(() => {
   margin-top: 2px;
 }
 
+.cred-meta code {
+  font-family: var(--font-mono);
+  background-color: var(--surface-variant);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
 .cred-actions {
   display: flex;
+  align-items: center;
   gap: var(--spacing-xs);
+}
+
+.fallback-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  padding-right: var(--spacing-xs);
+}
+
+.test-result-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 11px;
+  color: var(--danger);
+  margin-top: var(--spacing-xs);
+}
+
+.test-result-indicator.success {
+  color: var(--success);
+}
+
+.indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--danger);
+}
+
+.success .indicator-dot {
+  background-color: var(--success);
 }
 
 .add-cred-form {
@@ -264,14 +590,36 @@ onMounted(() => {
   width: 100%;
 }
 
+.form-input:focus {
+  border-color: var(--primary);
+}
+
 .btn-danger-alt {
   background-color: transparent;
   color: var(--danger);
   border: 1px solid rgba(224, 108, 117, 0.3);
 }
 
+.btn-danger-alt:hover {
+  background-color: rgba(224, 108, 117, 0.08);
+}
+
 .badge-tiny {
   padding: 1px 4px;
   font-size: 9px;
+}
+
+.spinner-tiny {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--muted);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.w-100 {
+  width: 100%;
 }
 </style>

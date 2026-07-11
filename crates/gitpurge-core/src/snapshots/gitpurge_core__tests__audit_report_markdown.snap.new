@@ -1,5 +1,6 @@
 ---
 source: crates/gitpurge-core/src/lib.rs
+assertion_line: 1510
 expression: report.content
 ---
 # Git Purge Audit Report — test-report-repo

@@ -36,7 +36,7 @@ pub struct PrefixRule {
 }
 
 /// Naming policy — generalizes the legacy hardcoded regex + special cases.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NamingPolicy {
     /// Ordered allowed regex sources; first hit wins → `Standard`.
     pub allowed: Vec<RegexSource>,
@@ -46,6 +46,17 @@ pub struct NamingPolicy {
     pub substring_exceptions: Vec<CiSubstring>,
     /// Prefix → violation reason mapping.
     pub remediation_map: Vec<PrefixRule>,
+}
+
+impl Default for NamingPolicy {
+    fn default() -> Self {
+        Self {
+            allowed: vec![RegexSource("^(main|master|develop|staging|prod|production|feat/.*|feature/.*|fix/.*|refactor/.*|docs/.*|perf/.*|test/.*|chore/.*|release/.*|hotfix/.*)$".to_string())],
+            exact_exceptions: Vec::new(),
+            substring_exceptions: Vec::new(),
+            remediation_map: Vec::new(),
+        }
+    }
 }
 
 /// Protection policy. `well_known` is seeded and immutable: the resolver unions it
