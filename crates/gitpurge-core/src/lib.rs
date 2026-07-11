@@ -57,7 +57,7 @@ pub mod report;
 /// Classification pipeline.
 pub mod scan;
 
-#[cfg(feature = "testkit")]
+#[cfg(any(test, feature = "testkit"))]
 /// Fixture builders and test harness helpers.
 pub mod testkit;
 

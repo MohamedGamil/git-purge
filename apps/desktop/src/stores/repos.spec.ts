@@ -69,7 +69,7 @@ describe('useReposStore', () => {
 
   it('runScan should trigger scan and update branches state', async () => {
     let progressCallback: any = null;
-    (listen as Mock).mockImplementation((event, cb) => {
+    (listen as Mock).mockImplementation((_event, cb) => {
       progressCallback = cb;
       return Promise.resolve(() => {}); // return unlisten
     });

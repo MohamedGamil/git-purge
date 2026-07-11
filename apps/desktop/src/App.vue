@@ -20,6 +20,11 @@
           <span>Branches</span>
         </router-link>
 
+        <router-link to="/cleanup" class="nav-item" active-class="active">
+          <span class="icon">🧹</span>
+          <span>Cleanup</span>
+        </router-link>
+
         <router-link to="/backups" class="nav-item" active-class="active">
           <span class="icon">💾</span>
           <span>Backups</span>

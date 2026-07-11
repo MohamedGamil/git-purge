@@ -241,11 +241,12 @@ const formattedScannedAt = computed(() => {
 });
 
 const formattedDate = (dateStr: string) => {
-  try {
-    return new Date(dateStr).toLocaleDateString();
-  } catch {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
     return dateStr;
   }
+  return d.toLocaleDateString();
 };
 
 const triggerScan = async () => {

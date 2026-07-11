@@ -399,7 +399,7 @@ pub fn map_repo_summary(engine: &Engine, repo: &Repository) -> RepoSummary {
             .map(|p| p.to_string_lossy().to_string()),
         remote_url: repo.remote_url.as_ref().map(|u| u.raw.clone()),
         branch_count: counts.0,
-        last_scanned: repo.last_scanned_at.map(|t| t.to_string()),
+        last_scanned: repo.last_scanned_at.map(format_datetime),
         stale: counts.1,
         unmerged: counts.2,
         protected_count: counts.3,
@@ -479,7 +479,7 @@ pub fn map_scan_result(scan_res: ScanResult) -> ClientScanResult {
             tip_sha: c.tip.oid.0.clone(),
             tip_short: c.tip.short.clone(),
             author_name: c.tip.author.name.clone(),
-            committed_at: c.tip.commit_date.to_string(),
+            committed_at: format_datetime(c.tip.commit_date),
             age_days: c.age.as_secs() / 86400,
             upstream: c.branch.0.clone().into(),
             classification: map_classification(&c),
@@ -488,7 +488,7 @@ pub fn map_scan_result(scan_res: ScanResult) -> ClientScanResult {
 
     ClientScanResult {
         repo_id: scan_res.repo.0,
-        scanned_at: time::OffsetDateTime::now_utc().to_string(),
+        scanned_at: format_datetime(time::OffsetDateTime::now_utc()),
         branches,
     }
 }
@@ -515,7 +515,7 @@ pub fn map_plan(core_plan: Plan) -> ClientPlan {
         repo_id: core_plan.repo.0,
         kind: "delete".to_string(),
         actions,
-        created_at: time::OffsetDateTime::now_utc().to_string(),
+        created_at: format_datetime(time::OffsetDateTime::now_utc()),
     }
 }
 
@@ -551,8 +551,8 @@ pub fn map_run_report(core_report: RunReport) -> ClientRunReport {
 
     ClientRunReport {
         run_id: ulid::Ulid::new().to_string(),
-        started_at: time::OffsetDateTime::now_utc().to_string(),
-        finished_at: time::OffsetDateTime::now_utc().to_string(),
+        started_at: format_datetime(time::OffsetDateTime::now_utc()),
+        finished_at: format_datetime(time::OffsetDateTime::now_utc()),
         attempted: core_report.success_count + core_report.failure_count,
         succeeded: core_report.success_count,
         failed: core_report.failure_count,
@@ -566,7 +566,7 @@ pub fn map_snapshot(core_snap: &Snapshot) -> ClientSnapshot {
     ClientSnapshot {
         id: core_snap.id.0.clone(),
         repo_id: core_snap.repo.0.clone(),
-        created_at: core_snap.created_at.to_string(),
+        created_at: format_datetime(core_snap.created_at),
         trigger: match core_snap.trigger {
             gitpurge_core::model::SnapshotTrigger::Manual => "manual",
             gitpurge_core::model::SnapshotTrigger::PreDelete => "preDelete",
@@ -753,6 +753,11 @@ pub fn map_settings(config: &Config) -> Settings {
             .unwrap_or_default(),
         default_no_backup: false,
     }
+}
+
+fn format_datetime(dt: time::OffsetDateTime) -> String {
+    dt.format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_else(|_| dt.to_string())
 }
 
 // --- Progress Event Emitter helper ---
@@ -1562,7 +1567,7 @@ pub async fn report_generate(
 
     Ok(serde_json::json!({
         "content": report.content,
-        "generatedAt": report.generated_at.to_string(),
+        "generatedAt": format_datetime(report.generated_at),
     }))
 }
 
@@ -1579,7 +1584,7 @@ pub async fn history_get(
         .into_iter()
         .map(|entry| {
             serde_json::json!({
-                "recordedAt": entry.recorded_at.to_string(),
+                "recordedAt": format_datetime(entry.recorded_at),
                 "totalBranches": entry.total_branches,
                 "activeCount": entry.active_count,
                 "staleCount": entry.stale_count,

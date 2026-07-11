@@ -44,6 +44,11 @@ const router = createRouter({
       name: 'plan',
       component: () => import('../views/PlanView.vue'),
     },
+    {
+      path: '/cleanup',
+      name: 'cleanup',
+      component: () => import('../views/CleanupView.vue'),
+    },
   ],
 });
 

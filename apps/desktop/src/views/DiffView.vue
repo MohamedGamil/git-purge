@@ -29,21 +29,40 @@
         <div class="branch-select-box">
           <div class="select-item">
             <label for="branch-a">Base Reference (Branch A)</label>
+            <input
+              type="text"
+              v-model="searchA"
+              placeholder="Search branch..."
+              class="form-input search-input-sub"
+            />
             <select id="branch-a" v-model="branchA" class="form-input">
               <option value="" disabled>-- Select Base Ref --</option>
-              <option v-for="b in store.branches" :key="'a-' + b.name" :value="b.name">
+              <option v-for="b in filteredBranchesA" :key="'a-' + b.name" :value="b.name">
                 {{ b.name }}
               </option>
             </select>
           </div>
 
-          <div class="compare-icon">⇆</div>
+          <button
+            class="compare-icon-btn"
+            @click="swapBranches"
+            title="Swap references A and B"
+            :disabled="!branchA && !branchB"
+          >
+            ⇆
+          </button>
 
           <div class="select-item">
             <label for="branch-b">Compare Reference (Branch B)</label>
+            <input
+              type="text"
+              v-model="searchB"
+              placeholder="Search branch..."
+              class="form-input search-input-sub"
+            />
             <select id="branch-b" v-model="branchB" class="form-input">
               <option value="" disabled>-- Select Compare Ref --</option>
-              <option v-for="b in store.branches" :key="'b-' + b.name" :value="b.name">
+              <option v-for="b in filteredBranchesB" :key="'b-' + b.name" :value="b.name">
                 {{ b.name }}
               </option>
             </select>
@@ -107,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useReposStore } from '../stores/repos';
 import { diff, type ClientDiffResult } from '../api/ipc';
@@ -118,8 +137,31 @@ const store = useReposStore();
 const selectedRepoId = ref(store.activeRepoId || '');
 const branchA = ref('');
 const branchB = ref('');
+const searchA = ref('');
+const searchB = ref('');
 const loading = ref(false);
 const diffResult = ref<ClientDiffResult | null>(null);
+
+const filteredBranchesA = computed(() => {
+  const q = searchA.value.toLowerCase().trim();
+  if (!q) return store.branches;
+  return store.branches.filter(b => b.name.toLowerCase().includes(q));
+});
+
+const filteredBranchesB = computed(() => {
+  const q = searchB.value.toLowerCase().trim();
+  if (!q) return store.branches;
+  return store.branches.filter(b => b.name.toLowerCase().includes(q));
+});
+
+const swapBranches = () => {
+  const temp = branchA.value;
+  branchA.value = branchB.value;
+  branchB.value = temp;
+  if (branchA.value && branchB.value) {
+    runDiff();
+  }
+};
 
 const handleRepoChange = () => {
   if (selectedRepoId.value) {
@@ -247,10 +289,37 @@ onMounted(() => {
   color: var(--on-surface);
 }
 
-.compare-icon {
-  font-size: 24px;
-  color: var(--muted);
-  padding-bottom: var(--spacing-xs);
+.compare-icon-btn {
+  font-size: 20px;
+  background-color: var(--surface-raised);
+  color: var(--on-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 0 var(--spacing-sm);
+  cursor: pointer;
+  height: 38px;
+  min-width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.compare-icon-btn:hover:not(:disabled) {
+  background-color: var(--border);
+  color: var(--primary);
+}
+
+.compare-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.search-input-sub {
+  margin-bottom: var(--spacing-xs);
+  padding: 6px var(--spacing-sm);
+  font-size: 12px;
+  height: 32px;
 }
 
 .form-input {

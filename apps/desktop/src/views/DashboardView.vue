@@ -110,6 +110,7 @@ import { useRouter } from 'vue-router';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
 import { useReposStore } from '../stores/repos';
+import { isMock } from '../api/ipc';
 
 const router = useRouter();
 const store = useReposStore();
@@ -124,6 +125,7 @@ const totalBranches = computed(() => store.repos.reduce((acc, r) => acc + r.bran
 const totalStale = computed(() => store.repos.reduce((acc, r) => acc + r.stale, 0));
 
 const statusMessage = computed(() => {
+  if (isMock) return 'IPC Bridge Active and Connected (Mock Mode)';
   if (store.loading) return 'Connecting to Rust backend...';
   if (store.error) return 'Disconnected from Backend';
   return 'IPC Bridge Active and Connected';

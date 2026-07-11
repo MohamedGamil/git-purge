@@ -251,11 +251,12 @@ const restoreForce = ref(false);
 const restoring = ref(false);
 
 const formattedDate = (dateStr: string) => {
-  try {
-    return new Date(dateStr).toLocaleString();
-  } catch {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
     return dateStr;
   }
+  return d.toLocaleString();
 };
 
 const formatBytes = (bytes: number) => {
