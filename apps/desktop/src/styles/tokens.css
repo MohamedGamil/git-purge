@@ -1,40 +1,103 @@
-/* tokens.css — Palette + Shared Design Tokens (CONVENTIONS §12, UI Design System §2) */
+/* tokens.css — Palette + Shared Design Tokens (CONVENTIONS §12, DESIGN.md) */
 
 :root {
-  /* One Dark Pro palette (dark source) */
-  --odp-bg: #282c34;
-  --odp-bg-deep: #21252b;
-  --odp-bg-raised: #2c313a;
-  --odp-fg: #abb2bf;
-  --odp-fg-strong: #d7dae0;
-  --odp-black: #3f4451;
-  --odp-red: #e06c75;
-  --odp-green: #98c379;
-  --odp-yellow: #e5c07b;
-  --odp-orange: #d19a66;
-  --odp-blue: #61afef;
-  --odp-purple: #c678dd;
-  --odp-cyan: #56b6c2;
-  --odp-gray: #5c6370;
-  --odp-selection: #3e4451;
-  --odp-accent: #61afef;
+  /* Design Tokens - Dark Scheme (Default) */
+  --color-dark-surface: #0d141d;
+  --color-dark-surface-dim: #0d141d;
+  --color-dark-surface-bright: #333a44;
+  --color-dark-surface-container-lowest: #070f18;
+  --color-dark-surface-container-low: #151c26;
+  --color-dark-surface-container: #19202a;
+  --color-dark-surface-container-high: #232a35;
+  --color-dark-surface-container-highest: #2e3540;
+  --color-dark-on-surface: #dce3f0;
+  --color-dark-on-surface-variant: #c0c7d1;
+  --color-dark-inverse-surface: #dce3f0;
+  --color-dark-inverse-on-surface: #2a313b;
+  --color-dark-outline: #8a919b;
+  --color-dark-outline-variant: #404750;
+  --color-dark-surface-tint: #95ccff;
+  --color-dark-primary: #95ccff;
+  --color-dark-on-primary: #003352;
+  --color-dark-primary-container: #61afef;
+  --color-dark-on-primary-container: #004167;
+  --color-dark-inverse-primary: #006399;
+  --color-dark-secondary: #a7d387;
+  --color-dark-on-secondary: #163800;
+  --color-dark-secondary-container: #2b5013;
+  --color-dark-on-secondary-container: #96c178;
+  --color-dark-tertiary: #f6bb84;
+  --color-dark-on-tertiary: #4b2800;
+  --color-dark-tertiary-container: #d59d69;
+  --color-dark-on-tertiary-container: #5a3408;
+  --color-dark-error: #ffb4ab;
+  --color-dark-on-error: #690005;
+  --color-dark-error-container: #93000a;
+  --color-dark-on-error-container: #ffdad6;
+  --color-dark-primary-fixed: #cde5ff;
+  --color-dark-primary-fixed-dim: #95ccff;
+  --color-dark-on-primary-fixed: #001d32;
+  --color-dark-on-primary-fixed-variant: #004a75;
+  --color-dark-secondary-fixed: #c3f0a1;
+  --color-dark-secondary-fixed-dim: #a7d387;
+  --color-dark-on-secondary-fixed: #0a2100;
+  --color-dark-on-secondary-fixed-variant: #2b5013;
+  --color-dark-tertiary-fixed: #ffdcbf;
+  --color-dark-tertiary-fixed-dim: #f6bb84;
+  --color-dark-on-tertiary-fixed: #2d1600;
+  --color-dark-on-tertiary-fixed-variant: #663e12;
+  --color-dark-background: #0d141d;
+  --color-dark-on-background: #dce3f0;
+  --color-dark-surface-variant: #2e3540;
 
-  /* One Light palette (light source) */
-  --olt-bg: #fafafa;
-  --olt-surface: #ffffff;
-  --olt-surface-variant: #f0f0f1;
-  --olt-fg: #383a42;
-  --olt-fg-strong: #202227;
-  --olt-border: #d4d4d6;
-  --olt-red: #e45649;
-  --olt-green: #50a14f;
-  --olt-amber: #c18401;
-  --olt-orange: #b76b01;
-  --olt-blue: #4078f2;
-  --olt-purple: #a626a4;
-  --olt-cyan: #0184bc;
-  --olt-gray: #a0a1a7;
-  --olt-selection: #dbe6ff;
+  /* Design Tokens - Light Scheme (Compatible Variant) */
+  --color-light-surface: #ffffff;
+  --color-light-surface-dim: #e1e2ec;
+  --color-light-surface-bright: #ffffff;
+  --color-light-surface-container-lowest: #ffffff;
+  --color-light-surface-container-low: #f1f3fa;
+  --color-light-surface-container: #ebedf5;
+  --color-light-surface-container-high: #e0e2eb;
+  --color-light-surface-container-highest: #d5d7e0;
+  --color-light-on-surface: #171c22;
+  --color-light-on-surface-variant: #404750;
+  --color-light-inverse-surface: #0d141d;
+  --color-light-inverse-on-surface: #fafbfe;
+  --color-light-outline: #707883;
+  --color-light-outline-variant: #c0c7d1;
+  --color-light-surface-tint: #0061a3;
+  --color-light-primary: #0061a3;
+  --color-light-on-primary: #ffffff;
+  --color-light-primary-container: #d1e4ff;
+  --color-light-on-primary-container: #001d32;
+  --color-light-inverse-primary: #95ccff;
+  --color-light-secondary: #386b20;
+  --color-light-on-secondary: #ffffff;
+  --color-light-secondary-container: #e2f7e2;
+  --color-light-on-secondary-container: #0a2100;
+  --color-light-tertiary: #865300;
+  --color-light-on-tertiary: #ffffff;
+  --color-light-tertiary-container: #ffecdb;
+  --color-light-on-tertiary-container: #2d1600;
+  --color-light-error: #ba1a1a;
+  --color-light-on-error: #ffffff;
+  --color-light-error-container: #ffdad6;
+  --color-light-on-error-container: #410002;
+  --color-light-primary-fixed: #dbe6ff;
+  --color-light-primary-fixed-dim: #4078f2;
+  --color-light-on-primary-fixed: #002266;
+  --color-light-on-primary-fixed-variant: #0044bb;
+  --color-light-secondary-fixed: #e2f7e2;
+  --color-light-secondary-fixed-dim: #50a14f;
+  --color-light-on-secondary-fixed: #0a2100;
+  --color-light-on-secondary-fixed-variant: #2b5013;
+  --color-light-tertiary-fixed: #ffecdb;
+  --color-light-tertiary-fixed-dim: #b76b01;
+  --color-light-on-tertiary-fixed: #4d2600;
+  --color-light-on-tertiary-fixed-variant: #804c00;
+  --color-light-background: #fafbfe;
+  --color-light-on-background: #171c22;
+  --color-light-surface-variant: #c0c7d1;
 
   /* Common Layout & Motion Tokens */
   --radius-xs: 4px;
@@ -58,56 +121,56 @@
   --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 }
 
-/* Dark Theme Semantic Mapping */
+/* Dark Theme Semantic Mapping (Default) */
 :root[data-theme="dark"] {
-  --bg: var(--odp-bg-deep);
-  --surface: var(--odp-bg);
-  --surface-variant: var(--odp-bg-deep);
-  --surface-raised: var(--odp-bg-raised);
+  --bg: var(--color-dark-background);
+  --surface: var(--color-dark-surface-container);
+  --surface-variant: var(--color-dark-surface);
+  --surface-raised: var(--color-dark-surface-container-high);
 
-  --on-surface: var(--odp-fg);
-  --on-surface-strong: var(--odp-fg-strong);
-  --muted: var(--odp-gray);
-  --border: var(--odp-black);
+  --on-surface: var(--color-dark-on-surface-variant);
+  --on-surface-strong: var(--color-dark-on-surface);
+  --muted: var(--color-dark-outline);
+  --border: var(--color-dark-outline-variant);
 
-  --primary: var(--odp-blue);
-  --on-primary: #1b1d23;
+  --primary: var(--color-dark-primary);
+  --on-primary: var(--color-dark-on-primary);
 
-  --success: var(--odp-green);
-  --warning: var(--odp-yellow);
-  --danger: var(--odp-red);
-  --info: var(--odp-cyan);
-  --accent-purple: var(--odp-purple);
+  --success: var(--color-dark-secondary);
+  --warning: var(--color-dark-tertiary);
+  --danger: var(--color-dark-error);
+  --info: var(--color-dark-primary);
+  --accent-purple: var(--color-dark-tertiary);
 
-  --selection: var(--odp-selection);
-  --focus-ring: var(--odp-blue);
+  --selection: var(--color-dark-surface-container-high);
+  --focus-ring: var(--color-dark-primary);
   --overlay: rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
-/* Light Theme Semantic Mapping */
+/* Light Theme Semantic Mapping (Compatible Variant) */
 :root[data-theme="light"] {
-  --bg: var(--olt-bg);
-  --surface: var(--olt-surface);
-  --surface-variant: var(--olt-surface-variant);
-  --surface-raised: var(--olt-surface);
+  --bg: var(--color-light-background);
+  --surface: var(--color-light-surface);
+  --surface-variant: var(--color-light-surface-container-low);
+  --surface-raised: var(--color-light-surface-container);
 
-  --on-surface: var(--olt-fg);
-  --on-surface-strong: var(--olt-fg-strong);
-  --muted: var(--olt-gray);
-  --border: var(--olt-border);
+  --on-surface: var(--color-light-on-surface-variant);
+  --on-surface-strong: var(--color-light-on-surface);
+  --muted: var(--color-light-outline);
+  --border: var(--color-light-outline-variant);
 
-  --primary: var(--olt-blue);
-  --on-primary: #ffffff;
+  --primary: var(--color-light-primary);
+  --on-primary: var(--color-light-on-primary);
 
-  --success: var(--olt-green);
-  --warning: var(--olt-amber);
-  --danger: var(--olt-red);
-  --info: var(--olt-cyan);
-  --accent-purple: var(--olt-purple);
+  --success: var(--color-light-secondary);
+  --warning: var(--color-light-tertiary);
+  --danger: var(--color-light-error);
+  --info: var(--color-light-primary);
+  --accent-purple: var(--color-light-tertiary);
 
-  --selection: var(--olt-selection);
-  --focus-ring: var(--olt-blue);
+  --selection: var(--color-light-surface-container);
+  --focus-ring: var(--color-light-primary);
   --overlay: rgba(30, 32, 38, 0.35);
   color-scheme: light;
 }
@@ -115,27 +178,27 @@
 /* System default media query */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --bg: var(--odp-bg-deep);
-    --surface: var(--odp-bg);
-    --surface-variant: var(--odp-bg-deep);
-    --surface-raised: var(--odp-bg-raised);
+    --bg: var(--color-dark-background);
+    --surface: var(--color-dark-surface-container);
+    --surface-variant: var(--color-dark-surface);
+    --surface-raised: var(--color-dark-surface-container-high);
 
-    --on-surface: var(--odp-fg);
-    --on-surface-strong: var(--odp-fg-strong);
-    --muted: var(--odp-gray);
-    --border: var(--odp-black);
+    --on-surface: var(--color-dark-on-surface-variant);
+    --on-surface-strong: var(--color-dark-on-surface);
+    --muted: var(--color-dark-outline);
+    --border: var(--color-dark-outline-variant);
 
-    --primary: var(--odp-blue);
-    --on-primary: #1b1d23;
+    --primary: var(--color-dark-primary);
+    --on-primary: var(--color-dark-on-primary);
 
-    --success: var(--odp-green);
-    --warning: var(--odp-yellow);
-    --danger: var(--odp-red);
-    --info: var(--odp-cyan);
-    --accent-purple: var(--odp-purple);
+    --success: var(--color-dark-secondary);
+    --warning: var(--color-dark-tertiary);
+    --danger: var(--color-dark-error);
+    --info: var(--color-dark-primary);
+    --accent-purple: var(--color-dark-tertiary);
 
-    --selection: var(--odp-selection);
-    --focus-ring: var(--odp-blue);
+    --selection: var(--color-dark-surface-container-high);
+    --focus-ring: var(--color-dark-primary);
     --overlay: rgba(0, 0, 0, 0.55);
     color-scheme: dark;
   }
@@ -143,27 +206,27 @@
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --bg: var(--olt-bg);
-    --surface: var(--olt-surface);
-    --surface-variant: var(--olt-surface-variant);
-    --surface-raised: var(--olt-surface);
+    --bg: var(--color-light-background);
+    --surface: var(--color-light-surface);
+    --surface-variant: var(--color-light-surface-container-low);
+    --surface-raised: var(--color-light-surface-container);
 
-    --on-surface: var(--olt-fg);
-    --on-surface-strong: var(--olt-fg-strong);
-    --muted: var(--olt-gray);
-    --border: var(--olt-border);
+    --on-surface: var(--color-light-on-surface-variant);
+    --on-surface-strong: var(--color-light-on-surface);
+    --muted: var(--color-light-outline);
+    --border: var(--color-light-outline-variant);
 
-    --primary: var(--olt-blue);
-    --on-primary: #ffffff;
+    --primary: var(--color-light-primary);
+    --on-primary: var(--color-light-on-primary);
 
-    --success: var(--olt-green);
-    --warning: var(--olt-amber);
-    --danger: var(--olt-red);
-    --info: var(--olt-cyan);
-    --accent-purple: var(--olt-purple);
+    --success: var(--color-light-secondary);
+    --warning: var(--color-light-tertiary);
+    --danger: var(--color-light-error);
+    --info: var(--color-light-primary);
+    --accent-purple: var(--color-light-tertiary);
 
-    --selection: var(--olt-selection);
-    --focus-ring: var(--olt-blue);
+    --selection: var(--color-light-surface-container);
+    --focus-ring: var(--color-light-primary);
     --overlay: rgba(30, 32, 38, 0.35);
     color-scheme: light;
   }

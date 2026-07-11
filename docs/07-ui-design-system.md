@@ -1,7 +1,7 @@
 # 07 — UI Design System (One Dark Pro × Material)
 
 `Status: Draft` · `Owner: Design` · `Last-updated: 2026-07-11` ·
-`Related: [CONVENTIONS](../delivery/CONVENTIONS.md), [00-vision-and-scope.md](00-vision-and-scope.md), [01-tech-stack.md](01-tech-stack.md), [06-ui-spec.md](06-ui-spec.md), [11-safety-model.md](11-safety-model.md)`
+`Related: [DESIGN.md](../DESIGN.md), [CONVENTIONS](../delivery/CONVENTIONS.md), [00-vision-and-scope.md](00-vision-and-scope.md), [01-tech-stack.md](01-tech-stack.md), [06-ui-spec.md](06-ui-spec.md), [11-safety-model.md](11-safety-model.md)`
 
 > The visual language for the **Git Purge** desktop app ([06-ui-spec.md](06-ui-spec.md)):
 > **Material design** (elevation, motion, states) restrained to a **minimalist,
@@ -9,6 +9,9 @@
 > theme and a `system` mode. This is **R12**. Everything here is CSS custom properties
 > ("design tokens") — **no heavy component or UI library** ([01-tech-stack.md](01-tech-stack.md)).
 > Component *behavior* and screens live in [06](06-ui-spec.md); this doc owns *looks*.
+>
+> For the authoritative engineered design system specs, design tokens, typography scale, layout, depth elevation, shapes, and CSS components rules, refer directly to [DESIGN.md](../DESIGN.md).
+
 
 ---
 

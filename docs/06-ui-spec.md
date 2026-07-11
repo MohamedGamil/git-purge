@@ -1,7 +1,7 @@
 # 06 — Desktop UI Spec (Tauri v2 + Vue 3)
 
 `Status: Draft` · `Owner: Desktop UI` · `Last-updated: 2026-07-11` ·
-`Related: [CONVENTIONS](../delivery/CONVENTIONS.md), [02-architecture.md](02-architecture.md), [05-cli-spec.md](05-cli-spec.md), [07-ui-design-system.md](07-ui-design-system.md), [08-backup-and-restore.md](08-backup-and-restore.md), [09-authentication.md](09-authentication.md), [10-reporting-and-history.md](10-reporting-and-history.md), [11-safety-model.md](11-safety-model.md)`
+`Related: [DESIGN.md](../DESIGN.md), [CONVENTIONS](../delivery/CONVENTIONS.md), [02-architecture.md](02-architecture.md), [05-cli-spec.md](05-cli-spec.md), [07-ui-design-system.md](07-ui-design-system.md), [08-backup-and-restore.md](08-backup-and-restore.md), [09-authentication.md](09-authentication.md), [10-reporting-and-history.md](10-reporting-and-history.md), [11-safety-model.md](11-safety-model.md)`
 
 > This document specifies the **Git Purge** desktop application: a **Tauri v2** shell
 > with a **Vue 3 + Vite + TypeScript** frontend. The Tauri Rust backend
@@ -10,9 +10,9 @@
 > or secrets directly** — it only calls commands. The app runs fully standalone with
 > **no CLI installed and no browser** (see [02-architecture.md §7](02-architecture.md)).
 >
-> Design tokens, colors, and component styling live in
-> [07-ui-design-system.md](07-ui-design-system.md). This doc references components by
-> name; the design system defines their look.
+> Design tokens, colors, layout structures, and component styling rules live in
+> [DESIGN.md](../DESIGN.md) (with additional details in [07-ui-design-system.md](07-ui-design-system.md)).
+
 
 ---
 

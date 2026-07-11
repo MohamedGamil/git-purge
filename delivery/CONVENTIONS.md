@@ -176,7 +176,9 @@ the CLI verbs: `repo_list`, `scan`, `plan`, `backup_create`, `delete_branches`,
   justifies an exception.
 - Public items documented with `///`; crate-level docs in `lib.rs`.
 - Frontend: ESLint + Prettier + `vue-tsc --noEmit` are CI gates.
+- Frontend layout, typography, components, and color systems must adhere to [DESIGN.md](../DESIGN.md).
 - Conventional Commits for messages; `feat|fix|docs|chore|refactor|test|ci|build`.
+
 
 ## 13. Testing bar (see `docs/12-testing-strategy.md`)
 
