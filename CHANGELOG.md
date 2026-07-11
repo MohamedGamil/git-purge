@@ -40,6 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Built placeholder panels for History & Trends (Phase 5) and Remote Auth manager (Phase 6).
   - Built Settings view configuring theme toggler, stale age threshold, naming regex, protected/excluded globs, and custom backups path.
   - Generated premium high-resolution RGBA icon assets (`32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.png`, `icon.ico`, `icon.icns`) for Tauri.
+- **Reporting & Trend Tracking Subsystem** (Phase 5):
+  - Designed SQLite schema migrations using database `PRAGMA user_version`.
+  - Implemented the production thread-safe `SqliteHistoryStore` in `gitpurge-core` with WAL journal mode and foreign keys enabled.
+  - Implemented automatic **PII Email Redaction** replacing author emails with `"[REDACTED]"` in the history store snapshots to ensure data privacy (`SAFE-07`).
+  - Added trend comparison metrics computation vs previous and baseline runs in `trends.rs`.
+  - Implemented Markdown, JSON, and theme-aware HTML report generators styling HTML with One Dark Pro design tokens.
+  - Wired CLI `report` and `history` commands and Tauri IPC methods to backend engine interfaces.
+  - Added `test_golden_reports` asserting report layout and content consistency using `insta` snapshot tests.
 - **Domain model**: Repository, Branch, Commit, Tag, Ref, Classification, Policy,
   Snapshot, Plan, Action, RunReport, Config, and all supporting value objects.
 - **Port trait fakes**: FakeGitBackend, FakeSecretStore, FakeHistoryStore,

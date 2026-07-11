@@ -1,8 +1,8 @@
 //! Trend history domain models (CONVENTIONS §8, doc 10 §2.2)
 
+use super::RepoId;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use super::RepoId;
 
 /// Captured metrics at the end of a run or scan.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

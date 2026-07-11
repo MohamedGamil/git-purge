@@ -108,11 +108,18 @@ impl Engine {
         let git = Box::new(crate::git::CompositeGitBackend::new());
         let secrets = Box::new(crate::auth::FakeSecretStore::default());
         let db_path = config.resolve_data_dir().join("history.db");
-        let backups_root = config.backups_root.clone().unwrap_or_else(|| {
-            config.resolve_data_dir().join("backups")
-        });
-        let history = Box::new(crate::history::SqliteHistoryStore::new(&db_path, backups_root)?);
-        let report_sink = Box::new(crate::report::FileReportSink::new(config.resolve_data_dir(), None));
+        let backups_root = config
+            .backups_root
+            .clone()
+            .unwrap_or_else(|| config.resolve_data_dir().join("backups"));
+        let history = Box::new(crate::history::SqliteHistoryStore::new(
+            &db_path,
+            backups_root,
+        )?);
+        let report_sink = Box::new(crate::report::FileReportSink::new(
+            config.resolve_data_dir(),
+            None,
+        ));
         let clock = Box::new(crate::clock::SystemClock);
         let progress = Box::new(crate::progress::NoopProgressSink);
 
@@ -288,11 +295,37 @@ impl Engine {
 
         // Record a read-only "scan" run
         let total = scan_result.total_branches;
-        let active = scan_result.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Active)).count();
-        let stale = scan_result.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Stale)).count();
-        let merged = scan_result.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Merged)).count();
-        let unmerged = scan_result.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Unmerged)).count();
-        let non_standard = scan_result.classifications.iter().filter(|c| !matches!(c.naming, crate::model::NamingVerdict::Standard | crate::model::NamingVerdict::Exempt { .. })).count();
+        let active = scan_result
+            .classifications
+            .iter()
+            .filter(|c| matches!(c.activity, crate::model::Activity::Active))
+            .count();
+        let stale = scan_result
+            .classifications
+            .iter()
+            .filter(|c| matches!(c.activity, crate::model::Activity::Stale))
+            .count();
+        let merged = scan_result
+            .classifications
+            .iter()
+            .filter(|c| matches!(c.merge_state, crate::model::MergeState::Merged))
+            .count();
+        let unmerged = scan_result
+            .classifications
+            .iter()
+            .filter(|c| matches!(c.merge_state, crate::model::MergeState::Unmerged))
+            .count();
+        let non_standard = scan_result
+            .classifications
+            .iter()
+            .filter(|c| {
+                !matches!(
+                    c.naming,
+                    crate::model::NamingVerdict::Standard
+                        | crate::model::NamingVerdict::Exempt { .. }
+                )
+            })
+            .count();
 
         let metrics = crate::model::RunMetrics {
             total,
@@ -301,9 +334,27 @@ impl Engine {
             merged,
             unmerged,
             non_standard,
-            local_count: Some(scan_result.classifications.iter().filter(|c| matches!(c.scope, crate::model::BranchScope::Local)).count()),
-            remote_count: Some(scan_result.classifications.iter().filter(|c| matches!(c.scope, crate::model::BranchScope::Remote)).count()),
-            protected: Some(scan_result.classifications.iter().filter(|c| !matches!(c.protection, crate::model::Protection::Unprotected)).count()),
+            local_count: Some(
+                scan_result
+                    .classifications
+                    .iter()
+                    .filter(|c| matches!(c.scope, crate::model::BranchScope::Local))
+                    .count(),
+            ),
+            remote_count: Some(
+                scan_result
+                    .classifications
+                    .iter()
+                    .filter(|c| matches!(c.scope, crate::model::BranchScope::Remote))
+                    .count(),
+            ),
+            protected: Some(
+                scan_result
+                    .classifications
+                    .iter()
+                    .filter(|c| !matches!(c.protection, crate::model::Protection::Unprotected))
+                    .count(),
+            ),
             deleted: Some(0),
             archived: Some(0),
             restored: Some(0),
@@ -581,19 +632,47 @@ impl Engine {
         let snapshot_id = snapshots.first().map(|s| s.id.clone());
 
         // Perform post-operation scan to compute post-op metrics
-        let post_scan = self.scan(&plan.repo, ScanOptions::default()).unwrap_or_else(|_| ScanResult {
-            repo: plan.repo.clone(),
-            classifications: Vec::new(),
-            total_branches: 0,
-            excluded_count: 0,
-        });
+        let post_scan = self
+            .scan(&plan.repo, ScanOptions::default())
+            .unwrap_or_else(|_| ScanResult {
+                repo: plan.repo.clone(),
+                classifications: Vec::new(),
+                total_branches: 0,
+                excluded_count: 0,
+            });
 
         let total = post_scan.total_branches;
-        let active = post_scan.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Active)).count();
-        let stale = post_scan.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Stale)).count();
-        let merged = post_scan.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Merged)).count();
-        let unmerged = post_scan.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Unmerged)).count();
-        let non_standard = post_scan.classifications.iter().filter(|c| !matches!(c.naming, crate::model::NamingVerdict::Standard | crate::model::NamingVerdict::Exempt { .. })).count();
+        let active = post_scan
+            .classifications
+            .iter()
+            .filter(|c| matches!(c.activity, crate::model::Activity::Active))
+            .count();
+        let stale = post_scan
+            .classifications
+            .iter()
+            .filter(|c| matches!(c.activity, crate::model::Activity::Stale))
+            .count();
+        let merged = post_scan
+            .classifications
+            .iter()
+            .filter(|c| matches!(c.merge_state, crate::model::MergeState::Merged))
+            .count();
+        let unmerged = post_scan
+            .classifications
+            .iter()
+            .filter(|c| matches!(c.merge_state, crate::model::MergeState::Unmerged))
+            .count();
+        let non_standard = post_scan
+            .classifications
+            .iter()
+            .filter(|c| {
+                !matches!(
+                    c.naming,
+                    crate::model::NamingVerdict::Standard
+                        | crate::model::NamingVerdict::Exempt { .. }
+                )
+            })
+            .count();
 
         let metrics = crate::model::RunMetrics {
             total,
@@ -602,9 +681,27 @@ impl Engine {
             merged,
             unmerged,
             non_standard,
-            local_count: Some(post_scan.classifications.iter().filter(|c| matches!(c.scope, crate::model::BranchScope::Local)).count()),
-            remote_count: Some(post_scan.classifications.iter().filter(|c| matches!(c.scope, crate::model::BranchScope::Remote)).count()),
-            protected: Some(post_scan.classifications.iter().filter(|c| !matches!(c.protection, crate::model::Protection::Unprotected)).count()),
+            local_count: Some(
+                post_scan
+                    .classifications
+                    .iter()
+                    .filter(|c| matches!(c.scope, crate::model::BranchScope::Local))
+                    .count(),
+            ),
+            remote_count: Some(
+                post_scan
+                    .classifications
+                    .iter()
+                    .filter(|c| matches!(c.scope, crate::model::BranchScope::Remote))
+                    .count(),
+            ),
+            protected: Some(
+                post_scan
+                    .classifications
+                    .iter()
+                    .filter(|c| !matches!(c.protection, crate::model::Protection::Unprotected))
+                    .count(),
+            ),
             deleted: Some(success_count),
             archived: Some(0),
             restored: Some(0),
@@ -860,26 +957,43 @@ impl Engine {
         let generated_at = self.clock.now();
         let content = match report_type {
             crate::report::ReportType::Audit => match fmt {
-                ReportFormat::Markdown => {
-                    crate::report::markdown::generate_audit_report(&repo_model, &scan_result, generated_at)
-                }
-                ReportFormat::Json => {
-                    crate::report::json::generate_json_report(&repo_model, &scan_result, Some(&history), generated_at)?
-                }
-                ReportFormat::Html => {
-                    crate::report::html::generate_html_report(&repo_model, &scan_result, Some(&history), generated_at)
-                }
+                ReportFormat::Markdown => crate::report::markdown::generate_audit_report(
+                    &repo_model,
+                    &scan_result,
+                    generated_at,
+                ),
+                ReportFormat::Json => crate::report::json::generate_json_report(
+                    &repo_model,
+                    &scan_result,
+                    Some(&history),
+                    generated_at,
+                )?,
+                ReportFormat::Html => crate::report::html::generate_html_report(
+                    &repo_model,
+                    &scan_result,
+                    Some(&history),
+                    generated_at,
+                ),
             },
             crate::report::ReportType::Trend => match fmt {
-                ReportFormat::Markdown => {
-                    crate::report::markdown::generate_trend_report(&repo_model, &history, generated_at, None)
-                }
-                ReportFormat::Json => {
-                    crate::report::json::generate_json_report(&repo_model, &scan_result, Some(&history), generated_at)?
-                }
-                ReportFormat::Html => {
-                    crate::report::html::generate_html_report(&repo_model, &scan_result, Some(&history), generated_at)
-                }
+                ReportFormat::Markdown => crate::report::markdown::generate_trend_report(
+                    &repo_model,
+                    &history,
+                    generated_at,
+                    None,
+                ),
+                ReportFormat::Json => crate::report::json::generate_json_report(
+                    &repo_model,
+                    &scan_result,
+                    Some(&history),
+                    generated_at,
+                )?,
+                ReportFormat::Html => crate::report::html::generate_html_report(
+                    &repo_model,
+                    &scan_result,
+                    Some(&history),
+                    generated_at,
+                ),
             },
         };
 
@@ -1348,7 +1462,7 @@ mod tests {
     fn test_golden_reports() {
         let repo_fixture = testkit::merged_repo();
         let repo_id = RepoId("test-report-repo".to_string());
-        
+
         let config = Config {
             backups_root: None,
             default_policy: Policy::default(),
@@ -1386,7 +1500,13 @@ mod tests {
         };
         engine.register_repo(repo_model).unwrap();
 
-        let report = engine.report(&repo_id, crate::report::ReportType::Audit, ReportFormat::Markdown).unwrap();
+        let report = engine
+            .report(
+                &repo_id,
+                crate::report::ReportType::Audit,
+                ReportFormat::Markdown,
+            )
+            .unwrap();
         insta::assert_snapshot!("audit_report_markdown", report.content);
     }
 }

@@ -11,14 +11,41 @@ pub fn generate_json_report(
     history: Option<&TrendHistory>,
     generated_at: time::OffsetDateTime,
 ) -> Result<String> {
-    let generated_at_str = generated_at.format(&time::format_description::well_known::Rfc3339).unwrap_or_default();
+    let generated_at_str = generated_at
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_default();
 
     let total = scan.total_branches;
-    let active = scan.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Active)).count();
-    let stale = scan.classifications.iter().filter(|c| matches!(c.activity, crate::model::Activity::Stale)).count();
-    let merged = scan.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Merged)).count();
-    let unmerged = scan.classifications.iter().filter(|c| matches!(c.merge_state, crate::model::MergeState::Unmerged)).count();
-    let non_standard = scan.classifications.iter().filter(|c| !matches!(c.naming, crate::model::NamingVerdict::Standard | crate::model::NamingVerdict::Exempt { .. })).count();
+    let active = scan
+        .classifications
+        .iter()
+        .filter(|c| matches!(c.activity, crate::model::Activity::Active))
+        .count();
+    let stale = scan
+        .classifications
+        .iter()
+        .filter(|c| matches!(c.activity, crate::model::Activity::Stale))
+        .count();
+    let merged = scan
+        .classifications
+        .iter()
+        .filter(|c| matches!(c.merge_state, crate::model::MergeState::Merged))
+        .count();
+    let unmerged = scan
+        .classifications
+        .iter()
+        .filter(|c| matches!(c.merge_state, crate::model::MergeState::Unmerged))
+        .count();
+    let non_standard = scan
+        .classifications
+        .iter()
+        .filter(|c| {
+            !matches!(
+                c.naming,
+                crate::model::NamingVerdict::Standard | crate::model::NamingVerdict::Exempt { .. }
+            )
+        })
+        .count();
 
     let payload = json!({
         "schema_version": "1",
@@ -41,6 +68,7 @@ pub fn generate_json_report(
         "history": history.map(|h| &h.entries),
     });
 
-    serde_json::to_string_pretty(&payload)
-        .map_err(|e| crate::GitPurgeError::Config(format!("Failed to serialize JSON report: {}", e)))
+    serde_json::to_string_pretty(&payload).map_err(|e| {
+        crate::GitPurgeError::Config(format!("Failed to serialize JSON report: {}", e))
+    })
 }

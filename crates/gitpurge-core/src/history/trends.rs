@@ -1,6 +1,6 @@
 //! Trend calculation algorithms (doc 10 §4.3)
 
-use crate::model::{TrendEntry, TrendComparison, MetricDelta};
+use crate::model::{MetricDelta, TrendComparison, TrendEntry};
 
 /// Compare two trend entries (e.g., current run vs. previous or baseline run).
 pub fn compare_entries(old: &TrendEntry, new: &TrendEntry) -> TrendComparison {

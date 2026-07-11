@@ -1,6 +1,6 @@
 # 10 — Reporting & History
 
-`Status: Draft` · `Owner: Reporting` · `Last-updated: 2026-07-11` ·
+`Status: Approved` · `Owner: Reporting` · `Last-updated: 2026-07-11` ·
 `Related: [../delivery/CONVENTIONS.md](../delivery/CONVENTIONS.md), [02-architecture.md](02-architecture.md), [04-core-spec.md](04-core-spec.md), [05-cli-spec.md](05-cli-spec.md), [06-ui-spec.md](06-ui-spec.md), [07-ui-design-system.md](07-ui-design-system.md), [08-backup-and-restore.md](08-backup-and-restore.md), [00-vision-and-scope.md](00-vision-and-scope.md)`
 
 > Normative for the `report` module (`gitpurge-core::report`) and the `history`

@@ -2,15 +2,13 @@
 //! HTML report generation (doc 10 §5)
 
 use crate::model::{
-    Repository, ScanResult, TrendHistory, Classification, NamingVerdict,
-    MergeState, Activity,
+    Activity, Classification, MergeState, NamingVerdict, Repository, ScanResult, TrendHistory,
 };
 
 /// Helper to format date-time.
 fn format_datetime(dt: time::OffsetDateTime) -> String {
-    dt.format(&time::format_description::parse(
-        "[year]-[month]-[day] [hour]:[minute] UTC"
-    ).unwrap()).unwrap_or_else(|_| dt.to_string())
+    dt.format(&time::format_description::parse("[year]-[month]-[day] [hour]:[minute] UTC").unwrap())
+        .unwrap_or_else(|_| dt.to_string())
 }
 
 /// Generate a self-contained HTML report with One Dark Pro styling.
@@ -24,11 +22,36 @@ pub fn generate_html_report(
 
     // Stats calculations
     let total = scan.total_branches;
-    let active = scan.classifications.iter().filter(|c| matches!(c.activity, Activity::Active)).count();
-    let stale = scan.classifications.iter().filter(|c| matches!(c.activity, Activity::Stale)).count();
-    let merged = scan.classifications.iter().filter(|c| matches!(c.merge_state, MergeState::Merged)).count();
-    let unmerged = scan.classifications.iter().filter(|c| matches!(c.merge_state, MergeState::Unmerged)).count();
-    let non_standard = scan.classifications.iter().filter(|c| !matches!(c.naming, NamingVerdict::Standard | NamingVerdict::Exempt { .. })).count();
+    let active = scan
+        .classifications
+        .iter()
+        .filter(|c| matches!(c.activity, Activity::Active))
+        .count();
+    let stale = scan
+        .classifications
+        .iter()
+        .filter(|c| matches!(c.activity, Activity::Stale))
+        .count();
+    let merged = scan
+        .classifications
+        .iter()
+        .filter(|c| matches!(c.merge_state, MergeState::Merged))
+        .count();
+    let unmerged = scan
+        .classifications
+        .iter()
+        .filter(|c| matches!(c.merge_state, MergeState::Unmerged))
+        .count();
+    let non_standard = scan
+        .classifications
+        .iter()
+        .filter(|c| {
+            !matches!(
+                c.naming,
+                NamingVerdict::Standard | NamingVerdict::Exempt { .. }
+            )
+        })
+        .count();
 
     let pct = |count: usize| {
         if total == 0 {
@@ -229,16 +252,46 @@ pub fn generate_html_report(
                         <th>Description</th>
                     </tr>
                 </thead>
-                <tbody>"
+                <tbody>",
     );
 
     let rows = [
-        ("Total Branches", total, "100.0%", "All tracked branches in the mirror"),
-        ("Active Branches", active, &pct(active), "Branches with commits in the active window"),
-        ("Stale Branches", stale, &pct(stale), "Branches with last commit older than threshold"),
-        ("Merged Branches", merged, &pct(merged), "Branches fully merged into the default branch"),
-        ("Unmerged Branches", unmerged, &pct(unmerged), "Branches with unmerged work"),
-        ("Non-Standard Naming", non_standard, &pct(non_standard), "Branches violating the naming policy"),
+        (
+            "Total Branches",
+            total,
+            "100.0%",
+            "All tracked branches in the mirror",
+        ),
+        (
+            "Active Branches",
+            active,
+            &pct(active),
+            "Branches with commits in the active window",
+        ),
+        (
+            "Stale Branches",
+            stale,
+            &pct(stale),
+            "Branches with last commit older than threshold",
+        ),
+        (
+            "Merged Branches",
+            merged,
+            &pct(merged),
+            "Branches fully merged into the default branch",
+        ),
+        (
+            "Unmerged Branches",
+            unmerged,
+            &pct(unmerged),
+            "Branches with unmerged work",
+        ),
+        (
+            "Non-Standard Naming",
+            non_standard,
+            &pct(non_standard),
+            "Branches violating the naming policy",
+        ),
     ];
 
     for r in &rows {
@@ -258,7 +311,8 @@ pub fn generate_html_report(
         .filter(|c| {
             matches!(
                 c.recommendation,
-                crate::model::Recommendation::DeleteMerged | crate::model::Recommendation::ArchiveStale
+                crate::model::Recommendation::DeleteMerged
+                    | crate::model::Recommendation::ArchiveStale
             )
         })
         .collect();
@@ -269,7 +323,7 @@ pub fn generate_html_report(
         html.push_str(
             "<table><thead><tr>
                 <th>Branch Name</th><th>Last Commit</th><th>Author</th><th>Type</th><th>Reason</th>
-            </tr></thead><tbody>"
+            </tr></thead><tbody>",
         );
         for r in &recs {
             let scope_str = match r.scope {
@@ -281,7 +335,11 @@ pub fn generate_html_report(
                 crate::model::Recommendation::ArchiveStale => "Stale",
                 _ => "Review",
             };
-            let last_commit_date = r.tip.commit_date.format(&time::format_description::parse("[year]-[month]-[day]").unwrap()).unwrap_or_default();
+            let last_commit_date = r
+                .tip
+                .commit_date
+                .format(&time::format_description::parse("[year]-[month]-[day]").unwrap())
+                .unwrap_or_default();
             html.push_str(&format!(
                 "<tr><td><code>{}</code></td><td>{}</td><td>{}</td><td>{}</td><td><span class=\"badge badge-danger\">{}</span></td></tr>",
                 r.branch.0, last_commit_date, r.tip.author.name, scope_str, reason
@@ -313,7 +371,7 @@ pub fn generate_html_report(
         html.push_str(
             "<table><thead><tr>
                 <th>Branch Name</th><th>Last Commit</th><th>Author</th><th>Issue</th>
-            </tr></thead><tbody>"
+            </tr></thead><tbody>",
         );
         for v in &violations {
             let issue = match &v.naming {
@@ -333,7 +391,11 @@ pub fn generate_html_report(
                 },
                 _ => "".to_string(),
             };
-            let last_commit_date = v.tip.commit_date.format(&time::format_description::parse("[year]-[month]-[day]").unwrap()).unwrap_or_default();
+            let last_commit_date = v
+                .tip
+                .commit_date
+                .format(&time::format_description::parse("[year]-[month]-[day]").unwrap())
+                .unwrap_or_default();
             html.push_str(&format!(
                 "<tr><td><code>{}</code></td><td>{}</td><td>{}</td><td>{}</td></tr>",
                 v.branch.0, last_commit_date, v.tip.author.name, issue
@@ -372,36 +434,43 @@ pub fn generate_html_report(
             }
         }
 
-        let render_html_stale_group = |group: &[&Classification], title: &str, html_str: &mut String| {
-            html_str.push_str(&format!("<div class=\"stale-bucket\"><h3>{}</h3>", title));
-            if group.is_empty() {
-                html_str.push_str("<p>No branches in this age group.</p>");
-            } else {
-                html_str.push_str(
+        let render_html_stale_group =
+            |group: &[&Classification], title: &str, html_str: &mut String| {
+                html_str.push_str(&format!("<div class=\"stale-bucket\"><h3>{}</h3>", title));
+                if group.is_empty() {
+                    html_str.push_str("<p>No branches in this age group.</p>");
+                } else {
+                    html_str.push_str(
                     "<table><thead><tr>
                         <th>Branch Name</th><th>Last Commit</th><th>Author</th><th>Merged?</th><th>Type</th>
                     </tr></thead><tbody>"
                 );
-                for s in group {
-                    let scope_str = match s.scope {
-                        crate::model::BranchScope::Local => "Local",
-                        crate::model::BranchScope::Remote => "Remote",
-                    };
-                    let merged_badge = if s.merge_state == MergeState::Merged {
-                        "<span class=\"badge badge-success\">Yes</span>"
-                    } else {
-                        "<span class=\"badge badge-warning\">No</span>"
-                    };
-                    let last_commit_date = s.tip.commit_date.format(&time::format_description::parse("[year]-[month]-[day]").unwrap()).unwrap_or_default();
-                    html_str.push_str(&format!(
+                    for s in group {
+                        let scope_str = match s.scope {
+                            crate::model::BranchScope::Local => "Local",
+                            crate::model::BranchScope::Remote => "Remote",
+                        };
+                        let merged_badge = if s.merge_state == MergeState::Merged {
+                            "<span class=\"badge badge-success\">Yes</span>"
+                        } else {
+                            "<span class=\"badge badge-warning\">No</span>"
+                        };
+                        let last_commit_date = s
+                            .tip
+                            .commit_date
+                            .format(
+                                &time::format_description::parse("[year]-[month]-[day]").unwrap(),
+                            )
+                            .unwrap_or_default();
+                        html_str.push_str(&format!(
                         "<tr><td><code>{}</code></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
                         s.branch.0, last_commit_date, s.tip.author.name, merged_badge, scope_str
                     ));
+                    }
+                    html_str.push_str("</tbody></table>");
                 }
-                html_str.push_str("</tbody></table>");
-            }
-            html_str.push_str("</div>");
-        };
+                html_str.push_str("</div>");
+            };
 
         render_html_stale_group(&group_1_2, "1–2 Years Old", &mut html);
         render_html_stale_group(&group_2_3, "2–3 Years Old", &mut html);
@@ -414,7 +483,9 @@ pub fn generate_html_report(
     let review_required: Vec<&Classification> = scan
         .classifications
         .iter()
-        .filter(|c| matches!(c.activity, Activity::Stale) && matches!(c.merge_state, MergeState::Unmerged))
+        .filter(|c| {
+            matches!(c.activity, Activity::Stale) && matches!(c.merge_state, MergeState::Unmerged)
+        })
         .collect();
 
     if review_required.is_empty() {
@@ -430,7 +501,11 @@ pub fn generate_html_report(
                 crate::model::BranchScope::Local => "Local",
                 crate::model::BranchScope::Remote => "Remote",
             };
-            let last_commit_date = r.tip.commit_date.format(&time::format_description::parse("[year]-[month]-[day]").unwrap()).unwrap_or_default();
+            let last_commit_date = r
+                .tip
+                .commit_date
+                .format(&time::format_description::parse("[year]-[month]-[day]").unwrap())
+                .unwrap_or_default();
             let subject_trimmed = if r.tip.subject.len() > 60 {
                 format!("{}...", &r.tip.subject[..57])
             } else {
@@ -457,7 +532,7 @@ pub fn generate_html_report(
                 "<p class=\"subtitle\">Comparing to run on {}</p>",
                 format_datetime(prev.recorded_at)
             ));
-            
+
             html.push_str(
                 "<table><thead><tr>
                     <th>Metric</th><th>Old Value</th><th>New Value</th><th>Absolute Change</th><th>Change Ratio</th>

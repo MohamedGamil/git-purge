@@ -1553,7 +1553,11 @@ pub async fn report_generate(
     };
 
     let report = engine
-        .report(&RepoId(repo_id), gitpurge_core::report::ReportType::Audit, fmt)
+        .report(
+            &RepoId(repo_id),
+            gitpurge_core::report::ReportType::Audit,
+            fmt,
+        )
         .map_err(map_error)?;
 
     Ok(serde_json::json!({

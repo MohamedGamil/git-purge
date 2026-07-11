@@ -1,6 +1,6 @@
 # Phase 5 — Reporting & history/trends
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: Approved` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p5--reporting--historytrends-8-ed), [CONVENTIONS §5/§13](CONVENTIONS.md), [architecture §3](../docs/02-architecture.md), [domain model §7](../docs/03-domain-model.md), [10-reporting-and-history.md](../docs/10-reporting-and-history.md)`
 
 ## Goal
