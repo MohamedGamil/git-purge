@@ -1619,7 +1619,7 @@ pub fn log_operation(op: &str, branch: &str, scope: &str, result: &str) {
     } else if let Ok(home) = std::env::var("HOME") {
         std::path::PathBuf::from(home).join(".git-purge")
     } else {
-        std::path::PathBuf::from("/home/mgamil").join(".git-purge")
+        std::env::temp_dir().join(".git-purge")
     };
 
     let _ = std::fs::create_dir_all(&log_dir);

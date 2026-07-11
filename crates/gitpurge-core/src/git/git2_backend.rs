@@ -94,10 +94,60 @@ impl GitBackend for Git2Backend {
 
         let mut callbacks = git2::RemoteCallbacks::new();
 
-        // Wire SSH agent and fallback default credentials
-        callbacks.credentials(|_url, username_from_url, _allowed_types| {
+        // Wire SSH agent, default key files, and fallback default credentials
+        callbacks.credentials(|url, username_from_url, allowed_types| {
+            tracing::debug!("CREDENTIALS CALLBACK CALLED! URL: {}, USERNAME: {:?}, ALLOWED: {:?}", url, username_from_url, allowed_types);
             let user = username_from_url.unwrap_or("git");
-            git2::Cred::ssh_key_from_agent(user).or_else(|_| git2::Cred::default())
+
+            if allowed_types.contains(git2::CredentialType::USERNAME) {
+                tracing::debug!("RETURNING USERNAME CREDENTIAL: {}", user);
+                return git2::Cred::username(user);
+            }
+
+            if allowed_types.contains(git2::CredentialType::SSH_KEY) || allowed_types.contains(git2::CredentialType::SSH_CUSTOM) {
+                // 1. Try SSH agent first
+                match git2::Cred::ssh_key_from_agent(user) {
+                    Ok(cred) => {
+                        tracing::debug!("SUCCESS: LOADED KEY FROM SSH AGENT");
+                        return Ok(cred);
+                    }
+                    Err(e) => {
+                        tracing::debug!("SSH AGENT FAILED: {:?}", e);
+                    }
+                }
+
+                // 2. Try default SSH key files dynamically
+                let ssh_dir = if let Some(bd) = directories::BaseDirs::new() {
+                    Some(bd.home_dir().join(".ssh"))
+                } else if let Ok(home) = std::env::var("HOME") {
+                    Some(std::path::PathBuf::from(home).join(".ssh"))
+                } else {
+                    None
+                };
+
+                if let Some(ssh_dir) = ssh_dir {
+                    let key_names = ["id_ed25519", "id_rsa", "id_ecdsa", "id_dsa"];
+                    for name in &key_names {
+                        let private_key = ssh_dir.join(name);
+                        if private_key.exists() {
+                            tracing::debug!("TRYING PRIVATE KEY FILE: {:?}", private_key);
+                            match git2::Cred::ssh_key(user, None, &private_key, None) {
+                                Ok(cred) => {
+                                    tracing::debug!("SUCCESS: LOADED KEY FILE {:?}", private_key);
+                                    return Ok(cred);
+                                }
+                                Err(e) => {
+                                    tracing::debug!("FAILED TO LOAD KEY FILE {:?}: {:?}", private_key, e);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Fallback to default
+            tracing::debug!("FALLBACK TO DEFAULT CREDENTIALS");
+            git2::Cred::default()
         });
 
         // Fail push if remote rejects the reference update
