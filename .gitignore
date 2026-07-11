@@ -39,3 +39,8 @@ desktop.ini
 
 # --- Scratch / Agentic-AI ---
 .scratch/
+.agents/
+.mapx/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
