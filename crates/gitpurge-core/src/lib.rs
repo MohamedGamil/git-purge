@@ -130,8 +130,64 @@ impl Engine {
             .unwrap_or_else(|| config.resolve_data_dir().join("backups"));
         let history = Box::new(crate::history::SqliteHistoryStore::new(
             &db_path,
-            backups_root,
+            backups_root.clone(),
         )?);
+
+        let backups_root_clone = backups_root.clone();
+        if let Ok(conn) = rusqlite::Connection::open(&db_path) {
+            let stmt = conn
+                .prepare("SELECT id, repo_id FROM snapshots WHERE backup_path IS NULL;")
+                .ok();
+            if let Some(mut stmt) = stmt {
+                if let Ok(rows_iter) = stmt.query_map([], |row| {
+                    let id: String = row.get(0)?;
+                    let repo_id: String = row.get(1)?;
+                    Ok((id, repo_id))
+                }) {
+                    let rows: Vec<(String, String)> = rows_iter.filter_map(|r| r.ok()).collect();
+                    for (id, repo_id) in rows {
+                        let sanitized_id: String = repo_id
+                            .chars()
+                            .map(|c| {
+                                if c.is_alphanumeric() || c == '-' || c == '_' {
+                                    c
+                                } else {
+                                    '_'
+                                }
+                            })
+                            .collect();
+
+                        let target_path = backups_root_clone.join(format!("{}.git", sanitized_id));
+                        let resolved_path = if target_path.exists() {
+                            Some(target_path)
+                        } else {
+                            let old_path = backups_root_clone
+                                .join("backups")
+                                .join(format!("{}.git", sanitized_id));
+                            if old_path.exists() {
+                                Some(old_path)
+                            } else if let Some(parent) = backups_root_clone.parent() {
+                                let other_path = parent.join(format!("{}.git", sanitized_id));
+                                if other_path.exists() {
+                                    Some(other_path)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        };
+
+                        if let Some(path) = resolved_path {
+                            let _ = conn.execute(
+                                "UPDATE snapshots SET backup_path = ?1 WHERE id = ?2;",
+                                (path.to_string_lossy().to_string(), &id),
+                            );
+                        }
+                    }
+                }
+            }
+        }
         let report_sink = Box::new(crate::report::FileReportSink::new(
             config.resolve_data_dir(),
             None,
