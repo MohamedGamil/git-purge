@@ -10,7 +10,7 @@
 
 ---
 
-### P9-T1 · Named safety regression tests (SAFE-01–07) 🔲
+### P9-T1 · Named safety regression tests (SAFE-01–07) ✅ (2026-07-13)
 
 **Goal:** Create 7 named tests, one per safety invariant. These tests may **never**
 be removed (DoD §6).
@@ -36,7 +36,7 @@ backup → execute → restore.
 
 ---
 
-### P9-T3 · Desktop architecture guard test 🔲
+### P9-T3 · Desktop architecture guard test ✅ (2026-07-11)
 
 **Goal:** Mirror CLI's `architecture.rs` for the desktop crate (ADR-0001 compliance).
 
@@ -72,7 +72,7 @@ backup → execute → restore.
 
 ---
 
-### P9-T6 · Remove `cmd/stubs.rs` or implement 🔲
+### P9-T6 · Remove `cmd/stubs.rs` or implement ✅ (2026-07-13)
 
 **Goal:** Audit and eliminate `stubs.rs`. Implement real handlers or replace with
 tracked `todo!("P<n>-T<m>")`.
@@ -97,7 +97,7 @@ tracked `todo!("P<n>-T<m>")`.
 
 ---
 
-### P9-T8 · Reconcile delivery task cards 🔲
+### P9-T8 · Reconcile delivery task cards ✅ (2026-07-13)
 
 **Goal:** Update all task cards to match codebase reality. Fix P0-T6 status, P5/P7
 status, task-numbering divergences.

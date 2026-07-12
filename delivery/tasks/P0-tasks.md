@@ -81,7 +81,7 @@ bodies land in P1 when classification tests need them.
 
 ---
 
-## P0-T6 · Architecture guard test + deny bans 🔲
+## P0-T6 · Architecture guard test + deny bans ✅ (2026-07-11)
 
 **Goal:** Test in CLI crate that fails if `gix`/`git2`/`rusqlite`/`keyring` appear in
 their dependency tree; mirror in `deny.toml`.
@@ -90,8 +90,7 @@ their dependency tree; mirror in `deny.toml`.
 
 **Acceptance:** Test passes; adding `git2` to `gitpurge-cli/Cargo.toml` fails the test.
 
-**Status:** Partial — `deny.toml` exists; architecture test file not yet created.
-Deferred to P1 when the CLI's dependency tree is more realistic.
+**Completed:** 2026-07-11. File exists and asserts correctly.
 
 ---
 

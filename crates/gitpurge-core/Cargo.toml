@@ -45,6 +45,7 @@ rayon = { workspace = true }
 tempfile = { workspace = true, optional = true }
 
 [dev-dependencies]
+gitpurge-core = { path = ".", features = ["testkit"] }
 insta = { workspace = true }
 proptest = { workspace = true }
 tempfile = { workspace = true }

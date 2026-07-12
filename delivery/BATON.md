@@ -1,6 +1,6 @@
 # Delivery Baton
 
-> **Last updated:** 2026-07-12 · **Session:** 27 · **Updated by:** Analysis session
+> **Last updated:** 2026-07-13 · **Session:** 37 · **Updated by:** Retrofit session
 
 The baton is the **single source of truth** for what's done, what's in progress,
 and what's next. Every implementation session **reads the baton first** and
@@ -29,6 +29,10 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P9-T1 | Named safety regression tests (SAFE-01–07) | 37 | 2026-07-13 |
+| P9-T3 | Desktop architecture guard test | 37 | 2026-07-13 |
+| P9-T6 | Remove `cmd/stubs.rs` or implement | 37 | 2026-07-13 |
+| P9-T8 | Reconcile delivery task cards | 37 | 2026-07-13 |
 | P7-T1 | Debug and stabilize release workflow | 30 | 2026-07-13 |
 | P4-T9 | Desktop e2e + standalone | 05 | 2026-07-11 |
 | P4-T8 | Remaining views | 05 | 2026-07-11 |
@@ -65,14 +69,10 @@ duplicating work.
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 1 | P9-T1 | Named safety regression tests (SAFE-01–07) | 2 ED | Quick Win | — |
-| 2 | P9-T8 | Reconcile delivery task cards | 0.5 ED | Quick Win | — |
-| 3 | P9-T6 | Remove `cmd/stubs.rs` or implement | 0.5 ED | Quick Win | — |
-| 4 | P9-T3 | Desktop architecture guard test | 0.25 ED | Quick Win | — |
-| 5 | P9-T2 | Core integration test directory | 2 ED | Quick Win | — |
-| 6 | P9-T4 | `insta` snapshot tests for CLI | 2 ED | High | — |
-| 7 | P9-T5 | Coverage gate in CI | 0.5 ED | High | P9-T1, P9-T2 |
-| 8 | P9-T7 | Exit-code stability tests | 0.5 ED | Medium | P9-T4 |
+| 1 | P9-T2 | Core integration test directory | 2 ED | Quick Win | — |
+| 2 | P9-T4 | `insta` snapshot tests for CLI | 2 ED | High | — |
+| 3 | P9-T5 | Coverage gate in CI | 0.5 ED | High | P9-T1, P9-T2 |
+| 4 | P9-T7 | Exit-code stability tests | 0.5 ED | Medium | P9-T4 |
 
 ### Critical — Phase 11: Authentication & Credential Management
 

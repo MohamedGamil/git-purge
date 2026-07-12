@@ -1555,6 +1555,7 @@ version = "0.3.6"
 dependencies = [
  "directories",
  "git2",
+ "gitpurge-core",
  "gix",
  "insta",
  "keyring",

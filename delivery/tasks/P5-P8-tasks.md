@@ -5,7 +5,7 @@
 
 ---
 
-## P5-T1 · SQLite history store adapter
+## P5-T1 · SQLite history store adapter ✅ (2026-07-11)
 
 **Goal:** Implement `HistoryStore` trait with SQLite. DDL for `repos`, `runs`, `metrics`,
 `branch_snapshots`, `snapshots` tables. Dedup by `metrics_hash`.
@@ -17,9 +17,11 @@
 **Acceptance:** Round-trip: record a `RunReport` → query → identical; duplicate inserts
 are idempotent.
 
+**Completed:** 2026-07-11. SQLite adapter fully implemented and tested.
+
 ---
 
-## P5-T2 · Report generation (md/json/html)
+## P5-T2 · Report generation (md/json/html) ✅ (2026-07-11)
 
 **Goal:** Implement `ReportSink` adapters for markdown, JSON, and HTML output. Port all 6
 audit sections from `generate_reports.py`.
@@ -31,6 +33,8 @@ audit sections from `generate_reports.py`.
 
 **Acceptance:** Markdown report matches legacy format; JSON is machine-parseable; HTML
 renders correctly in a browser.
+
+**Completed:** 2026-07-11. All 3 report formats implemented.
 
 ---
 
@@ -143,7 +147,7 @@ draft GitHub Release.
 
 ---
 
-## P7-T2 · Portable tarball packaging
+## P7-T2 · Portable tarball packaging ✅ (2026-07-12)
 
 **Goal:** CLI binary tarball with README, LICENSE, completions. Zero-setup: extract and run.
 
@@ -152,6 +156,8 @@ draft GitHub Release.
 **Depends on:** P7-T1
 
 **Acceptance:** Tarball binary runs on clean container with no deps; R10 satisfied.
+
+**Completed:** 2026-07-12. Package script is integrated at `ci/package-tarball.sh`.
 
 ---
 
@@ -167,7 +173,7 @@ draft GitHub Release.
 
 ---
 
-## P7-T4 · install-cli implementation
+## P7-T4 · install-cli implementation ✅ (2026-07-12)
 
 **Goal:** `git-purge install-cli --user/--system` copies binary to appropriate PATH
 location per OS.
@@ -177,6 +183,8 @@ location per OS.
 **Depends on:** P3-T9
 
 **Acceptance:** `install-cli --user` places binary on PATH; `git purge` works as subcommand.
+
+**Completed:** 2026-07-12. Command implemented in `install_cli.rs`.
 
 ---
 
