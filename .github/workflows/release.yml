@@ -26,14 +26,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: ${{ matrix.target }} }
+        with:
+          targets: ${{ matrix.target }}
       - uses: taiki-e/install-action@v2
-        with: { tool: cross }          # cross for musl/aarch64 Linux builds
+        with:
+          tool: cross          # cross for musl/aarch64 Linux builds
       - run: cross build --release -p gitpurge-cli --target ${{ matrix.target }}
       - name: Package tarball
         run: ./ci/package-tarball.sh ${{ matrix.target }} ${{ matrix.ext }}   # binary + LICENSEs + README + install.*
       - uses: actions/upload-artifact@v4
-        with: { name: cli-${{ matrix.target }}, path: dist/* }
+        with:
+          name: cli-${{ matrix.target }}
+          path: dist/*
 
   # ---- 2) Tauri desktop bundles -------------------------------------------------
   build-desktop:
@@ -49,11 +53,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: ${{ matrix.target }} }
+        with:
+          targets: ${{ matrix.target }}
       - uses: pnpm/action-setup@v4
-        with: { version: 9 }
+        with:
+          version: 9
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm, cache-dependency-path: apps/desktop/pnpm-lock.yaml }
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf
       - run: pnpm -C apps/desktop install --frozen-lockfile
@@ -68,7 +77,9 @@ jobs:
           projectPath: apps/desktop
           args: --target ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
-        with: { name: desktop-${{ matrix.target }}, path: apps/desktop/src-tauri/target/**/release/bundle/** }
+        with:
+          name: desktop-${{ matrix.target }}
+          path: apps/desktop/src-tauri/target/**/release/bundle/**
 
   # ---- 3) Checksums, signatures, GitHub Release ---------------------------------
   release:
@@ -76,7 +87,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
-        with: { path: artifacts, merge-multiple: true }
+        with:
+          path: artifacts
+          merge-multiple: true
       - name: SHA-256 checksums
         run: |
           cd artifacts
@@ -93,7 +106,8 @@ jobs:
             echo "Warning: MINISIGN_SECRET_KEY is empty, skipping signature generation."
             touch artifacts/SHA256SUMS.minisig
           fi
-        env: { MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }} }
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
       - uses: softprops/action-gh-release@v2
         with:
           draft: true                 # maintainer reviews, then publishes
