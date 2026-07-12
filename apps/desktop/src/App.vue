@@ -54,7 +54,7 @@
           <span class="warning-dot"></span> Offline
         </div>
         <div class="copyrights-n-version">
-          <span>v0.3.3</span>
+          <span>v0.3.4</span>
           <span>© {{ currentYear }} Git Purge</span>
           <span>By</span>
           <a class="author" href="https://github.com/MohamedGamil/git-purge" @click="handleOpenAuthorLink">M. Gamil</a>

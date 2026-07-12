@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+## [0.3.4] — 2026-07-13
+
+### Changed
+
 - Updated `crates/gitpurge-core/Cargo.toml` to use target-specific `git2` feature configurations, enabling `vendored-openssl` and `vendored-libgit2` on Unix/macOS for static/self-contained compilation, while keeping only `vendored-libgit2` on Windows to leverage native Schannel and avoid OpenSSL compile overhead.
 - Modified `.github/workflows/release.yml` to compile targets natively using standard `cargo` on macOS and Windows runners, limiting `cross` compilation to Linux runners.
 - Explicitly configured the `shell: bash` environment for CLI packaging steps on all runners to ensure cross-platform compatibility.
@@ -221,7 +227,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/MohamedGamil/git-purge/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/MohamedGamil/git-purge/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/MohamedGamil/git-purge/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/MohamedGamil/git-purge/compare/v0.3.0...v0.3.1
