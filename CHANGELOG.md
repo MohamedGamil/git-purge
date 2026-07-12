@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.3.5] — 2026-07-13
+
+### Fixed
+
 - Resolved database lock errors (`database is locked`) when running integration tests in parallel by ensuring CLI tests write isolated configurations to their respective temporary directories.
 - Fixed Windows `.zip` packaging failure in release workflow by integrating fallback support for `7z` and PowerShell's `Compress-Archive` cmdlets inside the packaging script.
 
@@ -230,7 +234,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/MohamedGamil/git-purge/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/MohamedGamil/git-purge/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/MohamedGamil/git-purge/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/MohamedGamil/git-purge/compare/v0.3.1...v0.3.2
