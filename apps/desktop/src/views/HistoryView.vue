@@ -407,6 +407,13 @@ onMounted(() => {
   font-size: 13px;
 }
 
+.history-live-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
 /* Stats grid */
 .stats-grid {
   display: grid;
