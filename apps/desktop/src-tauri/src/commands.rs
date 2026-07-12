@@ -2110,6 +2110,24 @@ pub fn save_file(path: String, content: String) -> Result<(), SerializableError>
     })
 }
 
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), SerializableError> {
+    #[cfg(target_os = "windows")]
+    let res = std::process::Command::new("cmd").args(["/C", "start", &url]).spawn();
+
+    #[cfg(target_os = "macos")]
+    let res = std::process::Command::new("open").arg(&url).spawn();
+
+    #[cfg(target_os = "linux")]
+    let res = std::process::Command::new("xdg-open").arg(&url).spawn();
+
+    res.map(|_| ()).map_err(|e| SerializableError {
+        code: "OPEN_ERROR".to_string(),
+        message: format!("Failed to open URL: {}", e),
+        hint: Some(e.to_string()),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -53,7 +53,12 @@
         <div v-if="!isOnline" class="network-warning" title="Your device is offline or the VPN connection is lost. Git remote synchronization is temporarily disabled.">
           <span class="warning-dot"></span> Offline
         </div>
-        <span>v0.3.0 • © 2026 Git Purge</span>
+        <div class="copyrights-n-version">
+          <span>v0.3.0</span>
+          <span>© {{ currentYear }} Git Purge</span>
+          <span>By</span>
+          <a class="author" href="https://github.com/MohamedGamil/git-purge" @click="handleOpenAuthorLink">M. Gamil</a>
+        </div>
       </div>
     </aside>
 
@@ -68,7 +73,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import brandIcon from './assets/brand_icon.png';
 import { useTheme } from './composables/useTheme';
-import { settingsGet } from './api/ipc';
+import { settingsGet, openUrl } from './api/ipc';
 import {
   LayoutDashboard,
   GitBranch,
@@ -82,7 +87,17 @@ import {
 
 useTheme();
 
+const currentYear = new Date().getFullYear();
 const isOnline = ref(navigator.onLine);
+
+const handleOpenAuthorLink = async (e: MouseEvent) => {
+  e.preventDefault();
+  try {
+    await openUrl('https://github.com/MohamedGamil/git-purge');
+  } catch (err) {
+    console.error('Failed to open link:', err);
+  }
+};
 
 const updateOnlineStatus = () => {
   isOnline.value = navigator.onLine;
@@ -233,6 +248,31 @@ onUnmounted(() => {
   border-radius: 50%;
   display: inline-block;
   animation: pulse 1.5s infinite;
+}
+
+.copyrights-n-version {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 4px;
+  font-weight: 300;
+  font-size: 9px;
+  user-select: none;
+  background-color: rgba(167, 156, 156, 0.05);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+.author {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.author:hover {
+  text-decoration: underline;
 }
 
 @keyframes pulse {

@@ -807,6 +807,15 @@ export async function saveFile(path: string, content: string): Promise<void> {
   return invoke<void>('save_file', { path, content });
 }
 
+export async function openUrl(url: string): Promise<void> {
+  if (isMock) {
+    console.log(`Mock opening URL: ${url}`);
+    window.open(url, '_blank');
+    return Promise.resolve();
+  }
+  return invoke<void>('open_url', { url });
+}
+
 export async function historyGet(repoId: string): Promise<any> {
   if (isMock) {
     return Promise.resolve(JSON.parse(JSON.stringify(mockHistory[repoId] || [])));
