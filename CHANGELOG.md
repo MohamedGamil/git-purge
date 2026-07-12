@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a thread-safe `get_remotes` method to the core `Engine` in `gitpurge-core` to retrieve configured repository remotes dynamically using libgit2, keeping external adapter layers thin.
+- Introduced `remote` and `upstream` fields to the shared `Classification` model, allowing git metadata to propagate transparently through Tauri commands to the frontend.
 - Introduced `DESIGN.md` defining brand personality, layout grids, components, typography scales, and shape design requirements.
 - Implemented and mapped design color tokens for both dark (default) and light themes.
 - Enabled remote branch deletion selection, planning, and execution with premium warning prompts in both the Branches view and Plan execution screen.
@@ -18,12 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Enhanced remote branch display, planning, and execution to dynamically resolve the branch's actual remote name (e.g. `upstream`, `origin`, or custom remotes) instead of hardcoding `"origin"`.
+- Updated `computeBranchesHash` in the Branches Explorer UI to strip common remote prefixes (like `origin/` and `upstream/`) dynamically when calculating local branch hashes for duplicate backup warnings.
 - Configured repository listings on the main dashboard to always sort alphabetically ascending by name.
 - Styled all delete/destructive buttons with high-contrast, theme-aware danger-level red tokens (`#e06c75` in dark mode, `#ba1a1a` in light mode).
 - Granted default dialog capabilities in `default.json` to authorize `ask` and `save` native dialogs, and implemented robust try-catch fallbacks to standard `confirm()` / HTML5 downloads to prevent silent promise rejection errors.
 - Updated `NamingPolicy::default()` default allowed regex to include `main-legacy` as a standard branch name.
 - Updated `SettingsView.vue` naming convention input placeholder and field hint to indicate that leaving it blank enforces the default naming convention.
-
 - Implemented thread-level parallel branch classification using Rayon inside the `Scanner::classify` loop to optimize commit graph walks and ancestry checks.
 - Implemented an in-memory scan cache in the central `Engine` that stores `ScanResult` metadata mapped by repository ID and is invalidated only when references/HEAD OID or policy configurations change, making repository listings and cleanup planning instantaneous when state remains unchanged.
 - Rebuilt the desktop frontend theme variable configuration in `tokens.css` to define and unify color schemes using the new design token variables.
@@ -32,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed a bug where remote branch deletions were hardcoded to push/delete on `"origin"`, dynamically resolving the remote server from reference structures instead.
+- Fixed Tauri adapter `plan` and `delete_branches` commands to dynamically parse the remote and short branch name from selected reference paths.
 - Resolved a bug where clearing the naming convention regex from the settings view would disable naming checks entirely (marking all branches non-standard); the core engine now correctly falls back to enforcing the default naming convention regex when the allowed list is empty.
 - Fixed remote SSH connection and deletion failures by handling username request prompts (`git2::CredentialType::USERNAME`) in the credentials callback and resolving user `.ssh` directory paths dynamically without hardcoded paths.
 - Configured operational logging to write logs in the user home directory under `~/.git-purge/git-purge-operations.log` using fully dynamic cross-platform path resolution.
