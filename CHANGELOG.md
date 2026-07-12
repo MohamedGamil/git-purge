@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a new integration test suite `test_sqlite_history_store_runs_and_trends_flow` in `sqlite.rs` to validate SQLite adapter operations, including runs logging, PII email redaction, metrics deduplication, and trend history APIs.
+- Added configured staleness age threshold display to the header subtitle of the Branches Explorer UI.
+- Added regex-based branch search capabilities to the Branches Explorer search bar, with an automatic fallback to normal case-insensitive substring search on compilation errors.
 - Added a thread-safe `get_remotes` method to the core `Engine` in `gitpurge-core` to retrieve configured repository remotes dynamically using libgit2, keeping external adapter layers thin.
 - Introduced `remote` and `upstream` fields to the shared `Classification` model, allowing git metadata to propagate transparently through Tauri commands to the frontend.
 - Introduced `DESIGN.md` defining brand personality, layout grids, components, typography scales, and shape design requirements.
@@ -20,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Modified the Branches Explorer to persist and restore filter selections (search, locality, freshness, merge, protection, naming, and sorting) per repository in `localStorage`.
 - Enhanced remote branch display, planning, and execution to dynamically resolve the branch's actual remote name (e.g. `upstream`, `origin`, or custom remotes) instead of hardcoding `"origin"`.
 - Updated `computeBranchesHash` in the Branches Explorer UI to strip common remote prefixes (like `origin/` and `upstream/`) dynamically when calculating local branch hashes for duplicate backup warnings.
 - Configured repository listings on the main dashboard to always sort alphabetically ascending by name.

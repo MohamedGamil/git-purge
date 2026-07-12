@@ -5,6 +5,9 @@
         <h1>Branches Explorer</h1>
         <p class="subtitle" v-if="store.activeRepoDetail">
           Managing <strong>{{ store.activeRepoDetail.name }}</strong> ({{ store.activeRepoDetail.localPath }})
+          <span v-if="stalenessAge" class="staleness-threshold">
+            &bull; Stale threshold: <strong>{{ stalenessAge }}</strong>
+          </span>
         </p>
         <p class="subtitle" v-else>Select a repository to explore and analyze branches.</p>
       </div>
@@ -306,7 +309,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useReposStore } from '../stores/repos';
 import { 
@@ -317,7 +320,8 @@ import {
   backupShow, 
   listenProgress, 
   cancel,
-  saveFile
+  saveFile,
+  settingsGet
 } from '../api/ipc';
 import { ask, save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatLocalDate, formatLocalDateTime, formatLocalTime } from '../utils/date';
@@ -357,6 +361,52 @@ const filterMerge = ref('all');
 const filterProtection = ref('all');
 const filterNaming = ref('all');
 const sortBy = ref('name');
+
+// Save/restore filter states per repository
+const loadFiltersForRepo = (repoId: string) => {
+  searchQuery.value = localStorage.getItem(`gitpurge:filter:${repoId}:search`) || '';
+  filterLocality.value = localStorage.getItem(`gitpurge:filter:${repoId}:locality`) || 'all';
+  filterFreshness.value = localStorage.getItem(`gitpurge:filter:${repoId}:freshness`) || 'all';
+  filterMerge.value = localStorage.getItem(`gitpurge:filter:${repoId}:merge`) || 'all';
+  filterProtection.value = localStorage.getItem(`gitpurge:filter:${repoId}:protection`) || 'all';
+  filterNaming.value = localStorage.getItem(`gitpurge:filter:${repoId}:naming`) || 'all';
+  sortBy.value = localStorage.getItem(`gitpurge:filter:${repoId}:sort`) || 'name';
+};
+
+watch([searchQuery, filterLocality, filterFreshness, filterMerge, filterProtection, filterNaming, sortBy], () => {
+  if (!store.activeRepoId) return;
+  localStorage.setItem(`gitpurge:filter:${store.activeRepoId}:search`, searchQuery.value);
+  localStorage.setItem(`gitpurge:filter:${store.activeRepoId}:locality`, filterLocality.value);
+  localStorage.setItem(`gitpurge:filter:${store.activeRepoId}:freshness`, filterFreshness.value);
+  localStorage.setItem(`gitpurge:filter:${store.activeRepoId}:merge`, filterMerge.value);
+  localStorage.setItem(`gitpurge:filter:${store.activeRepoId}:protection`, filterProtection.value);
+  localStorage.setItem(`gitpurge:filter:${store.activeRepoId}:naming`, filterNaming.value);
+  localStorage.setItem(`gitpurge:filter:${store.activeRepoId}:sort`, sortBy.value);
+});
+
+watch(() => store.activeRepoId, (newRepoId) => {
+  if (newRepoId) {
+    loadFiltersForRepo(newRepoId);
+  }
+});
+
+const stalenessAge = ref('');
+
+const loadSettings = async () => {
+  try {
+    const settings = await settingsGet();
+    stalenessAge.value = settings.policy.age;
+  } catch (err) {
+    console.error('Failed to load settings:', err);
+  }
+};
+
+onMounted(() => {
+  if (store.activeRepoId) {
+    loadFiltersForRepo(store.activeRepoId);
+  }
+  loadSettings();
+});
 
 const formattedScannedAt = computed(() => {
   return formatLocalTime(store.scannedAt);
@@ -581,8 +631,14 @@ const filteredBranches = computed(() => {
 
   // 1. Text Query
   if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase().trim();
-    list = list.filter(b => b.name.toLowerCase().includes(q));
+    const q = searchQuery.value.trim();
+    try {
+      const regex = new RegExp(q, 'i');
+      list = list.filter(b => regex.test(b.name));
+    } catch (e) {
+      const lowerQ = q.toLowerCase();
+      list = list.filter(b => b.name.toLowerCase().includes(lowerQ));
+    }
   }
 
   // 2. Locality Filter
