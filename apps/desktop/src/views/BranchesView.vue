@@ -15,20 +15,20 @@
       <div class="branches-header-actions">
         <div class="branches-header-actions-start">
           <div class="auto-fetch-wrapper">
-            <input type="checkbox" id="chk-auto-fetch" v-model="store.autoFetch" />
+            <input type="checkbox" id="chk-auto-fetch" v-model="store.autoFetch" :disabled="store.loading || store.isScanning || isBackingUp" />
             <label for="chk-auto-fetch">Auto Fetch</label>
           </div>
-          <button class="btn btn-secondary btn-sm flex-1" @click="openReportModal">
+          <button class="btn btn-secondary btn-sm flex-1" @click="openReportModal" :disabled="store.loading || store.isScanning || isBackingUp">
             📋 Generate Report
           </button>
-          <button class="btn btn-secondary btn-sm flex-1" @click="triggerBackupSnapshot">
+          <button class="btn btn-secondary btn-sm flex-1" @click="triggerBackupSnapshot" :disabled="store.loading || store.isScanning || isBackingUp">
             💾 Create Snapshot
           </button>
         </div>
         <div class="branches-header-actions-end">
           <div class="repo-selector">
             <label for="repo-select">Repository: </label>
-            <select id="repo-select" v-model="selectedRepoId" @change="handleRepoChange">
+            <select id="repo-select" v-model="selectedRepoId" @change="handleRepoChange" :disabled="store.loading || store.isScanning || isBackingUp">
               <option value="" disabled>-- Select Repository --</option>
               <option v-for="repo in store.repos" :key="repo.id" :value="repo.id">
                 {{ repo.name }}
@@ -44,6 +44,12 @@
     </div>
 
     <div v-else class="explorer-layout">
+      <!-- Loading Overlay -->
+      <div v-if="store.loading" class="layout-loading-overlay">
+        <span class="spinner"></span>
+        <p>Updating repository details...</p>
+      </div>
+
       <!-- Left sidebar: Scan & Filter controls -->
       <aside class="controls-panel card">
         <div class="control-group scan-box">
@@ -78,7 +84,7 @@
 
           <!-- Normal State Buttons -->
           <div v-else class="engine-buttons-wrapper">
-            <button class="btn btn-primary w-100 scan-main-btn" @click="triggerScan">
+            <button class="btn btn-primary w-100 scan-main-btn" @click="triggerScan" :disabled="store.loading">
               🔄 Scan & Classify
             </button>
           </div>
@@ -89,11 +95,11 @@
           <h3>Filters</h3>
           <div class="filter-item">
             <label for="search-input">Search Name</label>
-            <input id="search-input" type="text" v-model="searchQuery" placeholder="e.g. feature/..." class="form-input" />
+            <input id="search-input" type="text" v-model="searchQuery" placeholder="e.g. feature/..." class="form-input" :disabled="store.loading || store.isScanning || isBackingUp" />
           </div>
           <div class="filter-item">
             <label for="filter-locality">Locality</label>
-            <select id="filter-locality" v-model="filterLocality" class="form-input">
+            <select id="filter-locality" v-model="filterLocality" class="form-input" :disabled="store.loading || store.isScanning || isBackingUp">
               <option value="all">All</option>
               <option value="local">Local Only</option>
               <option value="remote">Remote Only</option>
@@ -101,7 +107,7 @@
           </div>
           <div class="filter-item">
             <label for="filter-freshness">Freshness</label>
-            <select id="filter-freshness" v-model="filterFreshness" class="form-input">
+            <select id="filter-freshness" v-model="filterFreshness" class="form-input" :disabled="store.loading || store.isScanning || isBackingUp">
               <option value="all">All</option>
               <option value="stale">Stale Only</option>
               <option value="active">Active Only</option>
@@ -109,7 +115,7 @@
           </div>
           <div class="filter-item">
             <label for="filter-merge">Merge Status</label>
-            <select id="filter-merge" v-model="filterMerge" class="form-input">
+            <select id="filter-merge" v-model="filterMerge" class="form-input" :disabled="store.loading || store.isScanning || isBackingUp">
               <option value="all">All</option>
               <option value="merged">Merged Only</option>
               <option value="unmerged">Unmerged Only</option>
@@ -117,7 +123,7 @@
           </div>
           <div class="filter-item">
             <label for="filter-protection">Protection</label>
-            <select id="filter-protection" v-model="filterProtection" class="form-input">
+            <select id="filter-protection" v-model="filterProtection" class="form-input" :disabled="store.loading || store.isScanning || isBackingUp">
               <option value="all">All</option>
               <option value="protected">Protected</option>
               <option value="unprotected">Unprotected</option>
@@ -125,7 +131,7 @@
           </div>
           <div class="filter-item">
             <label for="filter-naming">Naming Policy</label>
-            <select id="filter-naming" v-model="filterNaming" class="form-input">
+            <select id="filter-naming" v-model="filterNaming" class="form-input" :disabled="store.loading || store.isScanning || isBackingUp">
               <option value="all">All</option>
               <option value="standard">Standard</option>
               <option value="nonStandard">Non-Standard</option>
@@ -137,7 +143,7 @@
           <h3>Sorting</h3>
           <div class="filter-item">
             <label for="sort-select">Sort By</label>
-            <select id="sort-select" v-model="sortBy" class="form-input">
+            <select id="sort-select" v-model="sortBy" class="form-input" :disabled="store.loading || store.isScanning || isBackingUp">
               <option value="name">Branch Name</option>
               <option value="age">Age (Staleness)</option>
               <option value="commits">Committed Date</option>
@@ -153,8 +159,8 @@
           <h2>Detected Branches ({{ filteredBranches.length }})</h2>
           <div class="selection-actions" v-if="selectedBranches.length > 0">
             <span class="selection-count">{{ selectedBranches.length }} selected</span>
-            <button class="btn btn-secondary btn-sm" @click="selectAllFiltered">Select All</button>
-            <button class="btn btn-secondary btn-sm" @click="selectedBranches = []">Clear</button>
+            <button class="btn btn-secondary btn-sm" @click="selectAllFiltered" :disabled="store.loading || store.isScanning || isBackingUp">Select All</button>
+            <button class="btn btn-secondary btn-sm" @click="selectedBranches = []" :disabled="store.loading || store.isScanning || isBackingUp">Clear</button>
           </div>
         </div>
 
@@ -162,7 +168,7 @@
           <table class="branches-table">
             <thead>
               <tr>
-                <th width="40"><input type="checkbox" @change="toggleSelectAllFiltered" :checked="isAllFilteredSelected" /></th>
+                <th width="40"><input type="checkbox" @change="toggleSelectAllFiltered" :checked="isAllFilteredSelected" :disabled="store.loading || store.isScanning || isBackingUp" /></th>
                 <th>Branch / Ref</th>
                 <th>Classification</th>
                 <th>Age</th>
@@ -184,7 +190,7 @@
                       :id="'chk-' + branch.name"
                       :value="branch.name"
                       v-model="selectedBranches"
-                      :disabled="branch.classification.protected"
+                      :disabled="branch.classification.protected || store.loading || store.isScanning || isBackingUp"
                     />
                     <span v-if="branch.classification.protected" class="lock-icon" title="Protected ref. Cannot delete or archive.">🔒</span>
                   </div>
@@ -834,6 +840,7 @@ watch(() => store.activeRepoId, (newId) => {
   gap: var(--spacing-md);
   flex-grow: 1;
   overflow: hidden;
+  position: relative;
 }
 
 /* Controls Panel */
@@ -1375,5 +1382,28 @@ watch(() => store.activeRepoId, (newId) => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.layout-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  gap: var(--spacing-sm);
+  backdrop-filter: blur(2px);
+  border-radius: var(--radius-sm);
+}
+
+.layout-loading-overlay p {
+  color: var(--on-surface-strong);
+  font-size: 13px;
+  font-weight: 500;
 }
 </style>

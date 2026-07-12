@@ -11,7 +11,7 @@
 
       <div class="repo-selector">
         <label for="repo-select">Repository: </label>
-        <select id="repo-select" v-model="selectedRepoId" @change="handleRepoChange" :disabled="isExecuting">
+        <select id="repo-select" v-model="selectedRepoId" @change="handleRepoChange" :disabled="store.loading || loadingPlan || isExecuting">
           <option value="" disabled>-- Select Repository --</option>
           <option v-for="repo in store.repos" :key="repo.id" :value="repo.id">
             {{ repo.name }}
@@ -32,7 +32,7 @@
           
           <div class="filter-item">
             <label for="action-kind">Action Mode</label>
-            <select id="action-kind" v-model="actionKind" class="form-input" :disabled="isExecuting">
+            <select id="action-kind" v-model="actionKind" class="form-input" :disabled="store.loading || loadingPlan || isExecuting">
               <option value="delete">🗑️ Purge/Delete Mode</option>
               <option value="archive">📦 Archive Mode</option>
             </select>
@@ -46,7 +46,7 @@
               v-model="ageOverride"
               placeholder="e.g. 90 days ago, 1 year ago"
               class="form-input"
-              :disabled="isExecuting"
+              :disabled="store.loading || loadingPlan || isExecuting"
             />
             <span class="input-hint">Leave blank to use default policy.</span>
           </div>
@@ -54,7 +54,7 @@
           <!-- Delete Mode Options -->
           <div class="filter-item checkbox-group" v-if="actionKind === 'delete'">
             <label class="checkbox-container">
-              <input type="checkbox" v-model="mergedOnly" :disabled="isExecuting" />
+              <input type="checkbox" v-model="mergedOnly" :disabled="store.loading || loadingPlan || isExecuting" />
               <span class="checkmark"></span>
               Merged branches only
             </label>
@@ -62,7 +62,7 @@
 
           <div class="filter-item checkbox-group" v-if="actionKind === 'delete'">
             <label class="checkbox-container">
-              <input type="checkbox" v-model="includeUnmerged" :disabled="isExecuting" />
+              <input type="checkbox" v-model="includeUnmerged" :disabled="store.loading || loadingPlan || isExecuting" />
               <span class="checkmark"></span>
               Include unmerged branches
             </label>
@@ -71,7 +71,7 @@
           <!-- Archive Mode Merge Strategy Selector -->
           <div class="filter-item merge-strategy-wrapper" v-if="actionKind === 'archive' && hasUnmergedBranches">
             <label for="merge-strategy">Merge / Archive Strategy</label>
-            <select id="merge-strategy" v-model="mergeStrategy" class="form-input" :disabled="isExecuting">
+            <select id="merge-strategy" v-model="mergeStrategy" class="form-input" :disabled="store.loading || loadingPlan || isExecuting">
               <option value="skip">Skip Unmerged (Safe)</option>
               <option value="force">Force Archive Unmerged (Dangerous)</option>
               <option value="merge-first">Fast-Forward Merge, then Archive</option>
@@ -87,7 +87,7 @@
               type="text"
               v-model="archiveTargetBranch"
               class="form-input"
-              :disabled="isExecuting"
+              :disabled="store.loading || loadingPlan || isExecuting"
               placeholder="main-legacy"
             />
             <span class="input-hint">Target branch where archived commits are stored.</span>
@@ -96,14 +96,14 @@
           <!-- Archive Merge Strategy (Ours vs Theirs) -->
           <div class="filter-item" v-if="actionKind === 'archive'">
             <label for="archive-strategy">Git Merge Strategy</label>
-            <select id="archive-strategy" v-model="archiveStrategy" class="form-input" :disabled="isExecuting">
+            <select id="archive-strategy" v-model="archiveStrategy" class="form-input" :disabled="store.loading || loadingPlan || isExecuting">
               <option value="ours">Ours (Prefer Legacy Content)</option>
               <option value="theirs">Theirs (Prefer Incoming Content)</option>
             </select>
             <span class="input-hint">Conflict resolution preference.</span>
           </div>
 
-          <button class="btn btn-primary w-100" @click="generatePlan" :disabled="isExecuting || loadingPlan">
+          <button class="btn btn-primary w-100" @click="generatePlan" :disabled="store.loading || loadingPlan || isExecuting">
             <span v-if="loadingPlan">Analyzing...</span>
             <span v-else>🔍 Generate Cleanup Plan</span>
           </button>
@@ -172,6 +172,17 @@
                 <span class="progress-pct">{{ execProgress }}%</span>
                 <span class="progress-msg">{{ execProgressMessage }}</span>
               </div>
+
+              <!-- Live Operations Log Panel -->
+              <div class="live-ops-log card">
+                <h4>Operation Log</h4>
+                <div class="ops-log-content">
+                  <div v-for="(log, index) in executionLogs" :key="index" class="log-line text-sm code-font">
+                    {{ log }}
+                  </div>
+                </div>
+              </div>
+
               <button class="btn btn-danger w-100 cancel-btn" @click="handleCancel">
                 🛑 Cancel Operations
               </button>
@@ -224,7 +235,7 @@
 
               <div class="safety-options">
                 <label class="checkbox-container select-none">
-                  <input type="checkbox" v-model="noBackup" />
+                  <input type="checkbox" v-model="noBackup" :disabled="store.loading || loadingPlan || isExecuting" />
                   <span class="checkmark"></span>
                   <span v-if="actionKind === 'delete'">Disable pre-deletion backup snapshot</span>
                   <span v-else>Disable pre-archival backup snapshot</span>
@@ -245,6 +256,7 @@
                   v-model="confirmToken"
                   placeholder="Type DELETE here..."
                   class="form-input w-100 confirm-input"
+                  :disabled="store.loading || loadingPlan || isExecuting"
                 />
               </div>
 
@@ -252,7 +264,7 @@
               <button
                 v-if="actionKind === 'delete'"
                 class="btn btn-danger w-100 execute-btn"
-                :disabled="!canExecute"
+                :disabled="!canExecute || store.loading || loadingPlan || isExecuting"
                 @click="executePlan"
               >
                 🗑️ Execute Destructive Purge
@@ -260,7 +272,7 @@
               <button
                 v-else
                 class="btn btn-primary w-100 execute-btn"
-                :disabled="!canExecute"
+                :disabled="!canExecute || store.loading || loadingPlan || isExecuting"
                 @click="executePlan"
               >
                 📦 Execute Branch Archival
@@ -343,6 +355,7 @@ const execTaskId = ref<string | null>(null);
 const execProgress = ref(0);
 const execProgressMessage = ref('');
 const runReport = ref<ClientRunReport | null>(null);
+const executionLogs = ref<string[]>([]);
 
 const hasDestructiveActions = computed(() => {
   return planResult.value?.actions.some(a => a.destructive) || false;
@@ -391,6 +404,7 @@ const executePlan = async () => {
   isExecuting.value = true;
   execProgress.value = 0;
   execProgressMessage.value = 'Preparing execution...';
+  executionLogs.value = [];
 
   const taskId = `cleanup-${selectedRepoId.value}-${Date.now()}`;
   execTaskId.value = taskId;
@@ -402,6 +416,15 @@ const executePlan = async () => {
       if (event.taskId === taskId) {
         execProgress.value = Math.round((event.current / (event.total || 1)) * 100);
         execProgressMessage.value = event.message;
+        if (event.message) {
+          executionLogs.value.push(event.message);
+          setTimeout(() => {
+            const container = document.querySelector('.ops-log-content');
+            if (container) {
+              container.scrollTop = container.scrollHeight;
+            }
+          }, 50);
+        }
         if (event.done) {
           isExecuting.value = false;
           execTaskId.value = null;
@@ -889,5 +912,40 @@ onMounted(() => {
   color: var(--muted);
   margin-top: 4px;
   line-height: 1.4;
+}
+
+.live-ops-log {
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-sm);
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.live-ops-log h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.ops-log-content {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.log-line {
+  color: var(--on-surface);
+  line-height: 1.4;
+  word-break: break-all;
+  border-left: 2px solid var(--primary);
+  padding-left: 6px;
 }
 </style>

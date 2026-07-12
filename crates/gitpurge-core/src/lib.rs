@@ -623,6 +623,17 @@ impl Engine {
 
     /// Execute a resolved plan.
     pub fn execute(&self, plan: &Plan, mode: ExecMode, no_backup: bool) -> Result<RunReport> {
+        self.execute_with_progress(plan, mode, no_backup, self.progress.as_ref())
+    }
+
+    /// Execute a resolved plan with a custom progress sink.
+    pub fn execute_with_progress(
+        &self,
+        plan: &Plan,
+        mode: ExecMode,
+        no_backup: bool,
+        progress: &dyn progress::ProgressSink,
+    ) -> Result<RunReport> {
         let started_at = self.clock.now();
         let run_id = ulid::Ulid::new().to_string();
         let command = if plan.actions.iter().any(|a| a.kind == ActionKind::Archive) {
@@ -664,6 +675,15 @@ impl Engine {
             });
         }
 
+        let action_name = if command == "archive" {
+            "Archiving"
+        } else {
+            "Deleting"
+        };
+        let mut current_step = 0;
+        let total_steps = plan.actions.len();
+        progress.set_total(total_steps as u64);
+
         let results = crate::action::execute_deletions_with_guard(
             &self.config.lock().unwrap(),
             self.git.as_ref(),
@@ -672,6 +692,13 @@ impl Engine {
             &plan.actions,
             no_backup,
             |action| {
+                current_step += 1;
+                let msg = format!(
+                    "{} ({}/{}) branch {}",
+                    action_name, current_step, total_steps, action.branch.0
+                );
+                progress.tick(Some(&msg));
+
                 if action.scope == crate::model::BranchScope::Remote {
                     let remote = action.remote.as_deref().unwrap_or("origin");
                     self.git.delete_remote_branch(&repo, remote, &action.branch)

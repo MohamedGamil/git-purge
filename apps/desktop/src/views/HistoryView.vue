@@ -10,7 +10,7 @@
 
       <div class="repo-selector">
         <label for="repo-select">Repository: </label>
-        <select id="repo-select" v-model="selectedRepoId" @change="handleRepoChange">
+        <select id="repo-select" v-model="selectedRepoId" @change="handleRepoChange" :disabled="store.loading || loadingHistory || loadingRuns">
           <option value="" disabled>-- Select Repository --</option>
           <option v-for="repo in store.repos" :key="repo.id" :value="repo.id">
             {{ repo.name }}
@@ -120,7 +120,7 @@
           <h3>Audit Reports</h3>
           <p class="description">Export a comprehensive log of branch cleanup trends and status metrics.</p>
           <div class="engine-buttons-wrapper">
-            <button class="btn btn-primary w-100" @click="openReportModal">
+            <button class="btn btn-primary w-100" @click="openReportModal" :disabled="store.loading || loadingHistory || loadingRuns">
               📋 Generate Report
             </button>
           </div>
@@ -177,6 +177,7 @@
                         v-if="run.branches && run.branches.length > 0" 
                         class="btn-icon" 
                         @click="toggleRunExpand(run.id)"
+                        :disabled="store.loading || loadingHistory || loadingRuns"
                       >
                         {{ expandedRuns.has(run.id) ? '▲ Hide' : '▼ View Branches (' + run.branches.length + ')' }}
                       </button>
@@ -203,7 +204,7 @@
             <div class="pagination-footer" v-if="hasMoreRuns || runsOffset > 0">
               <button 
                 class="btn btn-secondary btn-sm" 
-                :disabled="runsOffset === 0 || loadingRuns"
+                :disabled="runsOffset === 0 || loadingRuns || store.loading || loadingHistory"
                 @click="runsOffset -= runsLimit; loadRuns();"
               >
                 ◀ Previous
@@ -211,7 +212,7 @@
               <span class="pagination-info">Page {{ Math.floor(runsOffset / runsLimit) + 1 }}</span>
               <button 
                 class="btn btn-secondary btn-sm" 
-                :disabled="!hasMoreRuns || loadingRuns"
+                :disabled="!hasMoreRuns || loadingRuns || store.loading || loadingHistory"
                 @click="loadNextPage()"
               >
                 Next ▶

@@ -878,6 +878,87 @@ fn format_datetime(dt: time::OffsetDateTime) -> String {
         .unwrap_or_else(|_| dt.to_string())
 }
 
+struct TauriProgressSink {
+    app: AppHandle,
+    task_id: String,
+    phase: String,
+    current: std::sync::atomic::AtomicU64,
+    total: std::sync::atomic::AtomicU64,
+}
+
+impl TauriProgressSink {
+    fn new(app: AppHandle, task_id: String, phase: String) -> Self {
+        Self {
+            app,
+            task_id,
+            phase,
+            current: std::sync::atomic::AtomicU64::new(0),
+            total: std::sync::atomic::AtomicU64::new(0),
+        }
+    }
+}
+
+impl gitpurge_core::progress::ProgressSink for TauriProgressSink {
+    fn set_total(&self, total: u64) {
+        self.total.store(total, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    fn tick(&self, message: Option<&str>) {
+        let current = self.current.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+        let total = self.total.load(std::sync::atomic::Ordering::SeqCst);
+        let msg = message.unwrap_or("");
+        emit_progress(
+            &self.app,
+            &self.task_id,
+            &self.phase,
+            msg,
+            current,
+            total,
+            false,
+            None,
+        );
+    }
+
+    fn set_position(&self, pos: u64) {
+        self.current.store(pos, std::sync::atomic::Ordering::SeqCst);
+        let total = self.total.load(std::sync::atomic::Ordering::SeqCst);
+        emit_progress(
+            &self.app,
+            &self.task_id,
+            &self.phase,
+            "",
+            pos,
+            total,
+            false,
+            None,
+        );
+    }
+
+    fn finish(&self, message: Option<&str>) {
+        let total = self.total.load(std::sync::atomic::Ordering::SeqCst);
+        let msg = message.unwrap_or("Complete");
+        emit_progress(
+            &self.app,
+            &self.task_id,
+            &self.phase,
+            msg,
+            total,
+            total,
+            true,
+            None,
+        );
+    }
+}
+
+impl std::fmt::Debug for TauriProgressSink {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TauriProgressSink")
+            .field("task_id", &self.task_id)
+            .field("phase", &self.phase)
+            .finish()
+    }
+}
+
 // --- Progress Event Emitter helper ---
 
 #[allow(clippy::too_many_arguments)]
@@ -1564,7 +1645,17 @@ pub async fn delete_branches(
             None,
         );
 
-        let res = engine.execute(&core_plan, ExecMode::Execute, exec.no_backup);
+        let progress_sink = TauriProgressSink::new(
+            app_clone.clone(),
+            task_id_clone.clone(),
+            "delete".to_string(),
+        );
+        let res = engine.execute_with_progress(
+            &core_plan,
+            ExecMode::Execute,
+            exec.no_backup,
+            &progress_sink,
+        );
 
         emit_progress(
             &app_clone,
