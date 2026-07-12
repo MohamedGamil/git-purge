@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added report preview loading spinners and animations in both Branches Explorer and History View screens.
+
 ### Changed
+
+- Standardized the report generation interface in the History View to use the new multi-tab Markdown preview modal matching the Branches Explorer.
 
 ### Fixed
 

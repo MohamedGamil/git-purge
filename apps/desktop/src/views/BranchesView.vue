@@ -12,14 +12,30 @@
         <p class="subtitle" v-else>Select a repository to explore and analyze branches.</p>
       </div>
 
-      <div class="repo-selector">
-        <label for="repo-select">Repository: </label>
-        <select id="repo-select" v-model="selectedRepoId" @change="handleRepoChange">
-          <option value="" disabled>-- Select Repository --</option>
-          <option v-for="repo in store.repos" :key="repo.id" :value="repo.id">
-            {{ repo.name }}
-          </option>
-        </select>
+      <div class="branches-header-actions">
+        <div class="branches-header-actions-start">
+          <div class="auto-fetch-wrapper">
+            <input type="checkbox" id="chk-auto-fetch" v-model="store.autoFetch" />
+            <label for="chk-auto-fetch">Auto Fetch</label>
+          </div>
+          <button class="btn btn-secondary btn-sm flex-1" @click="openReportModal">
+            📋 Generate Report
+          </button>
+          <button class="btn btn-secondary btn-sm flex-1" @click="triggerBackupSnapshot">
+            💾 Create Snapshot
+          </button>
+        </div>
+        <div class="branches-header-actions-end">
+          <div class="repo-selector">
+            <label for="repo-select">Repository: </label>
+            <select id="repo-select" v-model="selectedRepoId" @change="handleRepoChange">
+              <option value="" disabled>-- Select Repository --</option>
+              <option v-for="repo in store.repos" :key="repo.id" :value="repo.id">
+                {{ repo.name }}
+              </option>
+            </select>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -133,21 +149,6 @@
 
       <!-- Main Branch List Area -->
       <section class="branches-list-area card">
-        <div class="branches-header-actions">
-          <div class="branches-header-actions-start"></div>
-          <div class="branches-header-actions-end">
-            <div class="auto-fetch-wrapper">
-              <input type="checkbox" id="chk-auto-fetch" v-model="store.autoFetch" />
-              <label for="chk-auto-fetch">Auto Fetch</label>
-            </div>
-            <button class="btn btn-secondary btn-sm flex-1" @click="openReportModal">
-              📋 Generate Report
-            </button>
-            <button class="btn btn-secondary btn-sm flex-1" @click="triggerBackupSnapshot">
-              💾 Create Snapshot
-            </button>
-          </div>
-        </div>
         <div class="list-header">
           <h2>Detected Branches ({{ filteredBranches.length }})</h2>
           <div class="selection-actions" v-if="selectedBranches.length > 0">
@@ -249,7 +250,7 @@
     <div v-if="showReportModal" class="modal-overlay" @click.self="showReportModal = false">
       <div class="modal-card card report-modal-card">
         <header class="modal-header">
-          <h3>Standardized Reports</h3>
+          <h3>Audit Reports</h3>
           <button class="close-btn" @click="showReportModal = false">✕</button>
         </header>
 
@@ -273,7 +274,7 @@
         <main class="modal-body">
           <div v-if="generatingReport" class="loading-state">
             <span class="spinner"></span>
-            <p>Generating standardized {{ selectedReportType }} report...</p>
+            <p>Generating markdown {{ selectedReportType }} report...</p>
           </div>
           <pre v-else class="report-preview"><code>{{ reportContent }}</code></pre>
         </main>
@@ -904,10 +905,10 @@ watch(() => store.activeRepoId, (newId) => {
 }
 
 .last-scanned {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--muted);
   margin-top: 4px;
-  text-align: right;
+  text-align: start;
 }
 
 .filter-box, .sort-box {
@@ -952,31 +953,36 @@ watch(() => store.activeRepoId, (newId) => {
 .branches-header-actions {
   display: flex;
   flex-direction: row;
-  gap: var(--spacing-md);
+  gap: var(--spacing-xl);
   align-items: end;
-  justify-content: flex-end;
-  flex-shrink: 0;
-  margin-bottom: var(--spacing-md);
+  justify-content: start;
+  flex-grow: 1;
+  /* min-width: 60%; */
+  /* margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--border-accent);
+  border-bottom: 1px solid var(--border-accent); */
 }
 
-.branches-header-actions > div{
-  width: 50%;
+.branches-header-actions > div {
+  display: flex;
+  flex-direction: row;
+  justify-content: end;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--spacing-md);
 }
 
 .branches-header-actions-start {
-  display: flex;
-  flex-direction: row;
-  gap: var(--spacing-md);
-  align-items: center;
+  /* width: 50%; */
+  flex-grow: 1;
+}
+
+.branches-header-actions-start button {
+  flex-grow: 0;
+  min-width: 180px;
 }
 
 .branches-header-actions-end {
-  display: flex;
-  flex-direction: row;
-  gap: var(--spacing-md);
-  align-items: center;
 }
 
 .list-header {
@@ -1346,5 +1352,28 @@ watch(() => store.activeRepoId, (newId) => {
   color: var(--primary);
   border-bottom-color: var(--primary);
   font-weight: 600;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  color: var(--muted);
+  gap: var(--spacing-md);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

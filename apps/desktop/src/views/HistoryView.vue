@@ -117,17 +117,11 @@
         </div>
 
         <div class="actions-panel card">
-          <h3>Generate Audit Report</h3>
+          <h3>Audit Reports</h3>
           <p class="description">Export a comprehensive log of branch cleanup trends and status metrics.</p>
-          <div class="report-buttons">
-            <button class="btn btn-secondary btn-sm" @click="exportReport('markdown')" :disabled="exporting">
-              📥 Export Markdown
-            </button>
-            <button class="btn btn-secondary btn-sm" @click="exportReport('json')" :disabled="exporting">
-              📥 Export JSON
-            </button>
-            <button class="btn btn-secondary btn-sm" @click="exportReport('html')" :disabled="exporting">
-              📥 Export HTML
+          <div class="engine-buttons-wrapper">
+            <button class="btn btn-primary w-100" @click="openReportModal">
+              📋 Generate Report
             </button>
           </div>
         </div>
@@ -136,16 +130,38 @@
 
     <!-- Report Modal -->
     <div v-if="showReportModal" class="modal-overlay" @click.self="showReportModal = false">
-      <div class="modal-card card">
+      <div class="modal-card card report-modal-card">
         <header class="modal-header">
-          <h3>Audit Report ({{ reportFormat.toUpperCase() }})</h3>
+          <h3>Audit Reports</h3>
           <button class="close-btn" @click="showReportModal = false">✕</button>
         </header>
+
+        <div class="report-tabs">
+          <button 
+            class="report-tab-btn" 
+            :class="{ active: selectedReportType === 'audit' }" 
+            @click="selectedReportType = 'audit'"
+          >
+            📋 Branch Audit
+          </button>
+          <button 
+            class="report-tab-btn" 
+            :class="{ active: selectedReportType === 'trend' }" 
+            @click="selectedReportType = 'trend'"
+          >
+            📈 Cleanup Trend
+          </button>
+        </div>
+
         <main class="modal-body">
-          <pre class="report-preview"><code>{{ reportContent }}</code></pre>
+          <div v-if="generatingReport" class="loading-state">
+            <span class="spinner"></span>
+            <p>Generating markdown {{ selectedReportType }} report...</p>
+          </div>
+          <pre v-else class="report-preview"><code>{{ reportContent }}</code></pre>
         </main>
         <footer class="modal-footer">
-          <button class="btn btn-secondary" @click="copyToClipboard">📋 Copy to Clipboard</button>
+          <button class="btn btn-secondary" @click="copyReportToClipboard">📋 Copy to Clipboard</button>
           <button class="btn btn-primary" @click="downloadReportFile">📥 Download File</button>
         </footer>
       </div>
@@ -178,11 +194,11 @@ const loadingHistory = ref(false);
 const unsupportedMsg = ref<string | null>(null);
 const historyData = ref<HistoryEntry[]>([]);
 
-// Export report modal state
-const exporting = ref(false);
+// Report Generation state
 const showReportModal = ref(false);
+const generatingReport = ref(false);
 const reportContent = ref('');
-const reportFormat = ref('');
+const selectedReportType = ref<'audit' | 'trend'>('audit');
 
 const handleRepoChange = () => {
   if (selectedRepoId.value) {
@@ -252,23 +268,35 @@ const chartPathD = computed(() => {
   }, '');
 });
 
-// Export functions
-const exportReport = async (format: string) => {
+// Report Generation Methods
+const openReportModal = async () => {
   if (!selectedRepoId.value) return;
-  exporting.value = true;
+  showReportModal.value = true;
+  await fetchReport();
+};
+
+const fetchReport = async () => {
+  if (!selectedRepoId.value) return;
+  generatingReport.value = true;
+  reportContent.value = '';
   try {
-    const res = await reportGenerate(selectedRepoId.value, format);
+    const res = await reportGenerate(selectedRepoId.value, 'markdown', selectedReportType.value);
     reportContent.value = res.content;
-    reportFormat.value = format;
-    showReportModal.value = true;
   } catch (err: any) {
-    alert('Report generation failed: ' + (err?.message || err));
+    alert('Failed to generate report: ' + err.message);
+    showReportModal.value = false;
   } finally {
-    exporting.value = false;
+    generatingReport.value = false;
   }
 };
 
-const copyToClipboard = async () => {
+watch(selectedReportType, () => {
+  if (showReportModal.value) {
+    fetchReport();
+  }
+});
+
+const copyReportToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(reportContent.value);
     alert('Copied report content to clipboard!');
@@ -279,15 +307,14 @@ const copyToClipboard = async () => {
 
 const downloadReportFile = async () => {
   const activeRepoName = store.activeRepoDetail?.name || 'repo';
-  const ext = reportFormat.value === 'json' ? 'json' : reportFormat.value === 'html' ? 'html' : 'md';
-  const defaultFilename = `git-purge-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.${ext}`;
+  const defaultFilename = `git-purge-${selectedReportType.value}-report-${activeRepoName}-${new Date().toISOString().split('T')[0]}.md`;
 
   try {
     const filePath = await save({
       filters: [
         {
-          name: reportFormat.value === 'json' ? 'JSON' : reportFormat.value === 'html' ? 'HTML' : 'Markdown',
-          extensions: [ext]
+          name: 'Markdown Report',
+          extensions: ['md']
         }
       ],
       defaultPath: defaultFilename
@@ -299,8 +326,7 @@ const downloadReportFile = async () => {
   } catch (err: any) {
     console.error('Tauri save dialog failed, falling back to blob download:', err);
     try {
-      const mime = reportFormat.value === 'json' ? 'application/json' : reportFormat.value === 'html' ? 'text/html' : 'text/markdown';
-      const blob = new Blob([reportContent.value], { type: mime });
+      const blob = new Blob([reportContent.value], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -558,5 +584,39 @@ onMounted(() => {
   gap: var(--spacing-sm);
   border-top: 1px solid var(--border);
   padding-top: var(--spacing-md);
+}
+
+.report-modal-card {
+  width: 800px;
+}
+
+.report-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  border-bottom: 1px solid var(--border);
+  margin-top: calc(-1 * var(--spacing-xs));
+  margin-bottom: var(--spacing-sm);
+}
+
+.report-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.report-tab-btn:hover {
+  color: var(--on-surface-strong);
+}
+
+.report-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
 }
 </style>
