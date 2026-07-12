@@ -15,7 +15,12 @@ impl NamingEvaluator {
     /// Compile the regular expressions and build the evaluator.
     pub fn new(policy: &NamingPolicy) -> Result<Self, String> {
         let mut allowed_regexes = Vec::new();
-        for r in &policy.allowed {
+        let allowed = if policy.allowed.is_empty() {
+            &NamingPolicy::default().allowed
+        } else {
+            &policy.allowed
+        };
+        for r in allowed {
             let re = Regex::new(&r.0).map_err(|e| format!("Invalid regex '{}': {}", r.0, e))?;
             allowed_regexes.push(re);
         }
@@ -132,6 +137,31 @@ mod tests {
                 }
             }
         );
+        assert_eq!(
+            evaluator.evaluate("invalid/prefix"),
+            NamingVerdict::NonStandard {
+                reason: NamingViolation::NonStandardPrefix {
+                    prefix: "invalid".to_string()
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_naming_evaluator_empty_allowed_fallback() {
+        let policy = NamingPolicy {
+            allowed: Vec::new(), // empty
+            exact_exceptions: Vec::new(),
+            substring_exceptions: Vec::new(),
+            remediation_map: Vec::new(),
+        };
+
+        let evaluator = NamingEvaluator::new(&policy).unwrap();
+
+        // Should fall back to the default naming convention regex, which includes feature/* and main-legacy
+        assert_eq!(evaluator.evaluate("feature/login"), NamingVerdict::Standard);
+        assert_eq!(evaluator.evaluate("main-legacy"), NamingVerdict::Standard);
+        assert_eq!(evaluator.evaluate("fix/bug"), NamingVerdict::Standard);
         assert_eq!(
             evaluator.evaluate("invalid/prefix"),
             NamingVerdict::NonStandard {

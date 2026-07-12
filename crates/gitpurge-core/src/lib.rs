@@ -284,7 +284,10 @@ impl Engine {
 
         if opts.auto_fetch {
             if let Err(e) = self.git.fetch_all_prune(&repo_model) {
-                tracing::warn!("Auto-fetch all prune failed, proceeding with local state: {}", e);
+                tracing::warn!(
+                    "Auto-fetch all prune failed, proceeding with local state: {}",
+                    e
+                );
             }
         }
 
@@ -1619,7 +1622,7 @@ mod tests {
 pub fn log_operation(op: &str, branch: &str, scope: &str, result: &str) {
     use std::fs::OpenOptions;
     use std::io::Write;
-    
+
     let log_dir = if let Some(bd) = directories::BaseDirs::new() {
         bd.home_dir().join(".git-purge")
     } else if let Ok(home) = std::env::var("HOME") {
@@ -1632,7 +1635,10 @@ pub fn log_operation(op: &str, branch: &str, scope: &str, result: &str) {
     let log_path = log_dir.join("git-purge-operations.log");
 
     let now = time::OffsetDateTime::now_utc().to_string();
-    let log_line = format!("[{}] OP: {} | BRANCH: {} | SCOPE: {} | RESULT: {}\n", now, op, branch, scope, result);
+    let log_line = format!(
+        "[{}] OP: {} | BRANCH: {} | SCOPE: {} | RESULT: {}\n",
+        now, op, branch, scope, result
+    );
     if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(log_path) {
         let _ = file.write_all(log_line.as_bytes());
     }

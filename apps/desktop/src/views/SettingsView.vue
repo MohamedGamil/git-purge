@@ -40,8 +40,8 @@
 
           <div class="form-group">
             <label for="policy-regex">Naming Convention (Allowed Regex)</label>
-            <input id="policy-regex" type="text" v-model="policyNamingRegex" class="form-input" placeholder="e.g. ^(feature|bugfix|release|hotfix)/" />
-            <p class="field-hint">Branches not matching this pattern are classified as non-standard.</p>
+            <input id="policy-regex" type="text" v-model="policyNamingRegex" class="form-input" placeholder="^(main|master|main-legacy|develop|staging|prod|production|feat/.*|feature/.*|fix/.*|refactor/.*|docs/.*|perf/.*|test/.*|chore/.*|release/.*|hotfix/.*)$" />
+            <p class="field-hint">Branches not matching this pattern are classified as non-standard. Leave blank to enforce the default naming convention.</p>
           </div>
         </section>
 

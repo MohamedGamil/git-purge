@@ -96,9 +96,9 @@ pub fn archive_branches(
             match strategy {
                 ArchiveStrategy::Ours => {
                     // Ours: merge commit keeping target branch's tree (discard source diff, keep history)
-                    let tree = target_commit
-                        .tree()
-                        .map_err(|e| GitPurgeError::Git(format!("Failed to get target tree: {}", e)))?;
+                    let tree = target_commit.tree().map_err(|e| {
+                        GitPurgeError::Git(format!("Failed to get target tree: {}", e))
+                    })?;
                     let merge_oid = repo
                         .commit(
                             Some(&format!("refs/heads/{}", target_branch)),
@@ -117,7 +117,9 @@ pub fn archive_branches(
                     // Theirs: merge prefers source branch's files on conflict
                     let mut index = repo
                         .merge_commits(&target_commit, &source_commit, None)
-                        .map_err(|e| GitPurgeError::Git(format!("Failed to merge commits: {}", e)))?;
+                        .map_err(|e| {
+                            GitPurgeError::Git(format!("Failed to merge commits: {}", e))
+                        })?;
 
                     if index.has_conflicts() {
                         let mut their_entries = Vec::new();
@@ -125,15 +127,19 @@ pub fn archive_branches(
                             GitPurgeError::Git(format!("Failed to retrieve conflicts: {}", e))
                         })?;
                         for conflict in conflicts {
-                            let conflict = conflict
-                                .map_err(|e| GitPurgeError::Git(format!("Conflict error: {}", e)))?;
+                            let conflict = conflict.map_err(|e| {
+                                GitPurgeError::Git(format!("Conflict error: {}", e))
+                            })?;
                             if let Some(their_entry) = conflict.their {
                                 their_entries.push(their_entry);
                             }
                         }
                         for their_entry in their_entries {
                             index.add(&their_entry).map_err(|e| {
-                                GitPurgeError::Git(format!("Failed to add their conflict entry: {}", e))
+                                GitPurgeError::Git(format!(
+                                    "Failed to add their conflict entry: {}",
+                                    e
+                                ))
                             })?;
                         }
                     }
@@ -155,7 +161,10 @@ pub fn archive_branches(
                             &[&target_commit, &source_commit],
                         )
                         .map_err(|e| {
-                            GitPurgeError::Git(format!("Failed to create theirs merge commit: {}", e))
+                            GitPurgeError::Git(format!(
+                                "Failed to create theirs merge commit: {}",
+                                e
+                            ))
                         })?;
                     target_commit = repo.find_commit(merge_oid).unwrap();
                 }
@@ -165,7 +174,12 @@ pub fn archive_branches(
 
         match &res {
             Ok(()) => crate::log_operation("ARCHIVE", &source.0, "local/remote", "SUCCESS"),
-            Err(e) => crate::log_operation("ARCHIVE", &source.0, "local/remote", &format!("FAILED: {}", e)),
+            Err(e) => crate::log_operation(
+                "ARCHIVE",
+                &source.0,
+                "local/remote",
+                &format!("FAILED: {}", e),
+            ),
         }
         res?;
     }

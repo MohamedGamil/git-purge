@@ -1101,9 +1101,9 @@ pub async fn plan(
     let mut client_plan = map_plan(plan);
 
     if !raw_refs.is_empty() {
-        client_plan.actions.retain(|action| {
-            raw_refs.contains(&action.ref_name)
-        });
+        client_plan
+            .actions
+            .retain(|action| raw_refs.contains(&action.ref_name));
     }
 
     Ok(client_plan)

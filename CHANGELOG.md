@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configured repository listings on the main dashboard to always sort alphabetically ascending by name.
 - Styled all delete/destructive buttons with high-contrast, theme-aware danger-level red tokens (`#e06c75` in dark mode, `#ba1a1a` in light mode).
 - Granted default dialog capabilities in `default.json` to authorize `ask` and `save` native dialogs, and implemented robust try-catch fallbacks to standard `confirm()` / HTML5 downloads to prevent silent promise rejection errors.
+- Updated `NamingPolicy::default()` default allowed regex to include `main-legacy` as a standard branch name.
+- Updated `SettingsView.vue` naming convention input placeholder and field hint to indicate that leaving it blank enforces the default naming convention.
 
 - Implemented thread-level parallel branch classification using Rayon inside the `Scanner::classify` loop to optimize commit graph walks and ancestry checks.
 - Implemented an in-memory scan cache in the central `Engine` that stores `ScanResult` metadata mapped by repository ID and is invalidated only when references/HEAD OID or policy configurations change, making repository listings and cleanup planning instantaneous when state remains unchanged.
@@ -28,10 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimized repository list loading on the Dashboard by caching repository metrics in the trend database, avoiding redundant live Git scans and reducing list load time from seconds to sub-milliseconds.
 - Added network/VPN connectivity state protections: configured global connection and operation timeouts in the libgit2 engine (under ADR-0006), implemented automatic fallback to local-only branch scans in the Tauri store on connection failure, and introduced a global offline status indicator in the UI.
 
-
-
 ### Fixed
 
+- Resolved a bug where clearing the naming convention regex from the settings view would disable naming checks entirely (marking all branches non-standard); the core engine now correctly falls back to enforcing the default naming convention regex when the allowed list is empty.
 - Fixed remote SSH connection and deletion failures by handling username request prompts (`git2::CredentialType::USERNAME`) in the credentials callback and resolving user `.ssh` directory paths dynamically without hardcoded paths.
 - Configured operational logging to write logs in the user home directory under `~/.git-purge/git-purge-operations.log` using fully dynamic cross-platform path resolution.
 - Fixed a critical bug in `execute_deletions_with_guard` that prevented remote branch deletions from executing by refactoring it to iterate over complete `Action` structures instead of only names, ensuring proper local vs remote branch routing.

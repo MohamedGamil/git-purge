@@ -173,16 +173,16 @@ impl GitBackend for Git2Backend {
         })?;
         let git2_repo = git2::Repository::open(local_path)
             .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open repository: {}", e)))?;
-        
-        let remotes = git2_repo.remotes().map_err(|e| {
-            crate::GitPurgeError::Git(format!("Failed to list remotes: {}", e))
-        })?;
+
+        let remotes = git2_repo
+            .remotes()
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to list remotes: {}", e)))?;
 
         for remote_name in remotes.iter().flatten() {
             let mut git2_remote = git2_repo.find_remote(remote_name).map_err(|e| {
                 crate::GitPurgeError::Git(format!("Failed to find remote '{}': {}", remote_name, e))
             })?;
-            
+
             let mut fetch_opts = git2::FetchOptions::new();
             fetch_opts.prune(git2::FetchPrune::On);
             fetch_opts.remote_callbacks(get_remote_callbacks());
@@ -191,7 +191,10 @@ impl GitBackend for Git2Backend {
             git2_remote
                 .fetch(&[] as &[&str], Some(&mut fetch_opts), None)
                 .map_err(|e| {
-                    crate::GitPurgeError::Git(format!("Failed to fetch remote '{}': {}", remote_name, e))
+                    crate::GitPurgeError::Git(format!(
+                        "Failed to fetch remote '{}': {}",
+                        remote_name, e
+                    ))
                 })?;
         }
 
@@ -202,7 +205,12 @@ impl GitBackend for Git2Backend {
 fn get_remote_callbacks() -> git2::RemoteCallbacks<'static> {
     let mut callbacks = git2::RemoteCallbacks::new();
     callbacks.credentials(|url, username_from_url, allowed_types| {
-        tracing::debug!("CREDENTIALS CALLBACK CALLED! URL: {}, USERNAME: {:?}, ALLOWED: {:?}", url, username_from_url, allowed_types);
+        tracing::debug!(
+            "CREDENTIALS CALLBACK CALLED! URL: {}, USERNAME: {:?}, ALLOWED: {:?}",
+            url,
+            username_from_url,
+            allowed_types
+        );
         let user = username_from_url.unwrap_or("git");
 
         if allowed_types.contains(git2::CredentialType::USERNAME) {
@@ -210,7 +218,9 @@ fn get_remote_callbacks() -> git2::RemoteCallbacks<'static> {
             return git2::Cred::username(user);
         }
 
-        if allowed_types.contains(git2::CredentialType::SSH_KEY) || allowed_types.contains(git2::CredentialType::SSH_CUSTOM) {
+        if allowed_types.contains(git2::CredentialType::SSH_KEY)
+            || allowed_types.contains(git2::CredentialType::SSH_CUSTOM)
+        {
             // 1. Try SSH agent first
             match git2::Cred::ssh_key_from_agent(user) {
                 Ok(cred) => {
@@ -243,7 +253,11 @@ fn get_remote_callbacks() -> git2::RemoteCallbacks<'static> {
                                 return Ok(cred);
                             }
                             Err(e) => {
-                                tracing::debug!("FAILED TO LOAD KEY FILE {:?}: {:?}", private_key, e);
+                                tracing::debug!(
+                                    "FAILED TO LOAD KEY FILE {:?}: {:?}",
+                                    private_key,
+                                    e
+                                );
                             }
                         }
                     }

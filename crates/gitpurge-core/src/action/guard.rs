@@ -4,9 +4,7 @@ use crate::config::Config;
 use crate::error::Result;
 use crate::git::GitBackend;
 use crate::history::HistoryStore;
-use crate::model::{
-    Action, ActionResult, BranchName, Repository, RestoreSpec, SnapshotId,
-};
+use crate::model::{Action, ActionResult, BranchName, Repository, RestoreSpec, SnapshotId};
 
 /// Execute a list of branch deletions with a pre-op backup snapshot and verification.
 /// If any delete fails, calls `offer_restore` callback to prompt for auto-restore (SAFE-05).
@@ -31,10 +29,8 @@ where
     let snapshot_id = if no_backup {
         None
     } else {
-        let branches_to_backup: Vec<BranchName> = actions_to_delete
-            .iter()
-            .map(|a| a.branch.clone())
-            .collect();
+        let branches_to_backup: Vec<BranchName> =
+            actions_to_delete.iter().map(|a| a.branch.clone()).collect();
 
         let classifications: Vec<_> = actions_to_delete
             .iter()
@@ -83,7 +79,9 @@ where
 
         match delete_fn(action) {
             Ok(()) => {
-                results.push(ActionResult::Success { action: action.clone() });
+                results.push(ActionResult::Success {
+                    action: action.clone(),
+                });
                 crate::log_operation("DELETE", &action.branch.0, scope_str, "SUCCESS");
             }
             Err(e) => {
@@ -92,7 +90,12 @@ where
                     action: action.clone(),
                     error: error_msg.clone(),
                 });
-                crate::log_operation("DELETE", &action.branch.0, scope_str, &format!("FAILED: {}", error_msg));
+                crate::log_operation(
+                    "DELETE",
+                    &action.branch.0,
+                    scope_str,
+                    &format!("FAILED: {}", error_msg),
+                );
 
                 // SAFE-05: Offer restore
                 if let Some(ref snap_id) = snapshot_id {

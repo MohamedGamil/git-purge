@@ -51,7 +51,7 @@ pub struct NamingPolicy {
 impl Default for NamingPolicy {
     fn default() -> Self {
         Self {
-            allowed: vec![RegexSource("^(main|master|develop|staging|prod|production|feat/.*|feature/.*|fix/.*|refactor/.*|docs/.*|perf/.*|test/.*|chore/.*|release/.*|hotfix/.*)$".to_string())],
+            allowed: vec![RegexSource("^(main|master|main-legacy|develop|staging|prod|production|feat/.*|feature/.*|fix/.*|refactor/.*|docs/.*|perf/.*|test/.*|chore/.*|release/.*|hotfix/.*)$".to_string())],
             exact_exceptions: Vec::new(),
             substring_exceptions: Vec::new(),
             remediation_map: Vec::new(),
