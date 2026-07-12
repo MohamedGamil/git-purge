@@ -6,11 +6,11 @@
         <p class="subtitle">Safely purge stale branches — with a net under every operation.</p>
       </div>
       <div class="theme-toggle">
-        <label for="theme-select">Theme: </label>
+        <!-- <label for="theme-select">Theme: </label> -->
         <select id="theme-select" v-model="currentTheme" @change="handleThemeChange">
-          <option value="system">System Default</option>
-          <option value="dark">One Dark Pro</option>
-          <option value="light">One Light</option>
+          <option value="system">System Default Theme</option>
+          <option value="dark">Dark Theme</option>
+          <option value="light">Light theme</option>
         </select>
       </div>
     </header>

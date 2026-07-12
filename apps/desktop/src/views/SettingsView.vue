@@ -21,8 +21,8 @@
             <label for="theme-select">Visual Theme Mode</label>
             <select id="theme-select" v-model="themeMode" @change="handleThemeChange" class="form-input">
               <option value="system">System Default</option>
-              <option value="dark">One Dark Pro (Dark)</option>
-              <option value="light">One Light (Light)</option>
+              <option value="dark">Dark Theme</option>
+              <option value="light">Light Theme</option>
             </select>
             <p class="field-hint">Theme adjusts automatically when system default is selected.</p>
           </div>
