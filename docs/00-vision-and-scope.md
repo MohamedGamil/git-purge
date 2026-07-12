@@ -56,7 +56,7 @@ These IDs are referenced by phase exit criteria and the
 | **R12** | Minimalist, intuitive UI; light/dark/system themes; Material design on the One Dark Pro palette. | 07, 06 |
 
 ## Prior art
-Git Purge generalizes these scripts from `.docs/cleanup` (which cleaned two
+Git Purge generalizes a custom-written bash scripts I write before (which cleaned two
 hardcoded repos). The mapping to Git Purge capabilities:
 
 | Legacy script | Git Purge home |

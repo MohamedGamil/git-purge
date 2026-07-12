@@ -25,12 +25,25 @@
 
 ## Why Git Purge?
 
-Long-lived repositories accumulate thousands of branches: features that shipped months ago, experiments nobody remembers, remote-tracking refs whose upstreams are long gone. Deleting them by hand is tedious; deleting them with a one-off script is *dangerous*. Git Purge makes branch cleanup routine and reversible:
+Long-lived repositories accumulate thousands of branches: features that shipped months ago, experiments nobody remembers, remote-tracking refs whose upstreams are long gone. Deleting them by hand is tedious; deleting them with a one-off script is *dangerous*. Git Purge makes branch cleanup routine and reversible.
 
-* **Dry-Run by Default** - Every destructive command is dry-run by default—you see exactly what *would* happen before anything changes.
-* **Point-in-Time Backup Snapshots** - Every delete/archive is preceded by a verified backup snapshot, so a mistake is always one `restore` away.
-* **Type-Safe Protected Refs** - Protected branches (`main`, `master`, `develop`, `staging`, `production`, `HEAD`, plus your own list and glob patterns) are structurally excluded from destructive plans.
-* **Shared Engine Core** - One shared Rust core (`gitpurge-core`), two thin adapters (CLI and Tauri), and one Vue webview UI. Both CLI and Desktop call the exact same logic.
+### What is Git Purge?
+*   **Safety-First Branch Purging** — A utility that identifies and cleans stale, merged, and abandoned branches safely.
+*   **Dry-Run by Default** — Every destructive command is dry-run by default—you see exactly what *would* happen before anything changes.
+*   **Point-in-Time Backup Snapshots** — Every delete/archive is preceded by a verified backup snapshot using a space-efficient, shared bare git mirror, making any mistake restorable in one step.
+*   **Type-Safe Protected Refs** — Critical branches (`main`, `master`, `develop`, `staging`, `production`, `HEAD`, plus your own configurable globs) are structurally protected.
+*   **Shared Engine Core** — One shared Rust core (`gitpurge-core`), two thin adapters (CLI and Tauri), and one Vue webview UI. Both CLI and Desktop call the exact same logic.
+
+### What Git Purge is NOT
+*   **Not a general Git Client** — It is not a replacement for full-featured Git GUIs (like GitKraken, lazygit, or Fork) for daily code staging, commits, or rebases.
+*   **Not a Code-Review / PR tool** — It focuses solely on branch classification and cleanup; it does not review code or manage PR statuses.
+*   **Not a Hosted / Multi-User Server** — It runs completely locally as a single-user desktop or CLI tool.
+*   **Not a Git History Rewriter** — It does not rewrite Git history (unlike BFG or `git filter-repo`); it cleans up branch references and archives unmerged lines of work.
+
+### Who is it Useful For?
+*   **Release Engineers & Maintainers** — Who need to safely bulk-clean shared repositories while preserving a clear audit trail and generating compliance reports.
+*   **Team Leads & Managers** — Who want to monitor technical debt reduction trends using the built-in SQLite history logger.
+*   **Individual Developers** — Who want to keep their local clones organized and clean without the stress of running accidental destructive Git commands.
 
 <br>
 
@@ -159,7 +172,9 @@ pnpm tauri dev
 
 ## Documentation
 
-- **Specs & Design:** [`docs/`](docs/) — vision, tech stack, architecture, domain model, roadmap.
+- **User Guide:** [`docs/user-guide.md`](docs/user-guide.md) — complete guide on installation, CLI reference, Desktop UI settings, and authentication.
+- **Developer Guide:** [`docs/developer-guide.md`](docs/developer-guide.md) — developer instructions, architecture layout, ports & adapters description, extension guide, and dev commands.
+- **Specs & Design:** [`docs/`](docs/) — product specifications including vision, architecture, safety model, backup strategies, and technical roadmap.
 - **Delivery & Conventions:** [`delivery/`](delivery/) — the canonical [`CONVENTIONS.md`](delivery/CONVENTIONS.md) (source of truth for names, versions, and safety model), the [Agent Guide](delivery/AGENT_GUIDE.md), and the [Definition of Done](delivery/DEFINITION_OF_DONE.md).
 
 ---

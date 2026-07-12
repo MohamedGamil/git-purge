@@ -9,6 +9,15 @@ exact same core logic. This directory holds the product specs and design docs.
 
 ## Reading order
 
+### Guides
+
+| Doc | What it covers |
+| :--- | :--- |
+| [User Guide](user-guide.md) | Installation, CLI commands, filters, UI usage, settings, and authentication |
+| [Developer Guide](developer-guide.md) | Hexagonal Architecture, codebase layout, port traits, extension, and setup |
+
+### Specifications & Design
+
 | # | Doc | What it covers |
 | :- | :--- | :--- |
 | 00 | [Vision & Scope](00-vision-and-scope.md) | Problem, goals, non-goals, personas, success criteria |
