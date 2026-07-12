@@ -44,7 +44,6 @@ fn run() -> Result<()> {
         }
         Some(cli::Commands::Delete {
             include_unmerged,
-            unmerged,
             no_backup,
             force_unmerged,
             continue_on_error,
@@ -59,7 +58,7 @@ fn run() -> Result<()> {
                 args.yes,
                 *force_unmerged,
                 *include_unmerged,
-                *unmerged,
+                filters.unmerged,
                 *continue_on_error,
                 filters,
                 args.json,
@@ -155,21 +154,28 @@ fn run() -> Result<()> {
             )?;
         }
         Some(cli::Commands::Auth { action }) => {
-            cmd::stubs::handle_auth(&engine, action, args.json)?;
+            cmd::auth::handle_auth(&engine, action, args.json)?;
         }
         Some(cli::Commands::Ui) => {
-            cmd::stubs::handle_ui()?;
+            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref()).ok();
+            cmd::ui::handle_ui(repo_id.as_ref())?;
         }
         Some(cli::Commands::InstallCli {
-            user: _,
-            system: _,
-            dir: _,
-            force: _,
+            user,
+            system,
+            dir,
+            force,
         }) => {
-            cmd::stubs::handle_install_cli()?;
+            cmd::install_cli::handle_install_cli(
+                *user,
+                *system,
+                dir.clone(),
+                *force,
+                args.execute,
+            )?;
         }
         Some(cli::Commands::Completions { shell }) => {
-            cmd::stubs::handle_completions(&format!("{:?}", shell))?;
+            cmd::completions::handle_completions(*shell)?;
         }
         None => {
             use clap::CommandFactory;

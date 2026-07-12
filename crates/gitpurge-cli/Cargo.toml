@@ -23,6 +23,8 @@ time = { workspace = true }
 
 # CLI presentation (CONVENTIONS §9)
 clap = { workspace = true }
+clap_complete = "4"
+directories = { workspace = true }
 miette = { workspace = true }
 comfy-table = { workspace = true }
 indicatif = { workspace = true }

@@ -10,7 +10,7 @@ use crate::error::Result;
 use crate::model::RepoId;
 
 /// A credential retrieved from storage.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Credential {
     /// The kind of credential.
     pub kind: CredentialKind,

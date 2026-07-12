@@ -229,6 +229,37 @@ impl Engine {
         Ok(repos.get(id).cloned())
     }
 
+    /// Store a credential.
+    pub fn auth_store(
+        &self,
+        repo: &RepoId,
+        remote: &str,
+        kind: auth::CredentialKind,
+        secret: &[u8],
+    ) -> Result<()> {
+        self.secrets.store(repo, remote, kind, secret)
+    }
+
+    /// Retrieve a credential.
+    pub fn auth_retrieve(&self, repo: &RepoId, remote: &str) -> Result<Option<auth::Credential>> {
+        self.secrets.retrieve(repo, remote)
+    }
+
+    /// Remove a credential.
+    pub fn auth_remove(&self, repo: &RepoId, remote: &str) -> Result<()> {
+        self.secrets.remove(repo, remote)
+    }
+
+    /// List all credentials.
+    pub fn auth_list(&self) -> Result<Vec<auth::Credential>> {
+        self.secrets.list()
+    }
+
+    /// Test a credential.
+    pub fn auth_test(&self, repo: &RepoId, remote: &str) -> Result<bool> {
+        self.secrets.test(repo, remote)
+    }
+
     /// Get all configured remotes for a repository.
     pub fn get_remotes(&self, id: &RepoId) -> Result<Vec<String>> {
         let repo_model = {

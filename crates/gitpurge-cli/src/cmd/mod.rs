@@ -1,8 +1,10 @@
+pub mod auth;
 pub mod backup;
+pub mod completions;
 pub mod delete;
 pub mod diff;
-
+pub mod install_cli;
 pub mod repo;
 pub mod reporting;
 pub mod scan;
-pub mod stubs;
+pub mod ui;

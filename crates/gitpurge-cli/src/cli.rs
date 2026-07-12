@@ -94,10 +94,6 @@ pub enum Commands {
         #[arg(long)]
         include_unmerged: bool,
 
-        /// Delete ONLY unmerged stale branches (requires repo ID typed confirmation).
-        #[arg(long)]
-        unmerged: bool,
-
         /// Skip creating the pre-op snapshot backup.
         #[arg(long)]
         no_backup: bool,
@@ -398,7 +394,7 @@ pub struct SelectionFlags {
     pub remote: bool,
 
     /// Comma-separated glob/substring patterns to skip (case-insensitive).
-    #[arg(short, long)]
+    #[arg(short = 'x', long)]
     pub exclude: Option<String>,
 
     /// Extra protected patterns added to the protected set.

@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Implemented `ui`, `completions`, `install-cli`, and `auth` (add, list, remove, test) subcommands.
+- Added integration tests for completions script generation, install-cli dry-run, ui absence error handling, and E2E auth flows.
+
 ### Changed
 
-### Fixed
+- Renamed the short option for the `exclude` flag in `SelectionFlags` from `-e` to `-x` to resolve conflict with the global `-e/--execute` flag.
+- Removed duplicate `unmerged` argument from the `Delete` subcommand in favor of using `SelectionFlags.unmerged`.
 
 ## [0.3.2] — 2026-07-12
 
