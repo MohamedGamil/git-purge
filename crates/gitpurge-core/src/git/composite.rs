@@ -90,6 +90,10 @@ impl GitBackend for CompositeGitBackend {
     fn fetch(&self, repo: &Repository, remote: &str) -> Result<()> {
         self.git2.fetch(repo, remote)
     }
+
+    fn fetch_all_prune(&self, repo: &Repository) -> Result<()> {
+        self.git2.fetch_all_prune(repo)
+    }
 }
 
 #[cfg(test)]

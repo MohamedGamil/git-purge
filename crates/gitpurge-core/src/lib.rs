@@ -273,7 +273,7 @@ impl Engine {
         Ok(())
     }
 
-    /// Classify the branches of a repository (read-only). See [`scan`].
+    /// Classify the branches of a repository (read-only).
     pub fn scan(&self, repo: &RepoId, opts: ScanOptions) -> Result<ScanResult> {
         let repo_model = {
             let repos = self.repos.lock().unwrap();
@@ -281,6 +281,12 @@ impl Engine {
                 crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", repo))
             })?
         };
+
+        if opts.auto_fetch {
+            if let Err(e) = self.git.fetch_all_prune(&repo_model) {
+                tracing::warn!("Auto-fetch all prune failed, proceeding with local state: {}", e);
+            }
+        }
 
         let mut policy = self.config.lock().unwrap().default_policy.clone();
         if let Some(age_override) = opts.age_override {

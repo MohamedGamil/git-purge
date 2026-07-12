@@ -53,6 +53,7 @@ pub struct ClientScanOptions {
     pub age: Option<String>,
     pub naming: Option<bool>,
     pub include_remote: Option<bool>,
+    pub auto_fetch: Option<bool>,
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -1017,6 +1018,7 @@ pub async fn scan(
             excludes: Vec::new(),
             scope,
             include_all: false,
+            auto_fetch: options.auto_fetch.unwrap_or(true),
         };
 
         emit_progress(

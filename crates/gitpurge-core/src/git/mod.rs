@@ -93,6 +93,9 @@ pub trait GitBackend: Send + Sync + std::fmt::Debug {
 
     /// Fetch from a remote.
     fn fetch(&self, repo: &Repository, remote: &str) -> Result<()>;
+
+    /// Fetch all remotes with prune.
+    fn fetch_all_prune(&self, repo: &Repository) -> Result<()>;
 }
 
 /// In-memory fake for tests. Proves dependency-inversion (P0-T4).
@@ -103,6 +106,10 @@ pub struct FakeGitBackend {
 
 impl GitBackend for FakeGitBackend {
     fn open_repo(&self, _repo: &Repository) -> Result<()> {
+        Ok(())
+    }
+
+    fn fetch_all_prune(&self, _repo: &Repository) -> Result<()> {
         Ok(())
     }
 

@@ -92,63 +92,7 @@ impl GitBackend for Git2Backend {
             crate::GitPurgeError::Git(format!("Failed to find remote '{}': {}", remote, e))
         })?;
 
-        let mut callbacks = git2::RemoteCallbacks::new();
-
-        // Wire SSH agent, default key files, and fallback default credentials
-        callbacks.credentials(|url, username_from_url, allowed_types| {
-            tracing::debug!("CREDENTIALS CALLBACK CALLED! URL: {}, USERNAME: {:?}, ALLOWED: {:?}", url, username_from_url, allowed_types);
-            let user = username_from_url.unwrap_or("git");
-
-            if allowed_types.contains(git2::CredentialType::USERNAME) {
-                tracing::debug!("RETURNING USERNAME CREDENTIAL: {}", user);
-                return git2::Cred::username(user);
-            }
-
-            if allowed_types.contains(git2::CredentialType::SSH_KEY) || allowed_types.contains(git2::CredentialType::SSH_CUSTOM) {
-                // 1. Try SSH agent first
-                match git2::Cred::ssh_key_from_agent(user) {
-                    Ok(cred) => {
-                        tracing::debug!("SUCCESS: LOADED KEY FROM SSH AGENT");
-                        return Ok(cred);
-                    }
-                    Err(e) => {
-                        tracing::debug!("SSH AGENT FAILED: {:?}", e);
-                    }
-                }
-
-                // 2. Try default SSH key files dynamically
-                let ssh_dir = if let Some(bd) = directories::BaseDirs::new() {
-                    Some(bd.home_dir().join(".ssh"))
-                } else if let Ok(home) = std::env::var("HOME") {
-                    Some(std::path::PathBuf::from(home).join(".ssh"))
-                } else {
-                    None
-                };
-
-                if let Some(ssh_dir) = ssh_dir {
-                    let key_names = ["id_ed25519", "id_rsa", "id_ecdsa", "id_dsa"];
-                    for name in &key_names {
-                        let private_key = ssh_dir.join(name);
-                        if private_key.exists() {
-                            tracing::debug!("TRYING PRIVATE KEY FILE: {:?}", private_key);
-                            match git2::Cred::ssh_key(user, None, &private_key, None) {
-                                Ok(cred) => {
-                                    tracing::debug!("SUCCESS: LOADED KEY FILE {:?}", private_key);
-                                    return Ok(cred);
-                                }
-                                Err(e) => {
-                                    tracing::debug!("FAILED TO LOAD KEY FILE {:?}: {:?}", private_key, e);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. Fallback to default
-            tracing::debug!("FALLBACK TO DEFAULT CREDENTIALS");
-            git2::Cred::default()
-        });
+        let mut callbacks = get_remote_callbacks();
 
         // Fail push if remote rejects the reference update
         callbacks.push_update_reference(|refname, status| {
@@ -214,6 +158,7 @@ impl GitBackend for Git2Backend {
             crate::GitPurgeError::Git(format!("Failed to find remote '{}': {}", remote, e))
         })?;
         let mut fetch_opts = git2::FetchOptions::new();
+        fetch_opts.remote_callbacks(get_remote_callbacks());
         git2_remote
             .fetch(&[] as &[&str], Some(&mut fetch_opts), None)
             .map_err(|e| {
@@ -221,4 +166,94 @@ impl GitBackend for Git2Backend {
             })?;
         Ok(())
     }
+
+    fn fetch_all_prune(&self, repo: &Repository) -> Result<()> {
+        let local_path = repo.local_path.as_ref().ok_or_else(|| {
+            crate::GitPurgeError::RepoNotFound("Local path missing for repository".to_string())
+        })?;
+        let git2_repo = git2::Repository::open(local_path)
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open repository: {}", e)))?;
+        
+        let remotes = git2_repo.remotes().map_err(|e| {
+            crate::GitPurgeError::Git(format!("Failed to list remotes: {}", e))
+        })?;
+
+        for remote_name in remotes.iter().flatten() {
+            let mut git2_remote = git2_repo.find_remote(remote_name).map_err(|e| {
+                crate::GitPurgeError::Git(format!("Failed to find remote '{}': {}", remote_name, e))
+            })?;
+            
+            let mut fetch_opts = git2::FetchOptions::new();
+            fetch_opts.prune(git2::FetchPrune::On);
+            fetch_opts.remote_callbacks(get_remote_callbacks());
+
+            tracing::info!("Auto-fetching and pruning remote '{}'...", remote_name);
+            git2_remote
+                .fetch(&[] as &[&str], Some(&mut fetch_opts), None)
+                .map_err(|e| {
+                    crate::GitPurgeError::Git(format!("Failed to fetch remote '{}': {}", remote_name, e))
+                })?;
+        }
+
+        Ok(())
+    }
+}
+
+fn get_remote_callbacks() -> git2::RemoteCallbacks<'static> {
+    let mut callbacks = git2::RemoteCallbacks::new();
+    callbacks.credentials(|url, username_from_url, allowed_types| {
+        tracing::debug!("CREDENTIALS CALLBACK CALLED! URL: {}, USERNAME: {:?}, ALLOWED: {:?}", url, username_from_url, allowed_types);
+        let user = username_from_url.unwrap_or("git");
+
+        if allowed_types.contains(git2::CredentialType::USERNAME) {
+            tracing::debug!("RETURNING USERNAME CREDENTIAL: {}", user);
+            return git2::Cred::username(user);
+        }
+
+        if allowed_types.contains(git2::CredentialType::SSH_KEY) || allowed_types.contains(git2::CredentialType::SSH_CUSTOM) {
+            // 1. Try SSH agent first
+            match git2::Cred::ssh_key_from_agent(user) {
+                Ok(cred) => {
+                    tracing::debug!("SUCCESS: LOADED KEY FROM SSH AGENT");
+                    return Ok(cred);
+                }
+                Err(e) => {
+                    tracing::debug!("SSH AGENT FAILED: {:?}", e);
+                }
+            }
+
+            // 2. Try default SSH key files dynamically
+            let ssh_dir = if let Some(bd) = directories::BaseDirs::new() {
+                Some(bd.home_dir().join(".ssh"))
+            } else if let Ok(home) = std::env::var("HOME") {
+                Some(std::path::PathBuf::from(home).join(".ssh"))
+            } else {
+                None
+            };
+
+            if let Some(ssh_dir) = ssh_dir {
+                let key_names = ["id_ed25519", "id_rsa", "id_ecdsa", "id_dsa"];
+                for name in &key_names {
+                    let private_key = ssh_dir.join(name);
+                    if private_key.exists() {
+                        tracing::debug!("TRYING PRIVATE KEY FILE: {:?}", private_key);
+                        match git2::Cred::ssh_key(user, None, &private_key, None) {
+                            Ok(cred) => {
+                                tracing::debug!("SUCCESS: LOADED KEY FILE {:?}", private_key);
+                                return Ok(cred);
+                            }
+                            Err(e) => {
+                                tracing::debug!("FAILED TO LOAD KEY FILE {:?}: {:?}", private_key, e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback to default
+        tracing::debug!("FALLBACK TO DEFAULT CREDENTIALS");
+        git2::Cred::default()
+    });
+    callbacks
 }

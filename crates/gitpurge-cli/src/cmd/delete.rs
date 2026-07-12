@@ -199,7 +199,7 @@ pub fn handle_archive(
     json_output: bool,
 ) -> Result<()> {
     // 1. Plan/scan for stale unmerged branches
-    let scan_opts = crate::cmd::scan::make_scan_options(flags);
+    let scan_opts = crate::cmd::scan::make_scan_options(flags, false);
     let mut scan_result = engine.scan(repo_id, scan_opts)?;
 
     // Retain unmerged stale branches

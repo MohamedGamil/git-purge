@@ -62,14 +62,6 @@
             <button class="btn btn-primary w-100 scan-main-btn" @click="triggerScan">
               🔄 Scan & Classify
             </button>
-            <div class="engine-action-row">
-              <button class="btn btn-secondary btn-sm flex-1" @click="openReportModal">
-                📋 Generate Report
-              </button>
-              <button class="btn btn-secondary btn-sm flex-1" @click="triggerBackupSnapshot">
-                💾 Create Snapshot
-              </button>
-            </div>
           </div>
           <p class="last-scanned" v-if="store.scannedAt">Last Scan: {{ formattedScannedAt }}</p>
         </div>
@@ -138,6 +130,21 @@
 
       <!-- Main Branch List Area -->
       <section class="branches-list-area card">
+        <div class="branches-header-actions">
+          <div class="branches-header-actions-start"></div>
+          <div class="branches-header-actions-end">
+            <div class="auto-fetch-wrapper">
+              <input type="checkbox" id="chk-auto-fetch" v-model="store.autoFetch" />
+              <label for="chk-auto-fetch">Auto Fetch</label>
+            </div>
+            <button class="btn btn-secondary btn-sm flex-1" @click="openReportModal">
+              📋 Generate Report
+            </button>
+            <button class="btn btn-secondary btn-sm flex-1" @click="triggerBackupSnapshot">
+              💾 Create Snapshot
+            </button>
+          </div>
+        </div>
         <div class="list-header">
           <h2>Detected Branches ({{ filteredBranches.length }})</h2>
           <div class="selection-actions" v-if="selectedBranches.length > 0">
@@ -344,7 +351,7 @@ const selectedReportType = ref<'audit' | 'trend'>('audit');
 
 // Filter and Sort inputs
 const searchQuery = ref('');
-const filterLocality = ref('local');
+const filterLocality = ref('all');
 const filterFreshness = ref('all');
 const filterMerge = ref('all');
 const filterProtection = ref('all');
@@ -886,6 +893,36 @@ watch(() => store.activeRepoId, (newId) => {
   overflow: hidden;
 }
 
+.branches-header-actions {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-md);
+  align-items: end;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-accent);
+}
+
+.branches-header-actions > div{
+  width: 50%;
+}
+
+.branches-header-actions-start {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.branches-header-actions-end {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
 .list-header {
   display: flex;
   justify-content: space-between;
@@ -1071,6 +1108,26 @@ watch(() => store.activeRepoId, (newId) => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+}
+
+.auto-fetch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.auto-fetch-wrapper input[type="checkbox"] {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.auto-fetch-wrapper label {
+  font-size: 13px;
+  color: var(--on-surface-medium);
+  cursor: pointer;
+  user-select: none;
 }
 
 .engine-action-row {

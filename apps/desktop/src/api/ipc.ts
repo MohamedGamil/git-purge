@@ -40,6 +40,7 @@ export interface ClientScanOptions {
   age?: string;
   naming?: boolean;
   includeRemote?: boolean;
+  autoFetch?: boolean;
 }
 
 export interface Classification {

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enabled remote branch deletion selection, planning, and execution with premium warning prompts in both the Branches view and Plan execution screen.
 - Implemented native OS save dialog integration utilizing `tauri-plugin-dialog` to bypass webview Content Security Policy (CSP) limitations on Blob downloads.
 - Added branch locality (local vs remote) markers to backup references table in Backups view.
+- Added an "Auto Fetch" checkbox (checked by default) in the Branches Explorer UI, core engine scan options, and CLI command flags to perform automatic remote fetch and pruning of all remotes before classifying branches.
 
 ### Changed
 

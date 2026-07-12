@@ -7,7 +7,7 @@ use gitpurge_core::{
 };
 use serde_json::json;
 
-pub fn make_scan_options(flags: &crate::cli::SelectionFlags) -> ScanOptions {
+pub fn make_scan_options(flags: &crate::cli::SelectionFlags, auto_fetch: bool) -> ScanOptions {
     let excludes = flags
         .exclude
         .as_ref()
@@ -29,6 +29,7 @@ pub fn make_scan_options(flags: &crate::cli::SelectionFlags) -> ScanOptions {
         age_override: flags.age.clone(),
         excludes,
         include_all: flags.standard && flags.non_standard,
+        auto_fetch,
     }
 }
 
@@ -97,22 +98,7 @@ pub fn handle_scan(
     flags: &crate::cli::SelectionFlags,
     json_output: bool,
 ) -> Result<()> {
-    if !no_refresh {
-        // Refresh from remote
-        if let Some(repo) = engine.get_repo(repo_id)? {
-            // Fetch if has remote
-            if repo.remote_url.is_some() {
-                if let Err(e) = engine.fetch(repo_id) {
-                    eprintln!(
-                        "Warning: Failed to fetch from remote: {}. Operating on local cache.",
-                        e
-                    );
-                }
-            }
-        }
-    }
-
-    let scan_opts = make_scan_options(flags);
+    let scan_opts = make_scan_options(flags, !no_refresh);
     let mut scan_result = engine.scan(repo_id, scan_opts)?;
 
     // Apply standard / non-standard / protection filters manually to match SelectionFlags

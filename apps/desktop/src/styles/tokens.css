@@ -16,6 +16,7 @@
   --color-dark-inverse-on-surface: #2a313b;
   --color-dark-outline: #8a919b;
   --color-dark-outline-variant: #1f2229;
+  --color-dark-outline-variant-lite: #2d3642;
   --color-dark-surface-tint: #95ccff;
   --color-dark-primary: #95ccff;
   --color-dark-on-primary: #003352;
@@ -65,6 +66,7 @@
   --color-light-inverse-on-surface: #fafbfe;
   --color-light-outline: #707883;
   --color-light-outline-variant: #c0c7d1;
+  --color-light-outline-variant-lite: #d4d7dd;
   --color-light-surface-tint: #0061a3;
   --color-light-primary: #0061a3;
   --color-light-on-primary: #ffffff;
@@ -132,6 +134,7 @@
   --on-surface-strong: var(--color-dark-on-surface);
   --muted: var(--color-dark-outline);
   --border: var(--color-dark-outline-variant);
+  --border-accent: var(--color-dark-outline-variant-lite);
 
   --primary: var(--color-dark-primary);
   --on-primary: var(--color-dark-on-primary);
@@ -161,6 +164,7 @@
   --on-surface-strong: var(--color-light-on-surface);
   --muted: var(--color-light-outline);
   --border: var(--color-light-outline-variant);
+  --border-accent: var(--color-light-outline-variant-lite);
 
   --primary: var(--color-light-primary);
   --on-primary: var(--color-light-on-primary);

@@ -565,6 +565,12 @@ impl GitBackend for GixBackend {
             "fetch not implemented in GixBackend".to_string(),
         ))
     }
+
+    fn fetch_all_prune(&self, _repo: &Repository) -> Result<()> {
+        Err(crate::GitPurgeError::BackendUnsupported(
+            "fetch_all_prune not implemented in GixBackend".to_string(),
+        ))
+    }
 }
 
 fn walk_tree_recursive(

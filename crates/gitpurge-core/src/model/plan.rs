@@ -22,8 +22,12 @@ pub enum RefSpec {
     Symbolic(String),
 }
 
+fn default_true() -> bool {
+    true
+}
+
 /// Options controlling the `scan` pipeline.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScanOptions {
     /// Restrict scan to local or remote branches (default: both).
     pub scope: Option<BranchScope>,
@@ -33,6 +37,21 @@ pub struct ScanOptions {
     pub excludes: Vec<GlobPattern>,
     /// Include branches that would normally be excluded by policy.
     pub include_all: bool,
+    /// Automatically fetch and prune remotes before scanning.
+    #[serde(default = "default_true")]
+    pub auto_fetch: bool,
+}
+
+impl Default for ScanOptions {
+    fn default() -> Self {
+        Self {
+            scope: None,
+            age_override: None,
+            excludes: Vec::new(),
+            include_all: false,
+            auto_fetch: true,
+        }
+    }
 }
 
 /// Result of a scan — classified branches.

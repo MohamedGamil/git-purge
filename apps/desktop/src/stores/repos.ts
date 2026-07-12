@@ -28,6 +28,7 @@ export const useReposStore = defineStore('repos', {
     activeTaskId: null as string | null,
     scanProgress: 0,
     scanProgressMessage: '',
+    autoFetch: true,
   }),
 
   actions: {
@@ -108,6 +109,11 @@ export const useReposStore = defineStore('repos', {
       const taskId = `scan-${repoId}-${Date.now()}`;
       this.activeTaskId = taskId;
 
+      const scanOpts = {
+        autoFetch: this.autoFetch,
+        ...options
+      };
+
       let unlistenFn: (() => void) | null = null;
 
       try {
@@ -124,7 +130,7 @@ export const useReposStore = defineStore('repos', {
           }
         });
 
-        const result = await scan(repoId, options, taskId);
+        const result = await scan(repoId, scanOpts, taskId);
         this.branches = result.branches;
         this.scannedAt = result.scannedAt;
         
