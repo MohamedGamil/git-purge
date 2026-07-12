@@ -20,10 +20,11 @@ apps/desktop/.vite
 *.profraw
 /coverage
 
-# --- Environment / secrets ---
+# --- Environment / secrets / builds ---
 .env
 .env.*
 !.env.example
+dist/
 
 # --- OS files ---
 .DS_Store
