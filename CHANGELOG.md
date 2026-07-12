@@ -11,11 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Implemented `ui`, `completions`, `install-cli`, and `auth` (add, list, remove, test) subcommands.
 - Added integration tests for completions script generation, install-cli dry-run, ui absence error handling, and E2E auth flows.
+- Added a new `backup_path` column to the `snapshots` database table via a version 2 schema migration.
+- Added automatic database `backup_path` backfill migration on startup for older snapshots to ensure backwards compatibility.
+- Added backups path resolution fallback lookup in both `sqlite` history store and bare mirror manager to support older snapshots created in nested or non-nested layouts.
+- Added automatic migration of the old database and backups from the XDG data directory (`~/.local/share/git-purge`) to the new unified data directory (`~/.gitpurge`) on startup.
 
 ### Changed
 
 - Renamed the short option for the `exclude` flag in `SelectionFlags` from `-e` to `-x` to resolve conflict with the global `-e/--execute` flag.
 - Removed duplicate `unmerged` argument from the `Delete` subcommand in favor of using `SelectionFlags.unmerged`.
+- Unified the operations log directory from `~/.git-purge` to `~/.gitpurge`.
+- Updated the default backups root directory fallback to nest inside a `backups` subfolder (`~/.gitpurge/backups`) by default, while custom backups directories are used directly.
+- Updated the Settings screen UI to state the default backups root directory path when left blank.
 
 ## [0.3.2] — 2026-07-12
 
