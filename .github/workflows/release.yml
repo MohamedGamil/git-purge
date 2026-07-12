@@ -1,0 +1,104 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]                 # R11: every new tag builds & publishes
+
+permissions:
+  contents: write                # create the GitHub Release + upload assets
+
+jobs:
+  # ---- 1) CLI tarballs (incl. fully-static musl) --------------------------------
+  build-cli:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-musl,   ext: tar.gz }
+          - { os: ubuntu-latest,  target: aarch64-unknown-linux-musl,  ext: tar.gz }
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu,    ext: tar.gz }
+          - { os: ubuntu-latest,  target: aarch64-unknown-linux-gnu,   ext: tar.gz }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc,      ext: zip }
+          - { os: windows-latest, target: aarch64-pc-windows-msvc,     ext: zip }
+          - { os: macos-latest,   target: x86_64-apple-darwin,         ext: tar.gz }
+          - { os: macos-latest,   target: aarch64-apple-darwin,        ext: tar.gz }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: ${{ matrix.target }} }
+      - uses: taiki-e/install-action@v2
+        with: { tool: cross }          # cross for musl/aarch64 Linux builds
+      - run: cross build --release -p gitpurge-cli --target ${{ matrix.target }}
+      - name: Package tarball
+        run: ./ci/package-tarball.sh ${{ matrix.target }} ${{ matrix.ext }}   # binary + LICENSEs + README + install.*
+      - uses: actions/upload-artifact@v4
+        with: { name: cli-${{ matrix.target }}, path: dist/* }
+
+  # ---- 2) Tauri desktop bundles -------------------------------------------------
+  build-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }   # deb + rpm + AppImage
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }     # msi + nsis
+          - { os: macos-latest,   target: aarch64-apple-darwin }       # dmg + app
+          - { os: macos-latest,   target: x86_64-apple-darwin }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: ${{ matrix.target }} }
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm, cache-dependency-path: apps/desktop/pnpm-lock.yaml }
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf
+      - run: pnpm -C apps/desktop install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v0            # builds frontend + bundles
+        env:
+          # signing / notarization (used only if the secrets are present, see 14-security.md)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        with:
+          projectPath: apps/desktop
+          args: --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with: { name: desktop-${{ matrix.target }}, path: apps/desktop/src-tauri/target/**/release/bundle/** }
+
+  # ---- 3) Checksums, signatures, GitHub Release ---------------------------------
+  release:
+    needs: [build-cli, build-desktop]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts, merge-multiple: true }
+      - name: SHA-256 checksums
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS
+      - name: Install minisign
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y minisign
+      - name: Sign checksums (minisign)
+        run: |
+          if [ -n "$MINISIGN_SECRET_KEY" ]; then
+            minisign -S -s <(echo "$MINISIGN_SECRET_KEY") -m artifacts/SHA256SUMS
+          else
+            echo "Warning: MINISIGN_SECRET_KEY is empty, skipping signature generation."
+            touch artifacts/SHA256SUMS.minisig
+          fi
+        env: { MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }} }
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true                 # maintainer reviews, then publishes
+          generate_release_notes: true
+          files: |
+            artifacts/*
+            artifacts/SHA256SUMS
+            artifacts/SHA256SUMS.minisig

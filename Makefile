@@ -55,6 +55,26 @@ build-all:
 	make build
 	make desktop-build
 
+HOST_TRIPLE := $(shell rustc -Vv | grep host | cut -f2 -d' ')
+ifeq ($(OS),Windows_NT)
+    BUNDLE_EXT := zip
+else
+    BUNDLE_EXT := tar.gz
+endif
+
+# Package/bundle the CLI for distribution
+bundle-cli:
+	cargo build --release -p gitpurge-cli
+	bash ci/package-tarball.sh $(HOST_TRIPLE) $(BUNDLE_EXT)
+
+# Build the desktop application bundle for distribution
+bundle-desktop:
+	pnpm --filter @gitpurge/desktop tauri build
+
+# Build and package both CLI and desktop apps for distribution
+bundle: bundle-cli bundle-desktop
+
+
 # Run the CLI binary (usage: make run ARGS="--help")
 run:
 	cargo run --bin git-purge -- $(ARGS)

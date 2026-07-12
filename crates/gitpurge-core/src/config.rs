@@ -59,9 +59,9 @@ impl Config {
     /// Resolve the data root directory (CONVENTIONS §5).
     pub fn resolve_data_dir(&self) -> PathBuf {
         self.data_dir.clone().unwrap_or_else(|| {
-            let proj_dirs = directories::ProjectDirs::from("com", "gitpurge", "git-purge")
-                .expect("Failed to resolve project directories");
-            proj_dirs.data_dir().to_path_buf()
+            directories::BaseDirs::new()
+                .map(|base| base.home_dir().join(".gitpurge"))
+                .expect("Failed to resolve home directory")
         })
     }
 
@@ -155,5 +155,15 @@ mod tests {
         let loaded: Config = toml::from_str(older_toml).unwrap();
         assert_eq!(loaded.date_format, "YYYY-MM-DD h:m a");
         assert_eq!(loaded.protected, vec!["legacy-branch".to_string()]);
+    }
+
+    #[test]
+    fn test_resolve_data_dir_default() {
+        let config = Config::default();
+        let data_dir = config.resolve_data_dir();
+        let expected = directories::BaseDirs::new()
+            .map(|base| base.home_dir().join(".gitpurge"))
+            .unwrap();
+        assert_eq!(data_dir, expected);
     }
 }
