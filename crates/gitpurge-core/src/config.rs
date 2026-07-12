@@ -13,7 +13,7 @@ use crate::error::Result;
 use crate::model::{Policy, RepoId, Repository};
 
 /// Top-level user configuration, deserialized from `config.toml`.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     /// Override the data root directory (history DB, backups, reports).
@@ -36,6 +36,23 @@ pub struct Config {
 
     /// The default repository ID to use when `--repo` is not supplied.
     pub default_repo: Option<RepoId>,
+
+    /// Custom date-time display format.
+    pub date_format: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            data_dir: None,
+            backups_root: None,
+            default_policy: Policy::default(),
+            protected: Vec::new(),
+            repos: Vec::new(),
+            default_repo: None,
+            date_format: "YYYY-MM-DD h:m a".to_string(),
+        }
+    }
 }
 
 impl Config {
@@ -127,5 +144,16 @@ mod tests {
 
         let loaded = Config::load(Some(path)).unwrap();
         assert_eq!(loaded.protected, vec!["main-legacy".to_string()]);
+        assert_eq!(loaded.date_format, "YYYY-MM-DD h:m a");
+    }
+
+    #[test]
+    fn test_older_config_deserialization_defaults() {
+        let older_toml = r#"
+            protected = ["legacy-branch"]
+        "#;
+        let loaded: Config = toml::from_str(older_toml).unwrap();
+        assert_eq!(loaded.date_format, "YYYY-MM-DD h:m a");
+        assert_eq!(loaded.protected, vec!["legacy-branch".to_string()]);
     }
 }

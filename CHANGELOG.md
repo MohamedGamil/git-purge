@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added report preview loading spinners and animations in both Branches Explorer and History View screens.
 - Added remote-prefix-aware regex and text search capability in the Branches Explorer UI, allowing patterns (e.g. `^AZ-`) to match remote branches by testing against the short branch name (remote prefix stripped) as well as the full display name.
 - Added Settings Export & Import capability in the Settings UI view, allowing users to save and load `config.toml` configurations dynamically using native file save/open dialogs.
+- Added date-time display format customization in Settings (defaulting to "YYYY-MM-DD h:m a"), allowing users to standardize timestamps in backups, history runs, and branch metadata lists.
+
 
 ### Changed
 

@@ -74,22 +74,38 @@ describe('Date Utilities', () => {
   });
 
   describe('Formatting Helpers', () => {
-    it('should format date to localized date', () => {
+    it('should format date using browser locale fallback when format is "locale"', () => {
+      localStorage.setItem('gitpurge-date-format', 'locale');
       const dateStr = '2026-07-12T00:04:30Z';
-      const formatted = formatLocalDate(dateStr);
-      expect(formatted).toBe(new Date(dateStr).toLocaleDateString());
+      expect(formatLocalDate(dateStr)).toBe(new Date(dateStr).toLocaleDateString());
+      expect(formatLocalDateTime(dateStr)).toBe(new Date(dateStr).toLocaleString());
+      expect(formatLocalTime(dateStr)).toBe(new Date(dateStr).toLocaleTimeString());
     });
 
-    it('should format date to localized date time', () => {
-      const dateStr = '2026-07-12T00:04:30Z';
-      const formatted = formatLocalDateTime(dateStr);
-      expect(formatted).toBe(new Date(dateStr).toLocaleString());
+    it('should format date using custom pattern "YYYY-MM-DD HH:mm:ss"', () => {
+      localStorage.setItem('gitpurge-date-format', 'YYYY-MM-DD HH:mm:ss');
+      const d = new Date(2026, 6, 12, 14, 30, 45); // July 12, 2026, 14:30:45
+      expect(formatLocalDate(d)).toBe('2026-07-12');
+      expect(formatLocalDateTime(d)).toBe('2026-07-12 14:30:45');
+      expect(formatLocalTime(d)).toBe('14:30:45');
     });
 
-    it('should format date to localized time', () => {
-      const dateStr = '2026-07-12T00:04:30Z';
-      const formatted = formatLocalTime(dateStr);
-      expect(formatted).toBe(new Date(dateStr).toLocaleTimeString());
+    it('should format date using default pattern "YYYY-MM-DD h:m a"', () => {
+      localStorage.setItem('gitpurge-date-format', 'YYYY-MM-DD h:m a');
+      const d = new Date(2026, 6, 12, 9, 5, 6); // July 12, 2026, 09:05:06
+      expect(formatLocalDate(d)).toBe('2026-07-12');
+      expect(formatLocalDateTime(d)).toBe('2026-07-12 9:5 am');
+      expect(formatLocalTime(d)).toBe('9:5 am');
+
+      const d2 = new Date(2026, 6, 12, 14, 15, 0); // July 12, 2026, 14:15:00
+      expect(formatLocalDateTime(d2)).toBe('2026-07-12 2:15 pm');
+    });
+
+    it('should format date using custom pattern "MM/DD/YYYY h:m a"', () => {
+      localStorage.setItem('gitpurge-date-format', 'MM/DD/YYYY h:m a');
+      const d = new Date(2026, 6, 12, 14, 30, 0);
+      expect(formatLocalDate(d)).toBe('07/12/2026');
+      expect(formatLocalDateTime(d)).toBe('07/12/2026 2:30 pm');
     });
 
     it('should format date for custom chart labeling', () => {

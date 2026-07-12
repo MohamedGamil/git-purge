@@ -285,6 +285,7 @@ pub struct Settings {
     pub policy: PolicySettings,
     pub backups_root: String,
     pub default_no_backup: bool,
+    pub date_format: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -859,6 +860,12 @@ pub fn map_settings(config: &Config) -> Settings {
         .collect();
     let exclude_globs = policy.excludes.iter().map(|g| g.0.clone()).collect();
 
+    let date_format = if config.date_format.trim().is_empty() {
+        "YYYY-MM-DD h:m a".to_string()
+    } else {
+        config.date_format.clone()
+    };
+
     Settings {
         theme: "system".to_string(),
         policy: PolicySettings {
@@ -873,6 +880,7 @@ pub fn map_settings(config: &Config) -> Settings {
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default(),
         default_no_backup: false,
+        date_format,
     }
 }
 
@@ -2033,6 +2041,12 @@ pub async fn settings_save(
     } else {
         config.backups_root = None;
     }
+
+    config.date_format = if settings.date_format.trim().is_empty() {
+        "YYYY-MM-DD h:m a".to_string()
+    } else {
+        settings.date_format.clone()
+    };
 
     // Save to engine and disk
     engine.update_config(config.clone());

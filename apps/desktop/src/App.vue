@@ -69,6 +69,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useTheme } from './composables/useTheme';
+import { settingsGet } from './api/ipc';
 import {
   LayoutDashboard,
   GitBranch,
@@ -88,9 +89,18 @@ const updateOnlineStatus = () => {
   isOnline.value = navigator.onLine;
 };
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
+
+  try {
+    const appSettings = await settingsGet();
+    if (appSettings.dateFormat) {
+      localStorage.setItem('gitpurge-date-format', appSettings.dateFormat);
+    }
+  } catch (err) {
+    console.error('Failed to load application settings:', err);
+  }
 });
 
 onUnmounted(() => {

@@ -218,6 +218,7 @@ export interface Settings {
   };
   backupsRoot: string;
   defaultNoBackup: boolean;
+  dateFormat: string;
 }
 
 export interface ProgressEvent {
@@ -286,7 +287,8 @@ let mockSettings: Settings = {
     excludeGlobs: ['dont-touch/*']
   },
   backupsRoot: '/home/mgamil/.git-purge/backups',
-  defaultNoBackup: false
+  defaultNoBackup: false,
+  dateFormat: 'YYYY-MM-DD h:m a'
 };
 
 let mockHistory: Record<string, any[]> = {

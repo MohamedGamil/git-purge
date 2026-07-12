@@ -16,7 +16,7 @@
       <form @submit.prevent="saveSettings" class="settings-form">
         <!-- 1. Design & Appearance -->
         <section class="card settings-section">
-          <h3>Appearance</h3>
+          <h3>Appearance & Localization</h3>
           <div class="form-group">
             <label for="theme-select">Visual Theme Mode</label>
             <select id="theme-select" v-model="themeMode" @change="handleThemeChange" class="form-input">
@@ -25,6 +25,18 @@
               <option value="light">One Light (Light)</option>
             </select>
             <p class="field-hint">Theme adjusts automatically when system default is selected.</p>
+          </div>
+
+          <div class="form-group" style="margin-top: var(--spacing-sm);">
+            <label for="date-format-select">Date/Time Display Format</label>
+            <select id="date-format-select" v-model="dateFormat" class="form-input">
+              <option value="YYYY-MM-DD h:m a">YYYY-MM-DD h:m a (e.g., 2026-07-12 6:37 am)</option>
+              <option value="YYYY-MM-DD HH:mm:ss">YYYY-MM-DD HH:mm:ss (e.g., 2026-07-12 06:37:12)</option>
+              <option value="MM/DD/YYYY h:m a">MM/DD/YYYY h:m a (e.g., 07/12/2026 6:37 am)</option>
+              <option value="DD/MM/YYYY HH:mm">DD/MM/YYYY HH:mm (e.g., 12/07/2026 06:37)</option>
+              <option value="locale">Locale Default (Browser Locale)</option>
+            </select>
+            <p class="field-hint">Format used for displaying timestamps in backups, history, and branch lists.</p>
           </div>
         </section>
 
@@ -124,6 +136,7 @@ const policyNamingRegex = ref('');
 const policyProtected = ref('');
 const policyExclude = ref('');
 const backupsRoot = ref('');
+const dateFormat = ref('YYYY-MM-DD h:m a');
 
 const loadSettings = async () => {
   loading.value = true;
@@ -134,6 +147,7 @@ const loadSettings = async () => {
     policyProtected.value = settings.policy.protectedRefs.join(', ');
     policyExclude.value = settings.policy.excludeGlobs.join(', ');
     backupsRoot.value = settings.backupsRoot;
+    dateFormat.value = settings.dateFormat || 'YYYY-MM-DD h:m a';
     
     // Theme setup
     const savedTheme = localStorage.getItem('gitpurge-theme') as ThemeMode | null;
@@ -189,11 +203,13 @@ const saveSettings = async () => {
       excludeGlobs: excludeList
     },
     backupsRoot: backupsRoot.value.trim(),
-    defaultNoBackup: false
+    defaultNoBackup: false,
+    dateFormat: dateFormat.value
   };
 
   try {
     await settingsSave(settingsPayload);
+    localStorage.setItem('gitpurge-date-format', dateFormat.value);
     saveSuccess.value = true;
     setTimeout(() => {
       saveSuccess.value = false;
@@ -244,6 +260,8 @@ const handleImportSettings = async () => {
       policyExclude.value = newSettings.policy.excludeGlobs.join(', ');
       backupsRoot.value = newSettings.backupsRoot;
       themeMode.value = newSettings.theme;
+      dateFormat.value = newSettings.dateFormat || 'YYYY-MM-DD h:m a';
+      localStorage.setItem('gitpurge-date-format', dateFormat.value);
       handleThemeChange();
 
       alert('Settings imported and applied successfully!');

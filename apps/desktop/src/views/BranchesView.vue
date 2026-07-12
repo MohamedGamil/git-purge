@@ -344,7 +344,7 @@ import {
   settingsGet
 } from '../api/ipc';
 import { ask, save } from '@tauri-apps/plugin-dialog';
-import { parseSafeDate, formatLocalDate, formatLocalDateTime, formatLocalTime } from '../utils/date';
+import { parseSafeDate, formatLocalDateTime, formatLocalTime } from '../utils/date';
 
 const router = useRouter();
 const store = useReposStore();
@@ -433,7 +433,7 @@ const formattedScannedAt = computed(() => {
 });
 
 const formattedDate = (dateStr: string) => {
-  return formatLocalDate(dateStr);
+  return formatLocalDateTime(dateStr);
 };
 
 const triggerScan = async () => {

@@ -71,6 +71,62 @@ export function parseSafeDate(dateStr: string | null | undefined): Date {
 }
 
 /**
+ * Formats a Date object using a specified template pattern.
+ */
+export function formatDateWithPattern(date: Date, pattern: string): string {
+  if (isNaN(date.getTime())) return '';
+
+  if (pattern === 'locale') {
+    return date.toLocaleString();
+  }
+
+  const year = date.getFullYear();
+  const monthVal = date.getMonth() + 1;
+  const dayVal = date.getDate();
+  const hour24 = date.getHours();
+  const minuteVal = date.getMinutes();
+  const secondVal = date.getSeconds();
+
+  const isPm = hour24 >= 12;
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  const ampm = isPm ? 'pm' : 'am';
+
+  const pad = (num: number, size = 2) => {
+    let s = num.toString();
+    while (s.length < size) s = '0' + s;
+    return s;
+  };
+
+  return pattern
+    .replace(/YYYY/g, year.toString())
+    .replace(/YY/g, (year % 100).toString())
+    .replace(/MM/g, pad(monthVal))
+    .replace(/M/g, monthVal.toString())
+    .replace(/DD/g, pad(dayVal))
+    .replace(/D/g, dayVal.toString())
+    .replace(/HH/g, pad(hour24))
+    .replace(/H/g, hour24.toString())
+    .replace(/hh/g, pad(hour12))
+    .replace(/h/g, hour12.toString())
+    .replace(/mm/g, pad(minuteVal))
+    .replace(/m/g, minuteVal.toString())
+    .replace(/ss/g, pad(secondVal))
+    .replace(/s/g, secondVal.toString())
+    .replace(/a/g, ampm)
+    .replace(/A/g, ampm.toUpperCase());
+}
+
+function getDatePattern(dateTimePattern: string): string {
+  if (dateTimePattern === 'locale') return 'locale';
+  return dateTimePattern.split(/\s+/)[0] || 'YYYY-MM-DD';
+}
+
+function getTimePattern(dateTimePattern: string): string {
+  if (dateTimePattern === 'locale') return 'locale';
+  return dateTimePattern.split(/\s+/).slice(1).join(' ') || 'h:m a';
+}
+
+/**
  * Formats a date string or Date object to a localized date string (e.g. for display in branches).
  */
 export function formatLocalDate(dateInput: string | Date | null | undefined): string {
@@ -79,7 +135,12 @@ export function formatLocalDate(dateInput: string | Date | null | undefined): st
   if (isNaN(d.getTime())) {
     return typeof dateInput === 'string' ? dateInput : '';
   }
-  return d.toLocaleDateString();
+  const format = localStorage.getItem('gitpurge-date-format') || 'YYYY-MM-DD h:m a';
+  const pattern = getDatePattern(format);
+  if (pattern === 'locale') {
+    return d.toLocaleDateString();
+  }
+  return formatDateWithPattern(d, pattern);
 }
 
 /**
@@ -91,7 +152,8 @@ export function formatLocalDateTime(dateInput: string | Date | null | undefined)
   if (isNaN(d.getTime())) {
     return typeof dateInput === 'string' ? dateInput : '';
   }
-  return d.toLocaleString();
+  const format = localStorage.getItem('gitpurge-date-format') || 'YYYY-MM-DD h:m a';
+  return formatDateWithPattern(d, format);
 }
 
 /**
@@ -103,7 +165,12 @@ export function formatLocalTime(dateInput: string | Date | null | undefined): st
   if (isNaN(d.getTime())) {
     return typeof dateInput === 'string' ? dateInput : '';
   }
-  return d.toLocaleTimeString();
+  const format = localStorage.getItem('gitpurge-date-format') || 'YYYY-MM-DD h:m a';
+  const pattern = getTimePattern(format);
+  if (pattern === 'locale') {
+    return d.toLocaleTimeString();
+  }
+  return formatDateWithPattern(d, pattern);
 }
 
 /**
