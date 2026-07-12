@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.3.3] — 2026-07-12
+
+### Added
+
 - Implemented `ui`, `completions`, `install-cli`, and `auth` (add, list, remove, test) subcommands.
 - Added integration tests for completions script generation, install-cli dry-run, ui absence error handling, and E2E auth flows.
 - Added a new `backup_path` column to the `snapshots` database table via a version 2 schema migration.
@@ -198,7 +206,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/MohamedGamil/git-purge/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/MohamedGamil/git-purge/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/MohamedGamil/git-purge/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MohamedGamil/git-purge/compare/v0.2.0...v0.3.0
