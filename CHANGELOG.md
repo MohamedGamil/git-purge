@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Resolved database lock errors (`database is locked`) when running integration tests in parallel by ensuring CLI tests write isolated configurations to their respective temporary directories.
+- Fixed Windows `.zip` packaging failure in release workflow by integrating fallback support for `7z` and PowerShell's `Compress-Archive` cmdlets inside the packaging script.
 
 ## [0.3.4] — 2026-07-13
 

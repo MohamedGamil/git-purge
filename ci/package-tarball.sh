@@ -52,7 +52,24 @@ fi
 mkdir -p dist
 
 if [ "${EXT}" = "zip" ]; then
-    (cd target/tmp && zip -r "../../dist/${DIR_NAME}.zip" "${DIR_NAME}")
+    if command -v zip &>/dev/null; then
+        (cd target/tmp && zip -r "../../dist/${DIR_NAME}.zip" "${DIR_NAME}")
+    elif command -v 7z &>/dev/null; then
+        (cd target/tmp && 7z a "../../dist/${DIR_NAME}.zip" "${DIR_NAME}")
+    elif command -v powershell.exe &>/dev/null; then
+        ABS_SRC_DIR=$(pwd)/target/tmp/${DIR_NAME}
+        ABS_DEST_ZIP=$(pwd)/dist/${DIR_NAME}.zip
+        ABS_SRC_DIR_WIN="${ABS_SRC_DIR}"
+        ABS_DEST_ZIP_WIN="${ABS_DEST_ZIP}"
+        if command -v cygpath &>/dev/null; then
+            ABS_SRC_DIR_WIN=$(cygpath -w "${ABS_SRC_DIR}")
+            ABS_DEST_ZIP_WIN=$(cygpath -w "${ABS_DEST_ZIP}")
+        fi
+        powershell.exe -Command "Compress-Archive -Path '${ABS_SRC_DIR_WIN}' -DestinationPath '${ABS_DEST_ZIP_WIN}' -Force"
+    else
+        echo "Error: Neither zip, 7z, nor powershell.exe found to package zip."
+        exit 1
+    fi
 else
     tar -czf "dist/${DIR_NAME}.tar.gz" -C target/tmp "${DIR_NAME}"
 fi
