@@ -17,6 +17,12 @@ fn test_cli_repo_list_empty() {
     let temp_dir = tempfile::tempdir().unwrap();
     let config_path = temp_dir.path().join(".gitpurge.toml");
 
+    let config_content = format!(
+        "data_dir = \"{}\"\n",
+        temp_dir.path().to_str().unwrap().replace("\\", "\\\\")
+    );
+    std::fs::write(&config_path, config_content).unwrap();
+
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_git-purge"));
     let output = cmd
         .arg("--config")
@@ -65,6 +71,12 @@ fn test_cli_ui_not_installed() {
 fn test_cli_auth_flows() {
     let temp_dir = tempfile::tempdir().unwrap();
     let config_path = temp_dir.path().join(".gitpurge.toml");
+
+    let config_content = format!(
+        "data_dir = \"{}\"\n",
+        temp_dir.path().to_str().unwrap().replace("\\", "\\\\")
+    );
+    std::fs::write(&config_path, config_content).unwrap();
 
     // 1. Add credential
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_git-purge"));

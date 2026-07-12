@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolved database lock errors (`database is locked`) when running integration tests in parallel by ensuring CLI tests write isolated configurations to their respective temporary directories.
+
 ## [0.3.4] — 2026-07-13
 
 ### Changed
