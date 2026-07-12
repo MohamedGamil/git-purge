@@ -69,6 +69,13 @@ fn main() {
             commands::save_file,
             commands::open_url,
         ])
+        .setup(|_app| {
+            // On Linux, the Ubuntu/GNOME taskbar shows the GTK program name.
+            // Without this, it defaults to the binary name ("gitpurge-desktop").
+            #[cfg(target_os = "linux")]
+            gtk::glib::set_application_name("Git Purge");
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -1579,6 +1579,7 @@ name = "gitpurge-desktop"
 version = "0.3.3"
 dependencies = [
  "gitpurge-core",
+ "gtk",
  "serde",
  "serde_json",
  "tauri",

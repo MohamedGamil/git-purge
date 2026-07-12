@@ -17,7 +17,7 @@ name = "gitpurge-desktop"
 path = "src/main.rs"
 
 [dependencies]
-gitpurge-core = { path = "../../../crates/gitpurge-core" }
+gitpurge-core = { path = "../../../crates/gitpurge-core", version = "0.3.3" }
 tauri = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -26,6 +26,10 @@ tokio = { workspace = true, features = ["sync"] }
 tauri-plugin-dialog = "2"
 time = { workspace = true }
 ulid = { workspace = true }
+
+# Linux: set GTK application name for the taskbar display
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
 
 [build-dependencies]
 tauri-build = { workspace = true }

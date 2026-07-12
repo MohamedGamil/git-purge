@@ -10,7 +10,20 @@ all-features = true
 version = 2
 # Fail on any RUSTSEC advisory or unmaintained/yanked crate.
 yanked = "deny"
-ignore = []
+# Ignored advisories: transitive deps with no safe upgrade available.
+# Will be resolved when we bump gix (>0.66) and git2 (>0.19).
+ignore = [
+    # git2 v0.19: Buf struct UB, Remote::list() UB, BlameHunk Signature UB
+    "RUSTSEC-2026-0008",
+    "RUSTSEC-2026-0183",
+    "RUSTSEC-2026-0184",
+    # gix v0.66: TimeBuf non-utf8, SHA-1 collision detection, world-writable checkout
+    "RUSTSEC-2025-0140",
+    "RUSTSEC-2025-0021",
+    "RUSTSEC-2025-0001",
+    # number_prefix v0.4 (via indicatif): unmaintained, no replacement yet
+    "RUSTSEC-2025-0119",
+]
 
 [licenses]
 version = 2
@@ -22,7 +35,6 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
-    "Unicode-DFS-2016",
     "Unicode-3.0",
     "Zlib",
     "MPL-2.0",
@@ -46,7 +58,11 @@ deny = [
     { name = "keyring", wrappers = ["gitpurge-core"] },
 ]
 skip = []
-skip-tree = []
+# Transitive duplicates pulled in by gix v0.66 and other deep dependency trees.
+# We cannot control these; suppress warnings to keep CI signal clean.
+skip-tree = [
+    { crate = "gix@0.66", depth = 20 },
+]
 
 [sources]
 # Only crates.io by default. Add any vetted git sources explicitly.

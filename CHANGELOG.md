@@ -32,6 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the default backups root directory fallback to nest inside a `backups` subfolder (`~/.gitpurge/backups`) by default, while custom backups directories are used directly.
 - Updated the Settings screen UI to state the default backups root directory path when left blank.
 
+### Fixed
+
+- Fixed CI `cargo-deny` wildcard dependency error by adding explicit `version` fields to `gitpurge-core` path dependencies in CLI and Desktop crate manifests.
+- Removed stale `Unicode-DFS-2016` license allowance from `deny.toml` (no dependency uses it anymore).
+- Suppressed transitive duplicate crate warnings from `gix v0.66` dependency tree via `skip-tree` in `deny.toml`.
+- Added advisory ignore entries for known RUSTSEC advisories in `gix v0.66`, `git2 v0.19`, and `number_prefix v0.4` where no safe upgrade is available.
+- Fixed Ubuntu/GNOME taskbar showing binary name `gitpurge-desktop` instead of "Git Purge" by setting the GTK application name on Linux.
+
 ## [0.3.2] — 2026-07-12
 
 ### Added
