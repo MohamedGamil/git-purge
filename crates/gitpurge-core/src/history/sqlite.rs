@@ -625,4 +625,179 @@ mod tests {
         let get_none = store.get_snapshot(&snapshot_id).unwrap();
         assert!(get_none.is_none());
     }
+
+    #[test]
+    fn test_sqlite_history_store_runs_and_trends_flow() {
+        use crate::model::{
+            Activity, BranchScope, Classification, Commit, ExecMode, NamingVerdict, Oid,
+            Protection, Recommendation, RefBasis, RepoId, RunMetrics, RunReport, Signature,
+            TrackingFacet,
+        };
+
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("history.db");
+        let backups_root = temp_dir.path().join("backups");
+        fs::create_dir_all(&backups_root).unwrap();
+
+        let store = SqliteHistoryStore::new(&db_path, backups_root).unwrap();
+
+        let repo_id = RepoId("test-repo-trends".to_string());
+        let repo = Repository {
+            id: repo_id.clone(),
+            display_name: "Test Repo Trends".to_string(),
+            local_path: Some(PathBuf::from("/dummy/path")),
+            remote_url: None,
+            default_branch: None,
+            provider: crate::model::ProviderHint::Unknown,
+            added_at: time::OffsetDateTime::now_utc(),
+            last_scanned_at: None,
+        };
+
+        store.save_repo(&repo).unwrap();
+
+        let author = Signature {
+            name: "John Doe".to_string(),
+            email: "john.doe@example.com".to_string(),
+            when: time::OffsetDateTime::now_utc(),
+        };
+
+        let commit = Commit {
+            oid: Oid("1111111111222222222233333333334444444444".to_string()),
+            short: "1111111".to_string(),
+            author: author.clone(),
+            committer: author.clone(),
+            author_date: time::OffsetDateTime::now_utc(),
+            commit_date: time::OffsetDateTime::now_utc(),
+            subject: "Initial commit".to_string(),
+            parents: Vec::new(),
+        };
+
+        let branch_class = Classification {
+            branch: BranchName("feat/login".to_string()),
+            scope: BranchScope::Local,
+            remote: None,
+            upstream: None,
+            merge_state: MergeState::Merged,
+            activity: Activity::Active,
+            age: std::time::Duration::from_secs(3600),
+            protection: Protection::Unprotected,
+            naming: NamingVerdict::Standard,
+            tracking: TrackingFacet {
+                ahead: 0,
+                behind: 0,
+                upstream_gone: false,
+                compared_against: RefBasis::DefaultBranch,
+            },
+            tip: commit.clone(),
+            recommendation: Recommendation::NoAction,
+        };
+
+        let metrics = RunMetrics {
+            total: 10,
+            active: 5,
+            stale: 5,
+            merged: 4,
+            unmerged: 6,
+            non_standard: 2,
+            local_count: Some(6),
+            remote_count: Some(4),
+            protected: Some(1),
+            deleted: Some(0),
+            archived: Some(0),
+            restored: Some(0),
+        };
+
+        let report1 = RunReport {
+            id: "run-01".to_string(),
+            repo: repo_id.clone(),
+            command: "scan".to_string(),
+            mode: ExecMode::DryRun,
+            started_at: time::OffsetDateTime::now_utc(),
+            snapshot: None,
+            metrics: Some(metrics.clone()),
+            branch_snapshots: Some(vec![branch_class.clone()]),
+            results: Vec::new(),
+            success_count: 0,
+            failure_count: 0,
+            skipped_count: 0,
+        };
+
+        // 1. Record first run
+        store.record_run(&report1).unwrap();
+
+        // Verify that PII (author email) was redacted
+        {
+            let conn = store.conn.lock().unwrap();
+            let email: String = conn
+                .query_row(
+                    "SELECT author_email FROM branch_snapshots WHERE run_id = 'run-01' LIMIT 1;",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(email, "[REDACTED]", "Author email must be redacted");
+        }
+
+        // Verify get_history and get_recent return the recorded entry
+        let history = store.get_history(&repo_id).unwrap();
+        assert_eq!(history.entries.len(), 1);
+        assert_eq!(history.entries[0].total_branches, 10);
+        assert_eq!(history.entries[0].stale_count, 5);
+
+        let recent = store.get_recent(&repo_id, 5).unwrap();
+        assert_eq!(recent.len(), 1);
+
+        // 2. Record second run with identical metrics (should be deduplicated in metrics table)
+        let report2 = RunReport {
+            id: "run-02".to_string(),
+            repo: repo_id.clone(),
+            command: "scan".to_string(),
+            mode: ExecMode::DryRun,
+            started_at: time::OffsetDateTime::now_utc() + time::Duration::seconds(10),
+            snapshot: None,
+            metrics: Some(metrics.clone()),
+            branch_snapshots: Some(vec![branch_class.clone()]),
+            results: Vec::new(),
+            success_count: 0,
+            failure_count: 0,
+            skipped_count: 0,
+        };
+        store.record_run(&report2).unwrap();
+
+        // History count in metrics table should still be 1 due to deduplication
+        let history_dup = store.get_history(&repo_id).unwrap();
+        assert_eq!(
+            history_dup.entries.len(),
+            1,
+            "Duplicate metrics must be deduplicated"
+        );
+
+        // 3. Record third run with modified metrics (should insert a new metrics row)
+        let mut modified_metrics = metrics.clone();
+        modified_metrics.stale = 6;
+        let report3 = RunReport {
+            id: "run-03".to_string(),
+            repo: repo_id.clone(),
+            command: "scan".to_string(),
+            mode: ExecMode::DryRun,
+            started_at: time::OffsetDateTime::now_utc() + time::Duration::seconds(20),
+            snapshot: None,
+            metrics: Some(modified_metrics),
+            branch_snapshots: Some(vec![branch_class]),
+            results: Vec::new(),
+            success_count: 0,
+            failure_count: 0,
+            skipped_count: 0,
+        };
+        store.record_run(&report3).unwrap();
+
+        // History count in metrics table should now be 2
+        let history_mod = store.get_history(&repo_id).unwrap();
+        assert_eq!(
+            history_mod.entries.len(),
+            2,
+            "Modified metrics must be inserted"
+        );
+        assert_eq!(history_mod.entries[1].stale_count, 6);
+    }
 }
