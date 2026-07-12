@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolved Minisign signature generation failure in release workflow by writing the secret key to a temporary seekable file instead of using non-seekable Bash process substitution.
+
 ## [0.3.5] — 2026-07-13
 
 ### Fixed

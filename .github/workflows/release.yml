@@ -111,7 +111,9 @@ jobs:
       - name: Sign checksums (minisign)
         run: |
           if [ -n "$MINISIGN_SECRET_KEY" ]; then
-            minisign -S -s <(echo "$MINISIGN_SECRET_KEY") -m artifacts/SHA256SUMS
+            echo "$MINISIGN_SECRET_KEY" > /tmp/minisign.key
+            minisign -S -s /tmp/minisign.key -m artifacts/SHA256SUMS
+            rm -f /tmp/minisign.key
           else
             echo "Warning: MINISIGN_SECRET_KEY is empty, skipping signature generation."
             touch artifacts/SHA256SUMS.minisig
