@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.3.2] — 2026-07-12
+
+### Added
+
+- Added shorthand local make targets (`bundle-cli`, `bundle-desktop`, `bundle`) in the root `Makefile` for compiling and packaging releases.
+- Added a packaging helper script `ci/package-tarball.sh` to package CLI release binaries with licenses, README, and installer wrappers (`install.sh`/`install.ps1`).
+- Added a GitHub Actions release workflow `.github/workflows/release.yml` triggered on tags to automate cross-platform compilation and release artifact generation.
+- Added unit tests for default home-folder based data directory fallback.
+
+### Changed
+
+- Updated the default custom data directory resolver to fall back to the `.gitpurge` directory in the user's home folder (`~/.gitpurge/` on Linux/macOS and `%USERPROFILE%\.gitpurge\` on Windows) when no custom directory is configured, replacing OS-specific local project data directories.
+
 ## [0.3.1] — 2026-07-12
 
 ### Fixed
@@ -174,7 +187,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/MohamedGamil/git-purge/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/MohamedGamil/git-purge/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MohamedGamil/git-purge/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MohamedGamil/git-purge/compare/v0.1.1...v0.2.0
