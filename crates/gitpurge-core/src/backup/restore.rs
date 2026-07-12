@@ -46,7 +46,13 @@ pub fn restore_snapshot(
     let ref_entry = snapshot
         .refs
         .iter()
-        .find(|r| r.branch == spec.branch)
+        .find(|r| {
+            if let Some(ref orig_ref) = spec.original_ref {
+                r.original_full_ref == *orig_ref
+            } else {
+                r.branch == spec.branch
+            }
+        })
         .ok_or_else(|| {
             crate::GitPurgeError::RefNotFound(format!(
                 "Branch '{}' not found in snapshot '{}'",

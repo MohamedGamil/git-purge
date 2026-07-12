@@ -147,6 +147,7 @@ export interface ClientSnapshotDetail {
     upstream?: string;
     merge: 'merged' | 'unmerged';
     locality: 'local' | 'remote';
+    originalRef?: string;
   }[];
 }
 
@@ -168,6 +169,7 @@ export interface ClientRestoreSpec {
   targetType: 'branch' | 'tag';
   newName?: string;
   force: boolean;
+  originalRef?: string;
 }
 
 export interface ClientRestoreOutcome {

@@ -100,11 +100,18 @@ where
                 // SAFE-05: Offer restore
                 if let Some(ref snap_id) = snapshot_id {
                     if offer_restore(&action.branch, snap_id) {
+                        let original_ref = if action.scope == crate::model::BranchScope::Remote {
+                            let remote = action.remote.as_deref().unwrap_or("origin");
+                            format!("refs/remotes/{}/{}", remote, action.branch.0)
+                        } else {
+                            format!("refs/heads/{}", action.branch.0)
+                        };
                         let restore_spec = RestoreSpec {
                             branch: action.branch.clone(),
                             as_tag: false,
                             target_name: None,
                             force: true, // force since we are restoring from failed delete
+                            original_ref: Some(original_ref),
                         };
                         let _ =
                             crate::backup::restore_snapshot(config, repo, snap_id, &restore_spec);

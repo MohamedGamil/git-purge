@@ -305,6 +305,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  width: 40%;
+  min-width: 40%;
+  max-width: 40%;
   flex-grow: 1;
 }
 

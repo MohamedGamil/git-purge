@@ -187,6 +187,7 @@ pub struct ClientSnapshotRef {
     pub upstream: Option<String>,
     pub merge: String,
     pub locality: String,
+    pub original_ref: Option<String>,
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -213,6 +214,7 @@ pub struct ClientRestoreSpec {
     pub target_type: String, // 'branch' | 'tag'
     pub new_name: Option<String>,
     pub force: bool,
+    pub original_ref: Option<String>,
 }
 
 #[derive(serde::Serialize, Clone)]
@@ -666,6 +668,7 @@ pub fn map_snapshot_detail(core_snap: &Snapshot) -> ClientSnapshotDetail {
                 }
                 .to_string(),
                 locality: locality.to_string(),
+                original_ref: Some(r.original_full_ref.clone()),
             }
         })
         .collect();
@@ -904,7 +907,10 @@ impl gitpurge_core::progress::ProgressSink for TauriProgressSink {
     }
 
     fn tick(&self, message: Option<&str>) {
-        let current = self.current.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+        let current = self
+            .current
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+            + 1;
         let total = self.total.load(std::sync::atomic::Ordering::SeqCst);
         let msg = message.unwrap_or("");
         emit_progress(
@@ -1416,7 +1422,10 @@ pub async fn backup_verify(
         );
 
         let snap_id = SnapshotId(snapshot_id);
-        let repo_id = RepoId("default".to_string()); // fallback or resolve if needed
+        let repo_id = match engine.get_snapshot(&snap_id) {
+            Ok(Some(snap)) => snap.repo.clone(),
+            _ => RepoId("default".to_string()),
+        };
 
         emit_progress(
             &app_clone,
@@ -1795,6 +1804,7 @@ pub fn map_restore_spec(spec: ClientRestoreSpec) -> RestoreSpec {
         as_tag: spec.target_type == "tag",
         target_name: spec.new_name,
         force: spec.force,
+        original_ref: spec.original_ref,
     }
 }
 

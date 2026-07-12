@@ -270,6 +270,7 @@ pub fn handle_restore(
         as_tag,
         target_name: as_name.clone(),
         force,
+        original_ref: None,
     };
 
     if !execute {

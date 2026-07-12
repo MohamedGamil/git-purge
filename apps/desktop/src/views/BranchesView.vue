@@ -641,10 +641,30 @@ const filteredBranches = computed(() => {
     const q = searchQuery.value.trim();
     try {
       const regex = new RegExp(q, 'i');
-      list = list.filter(b => regex.test(b.name));
+      list = list.filter(b => {
+        if (regex.test(b.name)) return true;
+        if (b.classification.locality === 'remote') {
+          const slashIdx = b.name.indexOf('/');
+          if (slashIdx !== -1) {
+            const shortName = b.name.substring(slashIdx + 1);
+            if (regex.test(shortName)) return true;
+          }
+        }
+        return false;
+      });
     } catch (e) {
       const lowerQ = q.toLowerCase();
-      list = list.filter(b => b.name.toLowerCase().includes(lowerQ));
+      list = list.filter(b => {
+        if (b.name.toLowerCase().includes(lowerQ)) return true;
+        if (b.classification.locality === 'remote') {
+          const slashIdx = b.name.indexOf('/');
+          if (slashIdx !== -1) {
+            const shortName = b.name.substring(slashIdx + 1);
+            if (shortName.toLowerCase().includes(lowerQ)) return true;
+          }
+        }
+        return false;
+      });
     }
   }
 

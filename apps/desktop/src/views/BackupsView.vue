@@ -103,7 +103,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="ref in snapshotDetail.refs" :key="ref.branch">
+                    <tr v-for="ref in snapshotDetail.refs" :key="ref.originalRef || ref.branch">
                       <td>
                         <span class="branch-name"><code>{{ ref.branch }}</code></span>
                         <span :class="ref.locality === 'local' ? 'badge badge-info badge-tiny' : 'badge badge-purple badge-tiny'" style="margin-left: var(--spacing-xs);">
@@ -375,7 +375,8 @@ const executeRestore = async () => {
       refName: restoreRef.value.branch,
       targetType: restoreTargetType.value,
       newName: restoreName.value.trim() !== restoreRef.value.branch ? restoreName.value.trim() : undefined,
-      force: restoreForce.value
+      force: restoreForce.value,
+      originalRef: restoreRef.value.originalRef
     });
     alert(`Successfully restored reference ${outcome.restored} as a ${outcome.as}! Tip Commit SHA: ${outcome.sha.substring(0, 7)}`);
     restoreRef.value = null;

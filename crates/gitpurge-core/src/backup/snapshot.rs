@@ -39,7 +39,7 @@ pub fn create_snapshot(
     })?;
 
     for branch in branches {
-        if !opts.only_branches.is_empty() && !opts.only_branches.contains(&branch.name) {
+        if !matches_only_branches(&branch, &opts.only_branches) {
             continue;
         }
 
@@ -142,4 +142,30 @@ pub fn create_snapshot(
     std::fs::write(&manifest_path, &json_bytes)?;
 
     Ok(snapshot)
+}
+
+fn matches_only_branches(
+    branch: &crate::model::Branch,
+    only_branches: &[crate::model::BranchName],
+) -> bool {
+    if only_branches.is_empty() {
+        return true;
+    }
+    for ob in only_branches {
+        if ob == &branch.name {
+            return true;
+        }
+        if ob.0 == branch.full_ref {
+            return true;
+        }
+        if branch.scope == crate::model::BranchScope::Remote {
+            if let Some(ref r) = branch.remote {
+                let display_name = format!("{}/{}", r, branch.name.0);
+                if ob.0 == display_name {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }

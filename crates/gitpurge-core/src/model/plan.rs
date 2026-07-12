@@ -148,6 +148,8 @@ pub struct RestoreSpec {
     pub target_name: Option<String>,
     /// Force overwrite if the target already exists (default: false — SAFE-06).
     pub force: bool,
+    /// The original full ref to uniquely restore.
+    pub original_ref: Option<String>,
 }
 
 /// The outcome of a restore operation.

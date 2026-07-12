@@ -13,12 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added past executions table output to the CLI `git-purge history` command with configurable limit support.
 - Added paginated SQL queries (`LIMIT`/`OFFSET`) for past executions log retrieval to ensure optimal database performance.
 - Added report preview loading spinners and animations in both Branches Explorer and History View screens.
+- Added remote-prefix-aware regex and text search capability in the Branches Explorer UI, allowing patterns (e.g. `^AZ-`) to match remote branches by testing against the short branch name (remote prefix stripped) as well as the full display name.
 
 ### Changed
 
 - Standardized the report generation interface in the History View to use the new multi-tab Markdown preview modal matching the Branches Explorer.
 
 ### Fixed
+
+- Fixed a bug where backup snapshots captured 0 references when remote-prefixed branches (e.g. `origin/feat/1`) were selected.
+- Fixed target ambiguity on branch restoration by introducing an optional `originalRef` matching parameter, ensuring correct target branch resolution when local and remote branches share a short branch name.
+- Fixed a repository target mismatch in snapshot verification where the Tauri command hardcoded the repository ID to `"default"`, dynamically resolving the repository from the snapshot metadata instead.
+- Fixed a bug where planning dry-runs on remote branch selections resulted in `0` actions by reusing the parsed remote name in the planning engine rather than trying to split the branch short name.
 
 ## [0.2.0] — 2026-07-12
 

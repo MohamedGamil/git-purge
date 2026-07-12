@@ -546,12 +546,14 @@ impl Engine {
             };
 
             let remote = if class.scope == BranchScope::Remote {
-                let parts: Vec<&str> = class.branch.0.split('/').collect();
-                if parts.len() > 1 {
-                    Some(parts[0].to_string())
-                } else {
-                    Some("origin".to_string())
-                }
+                class.remote.clone().or_else(|| {
+                    let parts: Vec<&str> = class.branch.0.split('/').collect();
+                    if parts.len() > 1 {
+                        Some(parts[0].to_string())
+                    } else {
+                        Some("origin".to_string())
+                    }
+                })
             } else {
                 None
             };
@@ -1391,6 +1393,7 @@ mod tests {
             as_tag: false,
             target_name: None,
             force: false,
+            original_ref: None,
         };
         let outcome = engine.restore(&snapshot.id, spec).unwrap();
         assert_eq!(outcome.created_ref, "refs/heads/merged-branch");
@@ -1408,6 +1411,7 @@ mod tests {
             as_tag: false,
             target_name: None,
             force: false,
+            original_ref: None,
         };
         let err = engine.restore(&snapshot.id, spec_no_force);
         assert!(err.is_err());
@@ -1422,6 +1426,7 @@ mod tests {
             as_tag: false,
             target_name: None,
             force: true,
+            original_ref: None,
         };
         let outcome2 = engine.restore(&snapshot.id, spec_force).unwrap();
         assert_eq!(outcome2.created_ref, "refs/heads/merged-branch");
@@ -1432,6 +1437,7 @@ mod tests {
             as_tag: true,
             target_name: Some("restored-tag".to_string()),
             force: false,
+            original_ref: None,
         };
         let outcome_tag = engine.restore(&snapshot.id, spec_tag).unwrap();
         assert_eq!(outcome_tag.created_ref, "refs/tags/restored-tag");
@@ -1701,5 +1707,73 @@ mod tests {
         // 4. Manual cache clear (belt and suspenders)
         engine.scan_cache.lock().unwrap().clear();
         assert_eq!(engine.scan_cache.lock().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_backup_restore_original_ref() {
+        let repo_fixture = testkit::merged_repo();
+        let repo_id = RepoId("test-restore-orig-repo".to_string());
+
+        let config = Config::default();
+        let git_backend = Box::new(crate::git::CompositeGitBackend::new());
+        let secrets = Box::new(crate::auth::FakeSecretStore::default());
+        let history = Box::new(crate::history::FakeHistoryStore::default());
+        let report_sink = Box::new(crate::report::FakeReportSink::default());
+        let clock = Box::new(FakeClock::new(
+            time::macros::datetime!(2026-07-05 12:00:00 UTC),
+        ));
+        let progress = Box::new(crate::progress::NoopProgressSink);
+
+        let engine = Engine::new(
+            config,
+            git_backend,
+            secrets,
+            history,
+            report_sink,
+            clock,
+            progress,
+        );
+
+        let repo_model = Repository {
+            id: repo_id.clone(),
+            display_name: "test-restore-orig-repo".to_string(),
+            local_path: Some(repo_fixture.path().to_path_buf()),
+            remote_url: None,
+            default_branch: None,
+            provider: crate::model::ProviderHint::Unknown,
+            added_at: time::OffsetDateTime::now_utc(),
+            last_scanned_at: None,
+        };
+        engine.register_repo(repo_model).unwrap();
+
+        // 1. Create a snapshot with only_branches
+        let snapshot = engine
+            .backup_create(
+                &repo_id,
+                BackupOptions {
+                    trigger: Some(crate::model::SnapshotTrigger::Manual),
+                    verify: true,
+                    only_branches: vec![BranchName("merged-branch".to_string())],
+                },
+            )
+            .unwrap();
+
+        // Check that refs contains the branch
+        assert!(!snapshot.refs.is_empty());
+        let ref_entry = &snapshot.refs[0];
+        assert_eq!(ref_entry.branch.0, "merged-branch");
+
+        // 2. Restore using original_ref spec
+        let spec = RestoreSpec {
+            branch: BranchName("merged-branch".to_string()),
+            as_tag: false,
+            target_name: Some("restored-ref-by-orig".to_string()),
+            force: true,
+            original_ref: Some(ref_entry.original_full_ref.clone()),
+        };
+
+        let outcome = engine.restore(&snapshot.id, spec).unwrap();
+        assert_eq!(outcome.branch.0, "merged-branch");
+        assert_eq!(outcome.created_ref, "refs/heads/restored-ref-by-orig");
     }
 }
