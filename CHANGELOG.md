@@ -24,12 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added remote-prefix-aware regex and text search capability in the Branches Explorer UI, allowing patterns (e.g. `^AZ-`) to match remote branches by testing against the short branch name (remote prefix stripped) as well as the full display name.
 - Added Settings Export & Import capability in the Settings UI view, allowing users to save and load `config.toml` configurations dynamically using native file save/open dialogs.
 - Added date-time display format customization in Settings (defaulting to "YYYY-MM-DD h:m a"), allowing users to standardize timestamps in backups, history runs, and branch metadata lists.
+- Added Web App Manifest (`manifest.json`) and favicon/apple-touch-icon links to the desktop view templates.
+- Added native default browser URL opening bridge using a new backend Tauri command (`open_url`) to handle external author links safely.
 
 ### Changed
 
 - Standardized the report generation interface in the History View to use the new multi-tab Markdown preview modal matching the Branches Explorer.
 - Replaced native OS-specific emojis throughout the desktop UI with SVG-based Lucide icons styled via theme-aware CSS variables.
 - Enhanced the collapsable backup snapshots list in the Backups view with left-accent active borders, fade-in transitions, layout height stability, accessible zebra-striped references table, and a dedicated Restore button with RotateCcw icon.
+- Replaced primary UI font with `'Google Sans'` and secondary monospace font with `'JetBrains Mono'`.
+- Replaced the generic SVG brand logo with a newly designed, 17.5% rounded squircle brand icon regenerated from `polished_app_icon.png`.
+- Updated tauri bundle configuration to explicitly package all standard platform icons (ICO, ICNS, and PNG resolutions) to ensure tray/taskbar consistency.
+- Updated footer copyright notice with version tag, dynamic current year, and author link.
+- Updated sidebar logo header to act as a router link navigating to the Dashboard view.
+- Standardized all repository selectors and theme toggle dropdowns to use `8px` (`var(--radius-sm)`) corner radius.
+- Applied global text selection disablement (`user-select: none`) to the sidebar navigation panel, all view headers, and heading tags (`h1`-`h6`) to prevent accidental highlight.
 
 ### Fixed
 
