@@ -2,10 +2,10 @@
   <div class="app-layout">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
-      <div class="logo">
+      <router-link to="/" class="logo">
         <img :src="brandIcon" alt="Git Purge Logo" class="brand-logo" />
         <span class="app-name">Git Purge</span>
-      </div>
+      </router-link>
 
       <nav class="nav-links">
         <router-link to="/" class="nav-item" active-class="active">
@@ -141,6 +141,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .logo {
@@ -152,6 +154,8 @@ onUnmounted(() => {
   font-size: 18px;
   color: var(--primary);
   border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .brand-logo {

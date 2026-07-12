@@ -172,3 +172,9 @@ code, pre {
 .lucide-icon.color-info { color: var(--info); }
 .lucide-icon.color-muted { color: var(--muted); }
 
+/* Standardize repository selector and theme selector dropdown corner radius across all views */
+.repo-selector select,
+.theme-toggle select {
+  border-radius: var(--radius-sm) !important;
+}
+
