@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.2.0] — 2026-07-12
+
+### Added
+
 - Added a new integration test suite `test_sqlite_history_store_runs_and_trends_flow` in `sqlite.rs` to validate SQLite adapter operations, including runs logging, PII email redaction, metrics deduplication, and trend history APIs.
 - Added configured staleness age threshold display to the header subtitle of the Branches Explorer UI.
 - Added regex-based branch search capabilities to the Branches Explorer search bar, with an automatic fallback to normal case-insensitive substring search on compilation errors.
@@ -125,6 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/MohamedGamil/git-purge/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/MohamedGamil/git-purge/compare/v0.1.0-beta.1...v0.1.1
 [0.1.0-beta.1]: https://github.com/MohamedGamil/git-purge/releases/tag/v0.1.0-beta.1
