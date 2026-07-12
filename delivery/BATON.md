@@ -29,11 +29,11 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P7-T1 | Debug and stabilize release workflow | 37 | 2026-07-13 |
 | P9-T1 | Named safety regression tests (SAFE-01–07) | 37 | 2026-07-13 |
 | P9-T3 | Desktop architecture guard test | 37 | 2026-07-13 |
 | P9-T6 | Remove `cmd/stubs.rs` or implement | 37 | 2026-07-13 |
 | P9-T8 | Reconcile delivery task cards | 37 | 2026-07-13 |
-| P7-T1 | Debug and stabilize release workflow | 30 | 2026-07-13 |
 | P4-T9 | Desktop e2e + standalone | 05 | 2026-07-11 |
 | P4-T8 | Remaining views | 05 | 2026-07-11 |
 | P4-T7 | Plan + execute flow | 05 | 2026-07-11 |

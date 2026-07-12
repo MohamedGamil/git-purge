@@ -86,20 +86,77 @@ jobs:
         with:
           projectPath: apps/desktop
           args: --target ${{ matrix.target }}
+      - name: Stage desktop bundles
+        run: |
+          mkdir -p dist-desktop
+          find apps/desktop/src-tauri/target -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.exe" -o -name "*.dmg" \) -exec cp {} dist-desktop/ \; || true
+        shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.target }}
-          path: apps/desktop/src-tauri/target/**/release/bundle/**
+          path: dist-desktop/*
 
   # ---- 3) Checksums, signatures, GitHub Release ---------------------------------
   release:
     needs: [build-cli, build-desktop]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
+      - name: Create combined packages
+        run: |
+          VERSION=$(grep -m1 'version =' Cargo.toml | cut -d '"' -f2)
+          mkdir -p combined-tmp
+          
+          # 1. Windows x86_64 combined package
+          if [ -f "artifacts/git-purge-${VERSION}-x86_64-pc-windows-msvc.zip" ]; then
+            rm -rf combined-tmp/*
+            unzip "artifacts/git-purge-${VERSION}-x86_64-pc-windows-msvc.zip" -d combined-tmp/
+            MSI_FILE=$(find artifacts -name "*x64*.msi" | head -n 1)
+            if [ -n "${MSI_FILE}" ]; then
+              cp "${MSI_FILE}" combined-tmp/git-purge-${VERSION}-x86_64-pc-windows-msvc/
+            fi
+            (cd combined-tmp && zip -r "../artifacts/git-purge-combined-${VERSION}-x86_64-pc-windows-msvc.zip" "git-purge-${VERSION}-x86_64-pc-windows-msvc")
+          fi
+
+          # 2. Linux x86_64 combined package
+          if [ -f "artifacts/git-purge-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" ]; then
+            rm -rf combined-tmp/*
+            tar -xzf "artifacts/git-purge-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" -C combined-tmp/
+            APPIMAGE_FILE=$(find artifacts -name "*amd64.AppImage" | head -n 1)
+            if [ -n "${APPIMAGE_FILE}" ]; then
+              cp "${APPIMAGE_FILE}" combined-tmp/git-purge-${VERSION}-x86_64-unknown-linux-gnu/
+            fi
+            tar -czf "artifacts/git-purge-combined-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" -C combined-tmp "git-purge-${VERSION}-x86_64-unknown-linux-gnu"
+          fi
+
+          # 3. macOS x86_64 combined package
+          if [ -f "artifacts/git-purge-${VERSION}-x86_64-apple-darwin.tar.gz" ]; then
+            rm -rf combined-tmp/*
+            tar -xzf "artifacts/git-purge-${VERSION}-x86_64-apple-darwin.tar.gz" -C combined-tmp/
+            DMG_FILE=$(find artifacts -name "*x64.dmg" | head -n 1)
+            if [ -n "${DMG_FILE}" ]; then
+              cp "${DMG_FILE}" combined-tmp/git-purge-${VERSION}-x86_64-apple-darwin/
+            fi
+            tar -czf "artifacts/git-purge-combined-${VERSION}-x86_64-apple-darwin.tar.gz" -C combined-tmp "git-purge-${VERSION}-x86_64-apple-darwin"
+          fi
+
+          # 4. macOS aarch64 combined package
+          if [ -f "artifacts/git-purge-${VERSION}-aarch64-apple-darwin.tar.gz" ]; then
+            rm -rf combined-tmp/*
+            tar -xzf "artifacts/git-purge-${VERSION}-aarch64-apple-darwin.tar.gz" -C combined-tmp/
+            DMG_FILE=$(find artifacts -name "*aarch64.dmg" | head -n 1)
+            if [ -n "${DMG_FILE}" ]; then
+              cp "${DMG_FILE}" combined-tmp/git-purge-${VERSION}-aarch64-apple-darwin/
+            fi
+            tar -czf "artifacts/git-purge-combined-${VERSION}-aarch64-apple-darwin.tar.gz" -C combined-tmp "git-purge-${VERSION}-aarch64-apple-darwin"
+          fi
+
+          rm -rf combined-tmp
+        shell: bash
       - name: SHA-256 checksums
         run: |
           cd artifacts
@@ -122,7 +179,7 @@ jobs:
           MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
       - uses: softprops/action-gh-release@v2
         with:
-          draft: true                 # maintainer reviews, then publishes
+          draft: false                 # publish automatically
           generate_release_notes: true
           files: |
             artifacts/*

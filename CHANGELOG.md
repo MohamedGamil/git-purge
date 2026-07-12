@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Enabled Tauri installer bundling in `tauri.conf.json`, staged flat compiled installers in `release.yml` to resolve empty artifact upload warnings, and implemented repackaging logic to bundle both CLI and Desktop apps together for Linux, Windows, and macOS.
+
 ## [0.3.6] — 2026-07-13
 
 ### Fixed
