@@ -112,6 +112,8 @@ impl Scanner {
                 Ok(Some(Classification {
                     branch: branch.name.clone(),
                     scope: branch.scope,
+                    remote: branch.remote.clone(),
+                    upstream: branch.upstream.clone(),
                     merge_state,
                     activity,
                     age,

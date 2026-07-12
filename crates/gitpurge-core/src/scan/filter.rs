@@ -109,6 +109,8 @@ mod tests {
         Classification {
             branch: BranchName(name.to_string()),
             scope: BranchScope::Local,
+            remote: None,
+            upstream: None,
             merge_state: if is_merged {
                 MergeState::Merged
             } else {

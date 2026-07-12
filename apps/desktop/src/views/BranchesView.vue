@@ -452,7 +452,7 @@ const downloadReportFile = async () => {
 const computeBranchesHash = async (branches: { name: string; tipSha: string }[]): Promise<string> => {
   // Sort branches by name to ensure deterministic representation
   const sorted = [...branches].sort((a, b) => a.name.localeCompare(b.name));
-  const representation = sorted.map(b => `${b.name.replace(/^origin\//, '')}:${b.tipSha}`).join(';');
+  const representation = sorted.map(b => `${b.name.replace(/^(origin|upstream)\//, '')}:${b.tipSha}`).join(';');
   const encoder = new TextEncoder();
   const data = encoder.encode(representation);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);

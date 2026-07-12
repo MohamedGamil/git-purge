@@ -494,13 +494,14 @@ pub fn map_scan_result(scan_res: ScanResult) -> ClientScanResult {
         .into_iter()
         .map(|c| {
             let is_remote = c.scope == gitpurge_core::model::BranchScope::Remote;
+            let remote_name = c.remote.as_deref().unwrap_or("origin");
             let display_name = if is_remote {
-                format!("origin/{}", c.branch.0)
+                format!("{}/{}", remote_name, c.branch.0)
             } else {
                 c.branch.0.clone()
             };
             let ref_path = if is_remote {
-                format!("refs/remotes/origin/{}", c.branch.0)
+                format!("refs/remotes/{}/{}", remote_name, c.branch.0)
             } else {
                 format!("refs/heads/{}", c.branch.0)
             };
@@ -515,7 +516,9 @@ pub fn map_scan_result(scan_res: ScanResult) -> ClientScanResult {
                 upstream: if is_remote {
                     None
                 } else {
-                    Some(format!("origin/{}", c.branch.0))
+                    c.upstream
+                        .as_ref()
+                        .map(|u| format!("{}/{}", u.remote, u.ref_name.0))
                 },
                 classification: map_classification(&c),
             }
@@ -535,7 +538,8 @@ pub fn map_plan(core_plan: Plan) -> ClientPlan {
         .into_iter()
         .map(|a| {
             let ref_name = if a.scope == gitpurge_core::model::BranchScope::Remote {
-                format!("origin/{}", a.branch.0)
+                let remote_name = a.remote.as_deref().unwrap_or("origin");
+                format!("{}/{}", remote_name, a.branch.0)
             } else {
                 a.branch.0.clone()
             };
@@ -548,9 +552,9 @@ pub fn map_plan(core_plan: Plan) -> ClientPlan {
                 }
                 .to_string(),
                 reason: a.reason,
-                classification: map_classification(&a.classification),
                 destructive: a.classification.merge_state
                     == gitpurge_core::model::MergeState::Unmerged,
+                classification: map_classification(&a.classification),
             }
         })
         .collect();
@@ -1093,8 +1097,12 @@ pub async fn plan(
     filter: ClientActionFilter,
 ) -> Result<ClientPlan, SerializableError> {
     let engine = &state.engine;
+    let remotes = engine
+        .get_remotes(&RepoId(repo_id.clone()))
+        .map_err(map_error)?;
+
     let raw_refs = filter.refs.clone().unwrap_or_default();
-    let core_filter = map_action_filter(filter);
+    let core_filter = map_action_filter(filter, &remotes);
     let plan = engine
         .plan(&RepoId(repo_id), &core_filter)
         .map_err(map_error)?;
@@ -1109,7 +1117,7 @@ pub async fn plan(
     Ok(client_plan)
 }
 
-pub fn map_action_filter(filter: ClientActionFilter) -> ActionFilter {
+pub fn map_action_filter(filter: ClientActionFilter, remotes: &[String]) -> ActionFilter {
     let kind = match filter.kind.as_str() {
         "archive" => ActionKind::Archive,
         _ => ActionKind::Delete,
@@ -1119,7 +1127,17 @@ pub fn map_action_filter(filter: ClientActionFilter) -> ActionFilter {
         .unwrap_or_default()
         .into_iter()
         .map(|r| {
-            let stripped = r.strip_prefix("origin/").unwrap_or(&r);
+            let mut stripped = r.as_str();
+            for remote in remotes {
+                let prefix = format!("{}/", remote);
+                if r.starts_with(&prefix) {
+                    stripped = r.strip_prefix(&prefix).unwrap();
+                    break;
+                }
+            }
+            if stripped == r.as_str() {
+                stripped = r.strip_prefix("origin/").unwrap_or(&r);
+            }
             BranchName(stripped.to_string())
         })
         .collect();
@@ -1453,10 +1471,15 @@ pub async fn delete_branches(
                     "remote" => BranchScope::Remote,
                     _ => BranchScope::Local,
                 };
-                let remote = if scope == BranchScope::Remote {
-                    Some("origin".to_string())
+                let (branch_name, remote) = if scope == BranchScope::Remote {
+                    let parts: Vec<&str> = a.ref_name.splitn(2, '/').collect();
+                    if parts.len() == 2 {
+                        (parts[1].to_string(), Some(parts[0].to_string()))
+                    } else {
+                        (a.ref_name.clone(), Some("origin".to_string()))
+                    }
                 } else {
-                    None
+                    (a.ref_name.clone(), None)
                 };
 
                 let merge_state = match a.classification.merge.as_str() {
@@ -1464,23 +1487,16 @@ pub async fn delete_branches(
                     _ => gitpurge_core::model::MergeState::Unmerged,
                 };
 
-                let branch_name = if scope == BranchScope::Remote {
-                    a.ref_name
-                        .strip_prefix("origin/")
-                        .unwrap_or(&a.ref_name)
-                        .to_string()
-                } else {
-                    a.ref_name.clone()
-                };
-
                 gitpurge_core::model::Action {
                     kind,
                     branch: BranchName(branch_name.clone()),
                     scope,
-                    remote,
+                    remote: remote.clone(),
                     classification: gitpurge_core::model::Classification {
                         branch: BranchName(branch_name),
                         scope,
+                        remote,
+                        upstream: None,
                         merge_state,
                         activity: gitpurge_core::model::Activity::Active,
                         age: std::time::Duration::default(),

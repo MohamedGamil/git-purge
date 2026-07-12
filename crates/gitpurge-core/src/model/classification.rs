@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use super::{BranchName, BranchScope, Commit};
+use super::{BranchName, BranchScope, Commit, Upstream};
 
 /// A parsed age threshold. Accepts human input like `"1 year ago"`, `"6 months"`,
 /// `"90d"` (mirrors the bash scripts' `--age "1 year ago"`), normalized to a duration.
@@ -27,6 +27,12 @@ pub struct Classification {
     pub branch: BranchName,
     /// Local or remote.
     pub scope: BranchScope,
+    /// The remote name, if this is a remote branch.
+    #[serde(default)]
+    pub remote: Option<String>,
+    /// The upstream relationship details, if any (for local branches).
+    #[serde(default)]
+    pub upstream: Option<Upstream>,
     /// Merge state relative to the default branch.
     pub merge_state: MergeState,
     /// Stale vs active by age threshold.

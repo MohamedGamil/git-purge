@@ -229,6 +229,29 @@ impl Engine {
         Ok(repos.get(id).cloned())
     }
 
+    /// Get all configured remotes for a repository.
+    pub fn get_remotes(&self, id: &RepoId) -> Result<Vec<String>> {
+        let repo_model = {
+            let repos = self.repos.lock().unwrap();
+            repos.get(id).cloned().ok_or_else(|| {
+                crate::GitPurgeError::RepoNotFound(format!("Repository not registered: {:?}", id))
+            })?
+        };
+        let local_path = repo_model.local_path.as_ref().ok_or_else(|| {
+            crate::GitPurgeError::RepoNotFound("Local path missing for repository".to_string())
+        })?;
+        let git2_repo = git2::Repository::open(local_path)
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to open repository: {}", e)))?;
+        let remotes_list = git2_repo
+            .remotes()
+            .map_err(|e| crate::GitPurgeError::Git(format!("Failed to list remotes: {}", e)))?;
+        Ok(remotes_list
+            .iter()
+            .flatten()
+            .map(|s| s.to_string())
+            .collect())
+    }
+
     /// Set the default repository.
     pub fn set_default_repo(&self, id: RepoId) -> Result<()> {
         let mut config = self.config.lock().unwrap();
