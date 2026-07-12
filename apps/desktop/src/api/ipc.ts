@@ -773,6 +773,22 @@ export async function settingsSave(settings: Settings): Promise<Settings> {
   return invoke<Settings>('settings_save', { settings });
 }
 
+export async function settingsExport(path: string): Promise<void> {
+  if (isMock) {
+    console.log(`Mock exporting settings to ${path}`);
+    return Promise.resolve();
+  }
+  return invoke<void>('settings_export', { path });
+}
+
+export async function settingsImport(path: string): Promise<Settings> {
+  if (isMock) {
+    console.log(`Mock importing settings from ${path}`);
+    return Promise.resolve(mockSettings);
+  }
+  return invoke<Settings>('settings_import', { path });
+}
+
 export async function cancel(taskId: string): Promise<void> {
   if (isMock) {
     console.log(`Mock cancellation of task ${taskId}`);

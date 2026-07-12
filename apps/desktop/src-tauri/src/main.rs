@@ -62,6 +62,8 @@ fn main() {
             commands::auth_test,
             commands::settings_get,
             commands::settings_save,
+            commands::settings_export,
+            commands::settings_import,
             commands::install_cli,
             commands::cancel,
             commands::save_file,

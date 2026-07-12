@@ -77,6 +77,20 @@
           </div>
         </section>
 
+        <!-- 5. Settings Migration -->
+        <section class="card settings-section">
+          <h3>Backup & Migration</h3>
+          <p class="section-desc">Export your current settings configuration to a backup file, or import settings from an existing file.</p>
+          <div class="migration-actions">
+            <button type="button" class="btn btn-secondary btn-sm" @click="handleExportSettings" :disabled="saving">
+              📤 Export Settings TOML
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" @click="handleImportSettings" :disabled="saving">
+              📥 Import Settings TOML
+            </button>
+          </div>
+        </section>
+
         <!-- Save Button -->
         <div class="actions-bar">
           <button type="submit" class="btn btn-primary btn-save" :disabled="saving">
@@ -92,9 +106,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
-import { settingsGet, settingsSave, type Settings } from '../api/ipc';
+import { settingsGet, settingsSave, settingsExport, settingsImport, type Settings } from '../api/ipc';
 
 const { theme, setTheme } = useTheme();
 
@@ -185,6 +199,56 @@ const saveSettings = async () => {
     }, 3000);
   } catch (err: any) {
     alert('Failed to save settings: ' + err.message);
+  } finally {
+    saving.value = false;
+  }
+};
+
+const handleExportSettings = async () => {
+  try {
+    const path = await save({
+      defaultPath: 'git-purge-config.toml',
+      filters: [{ name: 'TOML Configuration', extensions: ['toml'] }]
+    });
+    if (path) {
+      saving.value = true;
+      await settingsExport(path);
+      alert('Settings exported successfully!');
+    }
+  } catch (err: any) {
+    alert('Export failed: ' + err.message);
+  } finally {
+    saving.value = false;
+  }
+};
+
+const handleImportSettings = async () => {
+  try {
+    const selected = await open({
+      multiple: false,
+      filters: [{ name: 'TOML Configuration', extensions: ['toml'] }],
+      title: 'Select Configuration TOML File to Import'
+    });
+    if (selected && typeof selected === 'string') {
+      const confirmed = confirm('Importing settings will overwrite your current configuration. Are you sure you want to proceed?');
+      if (!confirmed) return;
+
+      saving.value = true;
+      const newSettings = await settingsImport(selected);
+      
+      // Update UI state with new settings
+      policyAge.value = newSettings.policy.age;
+      policyNamingRegex.value = newSettings.policy.namingRegex;
+      policyProtected.value = newSettings.policy.protectedRefs.join(', ');
+      policyExclude.value = newSettings.policy.excludeGlobs.join(', ');
+      backupsRoot.value = newSettings.backupsRoot;
+      themeMode.value = newSettings.theme;
+      handleThemeChange();
+
+      alert('Settings imported and applied successfully!');
+    }
+  } catch (err: any) {
+    alert('Import failed: ' + err.message);
   } finally {
     saving.value = false;
   }
@@ -344,5 +408,17 @@ onMounted(() => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateX(-5px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+.section-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: -8px;
+}
+
+.migration-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xs);
 }
 </style>

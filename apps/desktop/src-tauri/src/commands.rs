@@ -2042,6 +2042,30 @@ pub async fn settings_save(
 }
 
 #[tauri::command]
+pub async fn settings_export(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<(), SerializableError> {
+    let engine = &state.engine;
+    let export_path = std::path::Path::new(&path);
+    engine.save_config(Some(export_path)).map_err(map_error)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn settings_import(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<Settings, SerializableError> {
+    let engine = &state.engine;
+    let import_path = std::path::Path::new(&path);
+    let new_config = gitpurge_core::Config::load(Some(import_path)).map_err(map_error)?;
+    engine.update_config(new_config.clone());
+    engine.save_config(None).map_err(map_error)?;
+    Ok(map_settings(&new_config))
+}
+
+#[tauri::command]
 pub async fn install_cli(
     state: State<'_, AppState>,
     scope: String,
