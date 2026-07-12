@@ -6,11 +6,14 @@ This guide is for any engineer or AI agent implementing a task. Follow it exactl
 that dozens of independent sessions produce one coherent codebase.
 
 ## 0. Before you touch code
-1. Read [`CONVENTIONS.md`](CONVENTIONS.md) end to end. It overrides everything.
-2. Read the phase doc for your task and the spec doc(s) it references in
+1. Read [`BATON.md`](BATON.md) — check for Active tasks first. If none, promote
+   2–5 tasks from the Queue.
+2. Read [`CONVENTIONS.md`](CONVENTIONS.md) end to end. It overrides everything.
+3. Read the phase doc for your tasks and the spec doc(s) they reference in
    [`../docs/`](../docs/).
-3. Confirm your task's **dependencies** (other tasks) are already merged. If not,
-   stop and report the blocker — do not stub around a missing dependency silently.
+4. Confirm your task's **dependencies** (other tasks) are already in Completed
+   on the baton. If not, stop and report the blocker — do not stub around a
+   missing dependency silently.
 
 ## 1. Golden rules (non-negotiable)
 - **Never put git/DB/keychain logic in the CLI or Tauri crates.** It goes in
@@ -71,12 +74,15 @@ cd apps/desktop && pnpm install
 - No new `clippy` warnings, no `unwrap()`/`expect()` in runtime library paths.
 
 ## 6. Reporting back (for AI agent sessions)
-End your session with a short structured report:
-- Task ID + one-line outcome.
-- Files created/modified.
-- Tests added and how to run them.
-- Anything that deviated from the spec (and why), or new blockers discovered.
-- Follow-up tasks you recommend (with proposed IDs).
+End your session with:
+1. **Update [`BATON.md`](BATON.md):** Move completed tasks Active → Completed.
+   Defer unfinished tasks back to Queue with a reason.
+2. Short structured report:
+   - Task ID + one-line outcome.
+   - Files created/modified.
+   - Tests added and how to run them.
+   - Anything that deviated from the spec (and why), or new blockers discovered.
+   - Follow-up tasks you recommend (with proposed IDs).
 
 Return findings/decisions, **not** raw file dumps — the orchestrator keeps the
 conclusion, not the diff.
