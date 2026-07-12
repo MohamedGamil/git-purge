@@ -129,7 +129,7 @@ R5 satisfied.
 
 ---
 
-## P7-T1 · Release workflow (GitHub Actions)
+## ✅ P7-T1 · Release workflow (GitHub Actions) [2026-07-13]
 
 **Goal:** `release.yml` triggered on `v*` tag: matrix build of CLI tarballs
 (linux gnu+musl, windows-msvc, macOS universal) + Tauri bundles; SHA256 checksums;

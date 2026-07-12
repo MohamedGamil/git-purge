@@ -11,7 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated `crates/gitpurge-core/Cargo.toml` to use target-specific `git2` feature configurations, enabling `vendored-openssl` and `vendored-libgit2` on Unix/macOS for static/self-contained compilation, while keeping only `vendored-libgit2` on Windows to leverage native Schannel and avoid OpenSSL compile overhead.
+- Modified `.github/workflows/release.yml` to compile targets natively using standard `cargo` on macOS and Windows runners, limiting `cross` compilation to Linux runners.
+- Explicitly configured the `shell: bash` environment for CLI packaging steps on all runners to ensure cross-platform compatibility.
+
 ### Fixed
+
+- Resolved macOS target compilation failure (`x86_64-apple-darwin`) in the release workflow due to missing host OpenSSL developer files.
+- Removed redundant and invalid `apps/desktop/pnpm-workspace.yaml` file that was causing pnpm workspace resolution errors (`packages field missing or empty`) on desktop builds.
 
 ## [0.3.3] — 2026-07-12
 

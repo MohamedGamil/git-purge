@@ -27,7 +27,6 @@ ulid = { workspace = true }
 
 # git engines (behind the GitBackend trait — CONVENTIONS §4)
 gix = { workspace = true }
-git2 = { workspace = true }
 
 # storage / platform
 rusqlite = { workspace = true }
@@ -49,3 +48,9 @@ tempfile = { workspace = true, optional = true }
 insta = { workspace = true }
 proptest = { workspace = true }
 tempfile = { workspace = true }
+
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+git2 = { workspace = true, features = ["vendored-openssl", "vendored-libgit2"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+git2 = { workspace = true, features = ["vendored-libgit2"] }
