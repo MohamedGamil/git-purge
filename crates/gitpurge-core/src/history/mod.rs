@@ -13,7 +13,9 @@ pub mod trends;
 pub use sqlite::SqliteHistoryStore;
 
 use crate::error::Result;
-use crate::model::{RepoId, Repository, RunReport, Snapshot, SnapshotId, TrendEntry, TrendHistory};
+use crate::model::{
+    RepoId, Repository, RunRecord, RunReport, Snapshot, SnapshotId, TrendEntry, TrendHistory,
+};
 
 /// Port for run recording and trend queries.
 ///
@@ -30,6 +32,9 @@ pub trait HistoryStore: Send + Sync + std::fmt::Debug {
 
     /// Fetch the most recent N entries.
     fn get_recent(&self, repo: &RepoId, limit: usize) -> Result<Vec<TrendEntry>>;
+
+    /// Fetch past executions for a repository.
+    fn get_runs(&self, repo: &RepoId, limit: usize, offset: usize) -> Result<Vec<RunRecord>>;
 
     /// Save snapshot metadata.
     fn save_snapshot(&self, snapshot: &Snapshot) -> Result<()>;
@@ -76,6 +81,10 @@ impl HistoryStore for FakeHistoryStore {
     }
 
     fn get_recent(&self, _repo: &RepoId, _limit: usize) -> Result<Vec<TrendEntry>> {
+        Ok(Vec::new())
+    }
+
+    fn get_runs(&self, _repo: &RepoId, _limit: usize, _offset: usize) -> Result<Vec<RunRecord>> {
         Ok(Vec::new())
     }
 

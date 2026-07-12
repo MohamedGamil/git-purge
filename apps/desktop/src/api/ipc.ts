@@ -295,6 +295,47 @@ let mockHistory: Record<string, any[]> = {
   ]
 };
 
+let mockRuns: Record<string, any[]> = {
+  'git-purge': [
+    {
+      id: 'run-01',
+      command: 'delete',
+      mode: 'execute',
+      startedAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
+      finishedAt: new Date(Date.now() - 30 * 24 * 3600 * 1000 + 5000).toISOString(),
+      snapshotId: 'snap-01',
+      actor: 'mgamil',
+      deletedCount: 2,
+      archivedCount: 0,
+      branches: ['feature/stale-ui', 'bugfix/typo-main']
+    },
+    {
+      id: 'run-02',
+      command: 'archive',
+      mode: 'execute',
+      startedAt: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString(),
+      finishedAt: new Date(Date.now() - 15 * 24 * 3600 * 1000 + 4000).toISOString(),
+      snapshotId: 'snap-02',
+      actor: 'mgamil',
+      deletedCount: 0,
+      archivedCount: 1,
+      branches: ['feature/old-legacy-ref']
+    },
+    {
+      id: 'run-03',
+      command: 'delete',
+      mode: 'dry-run',
+      startedAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
+      finishedAt: new Date(Date.now() - 1 * 24 * 3600 * 1000 + 2000).toISOString(),
+      snapshotId: null,
+      actor: 'mgamil',
+      deletedCount: 1,
+      archivedCount: 0,
+      branches: ['feature/dry-run-demo']
+    }
+  ]
+};
+
 let mockCredentials: any[] = [
   { id: 'ssh-key-1', label: 'My SSH Key', provider: 'keyring', host: 'github.com', username: 'git', kind: 'ssh', meta: { keyPath: '/home/mgamil/.ssh/id_rsa' } }
 ];
@@ -751,6 +792,14 @@ export async function historyGet(repoId: string): Promise<any> {
     return Promise.resolve(JSON.parse(JSON.stringify(mockHistory[repoId] || [])));
   }
   return invoke<any>('history_get', { repoId });
+}
+
+export async function historyRunsGet(repoId: string, limit: number, offset: number): Promise<any> {
+  if (isMock) {
+    const runs = mockRuns[repoId] || [];
+    return Promise.resolve(JSON.parse(JSON.stringify(runs.slice(offset, offset + limit))));
+  }
+  return invoke<any>('history_runs_get', { repoId, limit, offset });
 }
 
 export async function reportGenerate(repoId: string, format: string, reportType?: string): Promise<any> {

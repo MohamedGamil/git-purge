@@ -125,6 +125,100 @@
             </button>
           </div>
         </div>
+
+        <!-- Executions Log Section -->
+        <div class="executions-section card">
+          <h3>Execution History & Logs</h3>
+          <p class="description">Review past purge/scan runs and inspect the branches that were deleted or archived.</p>
+          
+          <div v-if="loadingRuns && runsData.length === 0" class="loading-state-inline">
+            <span class="spinner spinner-sm"></span>
+            <span>Loading past operations...</span>
+          </div>
+          
+          <div v-else-if="runsData.length === 0" class="empty-runs">
+            <p>No past execution logs found for this repository.</p>
+          </div>
+          
+          <div v-else class="runs-table-wrapper">
+            <table class="runs-table">
+              <thead>
+                <tr>
+                  <th>Execution ID</th>
+                  <th>Date & Time</th>
+                  <th>Command</th>
+                  <th>Mode</th>
+                  <th>Deleted</th>
+                  <th>Archived</th>
+                  <th>Actor</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="run in runsData" :key="run.id">
+                  <tr class="run-row" :class="{ expanded: expandedRuns.has(run.id) }">
+                    <td class="code-font text-sm">{{ run.id.slice(0, 12) }}...</td>
+                    <td>{{ formatDate(run.startedAt) }}</td>
+                    <td>
+                      <span class="badge" :class="getCommandBadgeClass(run.command)">
+                        {{ run.command }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge" :class="run.mode === 'execute' ? 'badge-execute' : 'badge-dry'">
+                        {{ run.mode }}
+                      </span>
+                    </td>
+                    <td class="text-success font-bold">{{ run.deletedCount }}</td>
+                    <td class="text-info font-bold">{{ run.archivedCount }}</td>
+                    <td>{{ run.actor || 'system' }}</td>
+                    <td>
+                      <button 
+                        v-if="run.branches && run.branches.length > 0" 
+                        class="btn-icon" 
+                        @click="toggleRunExpand(run.id)"
+                      >
+                        {{ expandedRuns.has(run.id) ? '▲ Hide' : '▼ View Branches (' + run.branches.length + ')' }}
+                      </button>
+                      <span v-else class="text-muted text-sm">None</span>
+                    </td>
+                  </tr>
+                  
+                  <tr v-if="expandedRuns.has(run.id) && run.branches && run.branches.length > 0" class="details-row">
+                    <td colspan="8">
+                      <div class="expanded-details card">
+                        <h4>Deleted/Archived Branches ({{ run.branches.length }})</h4>
+                        <ul class="branches-list">
+                          <li v-for="branch in run.branches" :key="branch" class="branch-item code-font">
+                            <span class="branch-icon">🌿</span> {{ branch }}
+                          </li>
+                        </ul>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            
+            <div class="pagination-footer" v-if="hasMoreRuns || runsOffset > 0">
+              <button 
+                class="btn btn-secondary btn-sm" 
+                :disabled="runsOffset === 0 || loadingRuns"
+                @click="runsOffset -= runsLimit; loadRuns();"
+              >
+                ◀ Previous
+              </button>
+              <span class="pagination-info">Page {{ Math.floor(runsOffset / runsLimit) + 1 }}</span>
+              <button 
+                class="btn btn-secondary btn-sm" 
+                :disabled="!hasMoreRuns || loadingRuns"
+                @click="loadNextPage()"
+              >
+                Next ▶
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -172,7 +266,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useReposStore } from '../stores/repos';
-import { historyGet, reportGenerate, saveFile } from '../api/ipc';
+import { historyGet, historyRunsGet, reportGenerate, saveFile } from '../api/ipc';
 import { save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatChartDate } from '../utils/date';
 
@@ -188,11 +282,32 @@ interface HistoryEntry {
   nonStandardCount: number;
 }
 
+interface RunRecord {
+  id: string;
+  command: string;
+  mode: string;
+  startedAt: string;
+  finishedAt: string | null;
+  snapshotId: string | null;
+  actor: string | null;
+  deletedCount: number;
+  archivedCount: number;
+  branches: string[];
+}
+
 const store = useReposStore();
 const selectedRepoId = ref(store.activeRepoId || '');
 const loadingHistory = ref(false);
 const unsupportedMsg = ref<string | null>(null);
 const historyData = ref<HistoryEntry[]>([]);
+
+// Past Runs / operations log state
+const runsData = ref<RunRecord[]>([]);
+const loadingRuns = ref(false);
+const expandedRuns = ref<Set<string>>(new Set());
+const runsLimit = 10;
+const runsOffset = ref(0);
+const hasMoreRuns = ref(true);
 
 // Report Generation state
 const showReportModal = ref(false);
@@ -207,6 +322,58 @@ const handleRepoChange = () => {
   }
 };
 
+const toggleRunExpand = (runId: string) => {
+  if (expandedRuns.value.has(runId)) {
+    const next = new Set(expandedRuns.value);
+    next.delete(runId);
+    expandedRuns.value = next;
+  } else {
+    const next = new Set(expandedRuns.value);
+    next.add(runId);
+    expandedRuns.value = next;
+  }
+};
+
+const getCommandBadgeClass = (command: string) => {
+  if (command === 'delete') return 'badge-delete';
+  if (command === 'archive') return 'badge-archive';
+  return 'badge-scan';
+};
+
+const formatDate = (dateStr: string) => {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleString();
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+const loadRuns = async (reset = false) => {
+  if (!selectedRepoId.value) return;
+  if (reset) {
+    runsOffset.value = 0;
+  }
+  expandedRuns.value = new Set();
+  loadingRuns.value = true;
+  try {
+    const raw = await historyRunsGet(selectedRepoId.value, runsLimit, runsOffset.value);
+    const newRuns = raw as RunRecord[];
+    hasMoreRuns.value = newRuns.length === runsLimit;
+    runsData.value = newRuns;
+  } catch (err: any) {
+    console.error('Failed to load past executions:', err);
+  } finally {
+    loadingRuns.value = false;
+  }
+};
+
+const loadNextPage = () => {
+  if (loadingRuns.value || !hasMoreRuns.value) return;
+  runsOffset.value += runsLimit;
+  loadRuns();
+};
+
 const loadHistory = async () => {
   if (!selectedRepoId.value) return;
   loadingHistory.value = true;
@@ -218,6 +385,7 @@ const loadHistory = async () => {
     historyData.value = (raw as HistoryEntry[]).sort(
       (a, b) => parseSafeDate(a.recordedAt).getTime() - parseSafeDate(b.recordedAt).getTime()
     );
+    await loadRuns(true);
   } catch (err: any) {
     unsupportedMsg.value = err?.message || 'History is currently unavailable.';
   } finally {
@@ -618,5 +786,193 @@ onMounted(() => {
   color: var(--primary);
   border-bottom-color: var(--primary);
   font-weight: 600;
+}
+
+.executions-section h3 {
+  font-size: 14px;
+  color: var(--on-surface-strong);
+  margin-bottom: 4px;
+}
+
+.executions-section .description {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: var(--spacing-md);
+}
+
+.loading-state-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--muted);
+  font-size: 13px;
+  padding: var(--spacing-md) 0;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.empty-runs {
+  color: var(--muted);
+  font-size: 13px;
+  padding: var(--spacing-md) 0;
+  text-align: center;
+}
+
+.runs-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.runs-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.runs-table th {
+  background-color: var(--surface-container);
+  color: var(--muted);
+  font-weight: 600;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.runs-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+  color: var(--on-surface);
+}
+
+.run-row:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.run-row.expanded {
+  background-color: rgba(255, 255, 255, 0.01);
+}
+
+.code-font {
+  font-family: var(--font-mono);
+}
+
+.font-bold {
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.badge-delete {
+  background-color: rgba(255, 180, 171, 0.1);
+  color: var(--danger);
+}
+
+.badge-archive {
+  background-color: rgba(167, 211, 135, 0.1);
+  color: var(--info);
+}
+
+.badge-scan {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+
+.badge-execute {
+  background-color: rgba(149, 204, 255, 0.1);
+  color: var(--primary);
+}
+
+.badge-dry {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.btn-icon:hover {
+  color: var(--on-surface-strong);
+}
+
+.details-row td {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.expanded-details {
+  background-color: var(--surface-container);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
+.expanded-details h4 {
+  font-size: 12px;
+  color: var(--on-surface-strong);
+  margin-bottom: var(--spacing-sm);
+}
+
+.branches-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.branch-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 12px;
+  color: var(--on-surface);
+}
+
+.branch-icon {
+  font-size: 14px;
+}
+
+.pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--surface-container);
+  border-top: 1px solid var(--border);
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 12px;
 }
 </style>

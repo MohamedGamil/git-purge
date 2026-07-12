@@ -1808,6 +1808,39 @@ pub async fn history_get(
 }
 
 #[tauri::command]
+pub async fn history_runs_get(
+    state: State<'_, AppState>,
+    repo_id: String,
+    limit: usize,
+    offset: usize,
+) -> Result<serde_json::Value, SerializableError> {
+    let engine = &state.engine;
+    let runs = engine
+        .executions(&RepoId(repo_id), limit, offset)
+        .map_err(map_error)?;
+
+    let serializable_runs: Vec<serde_json::Value> = runs
+        .into_iter()
+        .map(|run| {
+            serde_json::json!({
+                "id": run.id,
+                "command": run.command,
+                "mode": run.mode,
+                "startedAt": format_datetime(run.started_at),
+                "finishedAt": run.finished_at.map(format_datetime),
+                "snapshotId": run.snapshot_id,
+                "actor": run.actor,
+                "deletedCount": run.deleted_count,
+                "archivedCount": run.archived_count,
+                "branches": run.branches,
+            })
+        })
+        .collect();
+
+    Ok(serde_json::json!(serializable_runs))
+}
+
+#[tauri::command]
 pub async fn auth_add(
     state: State<'_, AppState>,
     credential: serde_json::Value,

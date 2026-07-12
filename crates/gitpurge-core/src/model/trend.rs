@@ -114,3 +114,28 @@ impl MetricDelta {
         }
     }
 }
+
+/// A past execution run record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RunRecord {
+    /// Unique identifier for this run.
+    pub id: String,
+    /// The command name (e.g. 'scan', 'delete', 'archive').
+    pub command: String,
+    /// The execution mode ('dry-run', 'execute').
+    pub mode: String,
+    /// When the run started.
+    pub started_at: OffsetDateTime,
+    /// When the run finished.
+    pub finished_at: Option<OffsetDateTime>,
+    /// The pre-op snapshot id.
+    pub snapshot_id: Option<String>,
+    /// The actor who executed this run.
+    pub actor: Option<String>,
+    /// Count of deleted branches.
+    pub deleted_count: usize,
+    /// Count of archived branches.
+    pub archived_count: usize,
+    /// List of branches deleted/archived in this run (derived from snapshot).
+    pub branches: Vec<String>,
+}

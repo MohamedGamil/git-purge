@@ -55,6 +55,7 @@ fn main() {
             commands::show_tree,
             commands::report_generate,
             commands::history_get,
+            commands::history_runs_get,
             commands::auth_add,
             commands::auth_list,
             commands::auth_remove,

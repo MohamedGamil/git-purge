@@ -1088,6 +1088,42 @@ impl Engine {
     pub fn history(&self, repo: &RepoId) -> Result<crate::model::TrendHistory> {
         self.history.get_history(repo)
     }
+
+    /// Fetch past executions for a repository with pagination support.
+    pub fn executions(
+        &self,
+        repo: &RepoId,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<crate::model::RunRecord>> {
+        self.history.get_runs(repo, limit, offset)
+    }
+}
+
+/// Log an operation (delete or archive) to a file for debugging.
+pub fn log_operation(op: &str, branch: &str, scope: &str, result: &str) {
+    use std::fs::OpenOptions;
+    use std::io::Write;
+
+    let log_dir = if let Some(bd) = directories::BaseDirs::new() {
+        bd.home_dir().join(".git-purge")
+    } else if let Ok(home) = std::env::var("HOME") {
+        std::path::PathBuf::from(home).join(".git-purge")
+    } else {
+        std::env::temp_dir().join(".git-purge")
+    };
+
+    let _ = std::fs::create_dir_all(&log_dir);
+    let log_path = log_dir.join("git-purge-operations.log");
+
+    let now = time::OffsetDateTime::now_utc().to_string();
+    let log_line = format!(
+        "[{}] OP: {} | BRANCH: {} | SCOPE: {} | RESULT: {}\n",
+        now, op, branch, scope, result
+    );
+    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(log_path) {
+        let _ = file.write_all(log_line.as_bytes());
+    }
 }
 
 #[cfg(test)]
@@ -1638,31 +1674,5 @@ mod tests {
         // 4. Manual cache clear (belt and suspenders)
         engine.scan_cache.lock().unwrap().clear();
         assert_eq!(engine.scan_cache.lock().unwrap().len(), 0);
-    }
-}
-
-/// Log an operation (delete or archive) to a file for debugging.
-pub fn log_operation(op: &str, branch: &str, scope: &str, result: &str) {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-
-    let log_dir = if let Some(bd) = directories::BaseDirs::new() {
-        bd.home_dir().join(".git-purge")
-    } else if let Ok(home) = std::env::var("HOME") {
-        std::path::PathBuf::from(home).join(".git-purge")
-    } else {
-        std::env::temp_dir().join(".git-purge")
-    };
-
-    let _ = std::fs::create_dir_all(&log_dir);
-    let log_path = log_dir.join("git-purge-operations.log");
-
-    let now = time::OffsetDateTime::now_utc().to_string();
-    let log_line = format!(
-        "[{}] OP: {} | BRANCH: {} | SCOPE: {} | RESULT: {}\n",
-        now, op, branch, scope, result
-    );
-    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(log_path) {
-        let _ = file.write_all(log_line.as_bytes());
     }
 }

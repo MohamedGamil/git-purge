@@ -114,8 +114,14 @@ pub fn handle_history(
     entries.reverse(); // newest first
     entries.truncate(limit as usize);
 
+    let runs = engine.executions(repo_id, limit as usize, 0)?;
+
     if json_output {
-        println!("{}", serde_json::to_string_pretty(&entries).unwrap());
+        let output = serde_json::json!({
+            "trends": entries,
+            "executions": runs,
+        });
+        println!("{}", serde_json::to_string_pretty(&output).unwrap());
     } else {
         println!("Cleanup Progress & Trend History for Repo: {}", repo_id.0);
         println!(
@@ -128,7 +134,7 @@ pub fn handle_history(
         println!(
             "--------------------------------------------------------------------------------"
         );
-        for entry in entries {
+        for entry in &entries {
             let date_str = entry
                 .recorded_at
                 .format(
@@ -145,6 +151,44 @@ pub fn handle_history(
                 entry.merged_count,
                 entry.unmerged_count
             );
+        }
+
+        println!();
+        println!("Past Operations Log");
+        println!(
+            "--------------------------------------------------------------------------------"
+        );
+        println!(
+            "{:<16} | {:<20} | {:<8} | {:<8} | {:<7} | {:<8} | {:<10}",
+            "Run ID", "Started At", "Command", "Mode", "Deleted", "Archived", "Actor"
+        );
+        println!(
+            "--------------------------------------------------------------------------------"
+        );
+        for run in runs {
+            let date_str = run
+                .started_at
+                .format(
+                    &time::format_description::parse("[year]-[month]-[day] [hour]:[minute] UTC")
+                        .unwrap(),
+                )
+                .unwrap_or_default();
+            println!(
+                "{:<16} | {:<20} | {:<8} | {:<8} | {:<7} | {:<8} | {:<10}",
+                run.id.chars().take(12).collect::<String>(),
+                date_str.chars().take(20).collect::<String>(),
+                run.command,
+                run.mode,
+                run.deleted_count,
+                run.archived_count,
+                run.actor.as_deref().unwrap_or("system")
+            );
+            if !run.branches.is_empty() {
+                println!("  - Affected Branches:");
+                for branch in run.branches {
+                    println!("    * {}", branch);
+                }
+            }
         }
     }
 

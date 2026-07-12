@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added expandable past operations/executions log in the History view, listing past purge/scan runs, actors, modes, and affected branch details.
+- Added past executions table output to the CLI `git-purge history` command with configurable limit support.
+- Added paginated SQL queries (`LIMIT`/`OFFSET`) for past executions log retrieval to ensure optimal database performance.
 - Added report preview loading spinners and animations in both Branches Explorer and History View screens.
 
 ### Changed

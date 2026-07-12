@@ -7,7 +7,8 @@ use std::sync::Mutex;
 use crate::error::Result;
 use crate::history::HistoryStore;
 use crate::model::{
-    RepoId, Repository, RunReport, Snapshot, SnapshotId, SnapshotTrigger, TrendEntry, TrendHistory,
+    RepoId, Repository, RunRecord, RunReport, Snapshot, SnapshotId, SnapshotTrigger, TrendEntry,
+    TrendHistory,
 };
 
 /// SQLite adapter for history and trend tracking.
@@ -370,6 +371,109 @@ impl HistoryStore for SqliteHistoryStore {
         entries.truncate(limit);
         entries.reverse(); // back to oldest first
         Ok(entries)
+    }
+
+    fn get_runs(&self, repo: &RepoId, limit: usize, offset: usize) -> Result<Vec<RunRecord>> {
+        let rows = {
+            let conn = self.conn.lock().unwrap();
+            let mut stmt = conn.prepare(
+                "SELECT r.id, r.command, r.mode, r.started_at, r.finished_at, r.snapshot_id, r.actor,
+                        m.deleted, m.archived
+                 FROM runs r
+                 LEFT JOIN metrics m ON r.id = m.run_id
+                 WHERE r.repo_id = ?1
+                 ORDER BY r.started_at DESC
+                 LIMIT ?2 OFFSET ?3;"
+            ).map_err(|e| crate::GitPurgeError::Config(format!("Failed to prepare runs query: {}", e)))?;
+
+            let rows = stmt
+                .query_map(
+                    rusqlite::params![&repo.0, limit as i64, offset as i64],
+                    |row| {
+                        let id: String = row.get(0)?;
+                        let command: String = row.get(1)?;
+                        let mode: String = row.get(2)?;
+                        let started_at_str: String = row.get(3)?;
+                        let finished_at_str: Option<String> = row.get(4)?;
+                        let snapshot_id: Option<String> = row.get(5)?;
+                        let actor: Option<String> = row.get(6)?;
+                        let deleted: Option<i64> = row.get(7)?;
+                        let archived: Option<i64> = row.get(8)?;
+
+                        Ok((
+                            id,
+                            command,
+                            mode,
+                            started_at_str,
+                            finished_at_str,
+                            snapshot_id,
+                            actor,
+                            deleted,
+                            archived,
+                        ))
+                    },
+                )
+                .map_err(|e| {
+                    crate::GitPurgeError::Config(format!("Failed to query runs: {}", e))
+                })?;
+
+            let mut vec = Vec::new();
+            for r in rows {
+                vec.push(r.map_err(|e| {
+                    crate::GitPurgeError::Config(format!("Row parsing error: {}", e))
+                })?);
+            }
+            vec
+        }; // conn lock is released here!
+
+        let mut runs = Vec::new();
+        for (
+            id,
+            command,
+            mode,
+            started_at_str,
+            finished_at_str,
+            snapshot_id,
+            actor,
+            deleted,
+            archived,
+        ) in rows
+        {
+            let started_at = time::OffsetDateTime::parse(
+                &started_at_str,
+                &time::format_description::well_known::Rfc3339,
+            )
+            .unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+
+            let finished_at = finished_at_str.and_then(|s| {
+                time::OffsetDateTime::parse(&s, &time::format_description::well_known::Rfc3339).ok()
+            });
+
+            let mut branches = Vec::new();
+            if let Some(ref snap_id) = snapshot_id {
+                // Safely load snapshot refs (this acquires the lock again, which is now safe)
+                if let Ok(Some(snap)) = self.get_snapshot(&SnapshotId(snap_id.clone())) {
+                    for ref_entry in snap.refs {
+                        branches.push(ref_entry.branch.0);
+                    }
+                }
+            }
+
+            runs.push(RunRecord {
+                id,
+                command,
+                mode,
+                started_at,
+                finished_at,
+                snapshot_id,
+                actor,
+                deleted_count: deleted.unwrap_or(0) as usize,
+                archived_count: archived.unwrap_or(0) as usize,
+                branches,
+            });
+        }
+
+        Ok(runs)
     }
 
     fn save_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
@@ -772,6 +876,51 @@ mod tests {
             "Duplicate metrics must be deduplicated"
         );
 
+        // Create mock snapshot and write it to bare mirror
+        let snapshot_id = SnapshotId("01J8ZK9Q2F3M4N5P6R7S8T9V0W".to_string());
+        let created_at = time::OffsetDateTime::now_utc();
+        let manifest_path = store
+            .resolve_mirror_path(&repo_id)
+            .join(format!("{}.json", snapshot_id.0));
+
+        let snapshot_ref = SnapshotRef {
+            branch: BranchName("feat/login".to_string()),
+            original_full_ref: "refs/heads/feat/login".to_string(),
+            backup_ref: format!(
+                "refs/gitpurge/backups/{}/refs/heads/feat/login",
+                snapshot_id.0
+            ),
+            tip: commit.oid.clone(),
+            commit_count: 10,
+            upstream: None,
+            merged_at_capture: MergeState::Unknown,
+        };
+
+        let snapshot = Snapshot {
+            id: snapshot_id.clone(),
+            repo: repo_id.clone(),
+            created_at,
+            trigger: SnapshotTrigger::Manual,
+            refs: vec![snapshot_ref],
+            verified: true,
+            manifest_path: manifest_path.clone(),
+        };
+
+        // Create the bare mirror repository and meta ref
+        let mirror_path = store.resolve_mirror_path(&repo_id);
+        fs::create_dir_all(&mirror_path).unwrap();
+        let mirror_repo = git2::Repository::init_bare(&mirror_path).unwrap();
+
+        let json_bytes = serde_json::to_vec_pretty(&snapshot).unwrap();
+        let blob_oid = mirror_repo.blob(&json_bytes).unwrap();
+        let meta_ref_path = format!("refs/gitpurge/meta/{}", snapshot_id.0);
+        mirror_repo
+            .reference(&meta_ref_path, blob_oid, true, "Test meta")
+            .unwrap();
+
+        // Save snapshot metadata in DB
+        store.save_snapshot(&snapshot).unwrap();
+
         // 3. Record third run with modified metrics (should insert a new metrics row)
         let mut modified_metrics = metrics.clone();
         modified_metrics.stale = 6;
@@ -781,7 +930,7 @@ mod tests {
             command: "scan".to_string(),
             mode: ExecMode::DryRun,
             started_at: time::OffsetDateTime::now_utc() + time::Duration::seconds(20),
-            snapshot: None,
+            snapshot: Some(snapshot_id),
             metrics: Some(modified_metrics),
             branch_snapshots: Some(vec![branch_class]),
             results: Vec::new(),
@@ -799,5 +948,22 @@ mod tests {
             "Modified metrics must be inserted"
         );
         assert_eq!(history_mod.entries[1].stale_count, 6);
+
+        // Verify get_runs works with pagination and ordering DESC
+        let runs = store.get_runs(&repo_id, 10, 0).unwrap();
+        assert_eq!(runs.len(), 3, "Should fetch all 3 runs");
+        assert_eq!(runs[0].id, "run-03");
+        assert_eq!(runs[0].branches.len(), 1);
+        assert_eq!(runs[0].branches[0], "feat/login");
+        assert_eq!(runs[1].id, "run-02");
+        assert_eq!(runs[2].id, "run-01");
+
+        // Verify limit and offset pagination
+        let paginated_runs = store.get_runs(&repo_id, 1, 1).unwrap();
+        assert_eq!(paginated_runs.len(), 1);
+        assert_eq!(
+            paginated_runs[0].id, "run-02",
+            "Should respect limit and offset"
+        );
     }
 }
