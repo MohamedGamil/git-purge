@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.3.0] — 2026-07-12
+
+### Added
+
 - Added expandable past operations/executions log in the History view, listing past purge/scan runs, actors, modes, and affected branch details.
 - Added past executions table output to the CLI `git-purge history` command with configurable limit support.
 - Added paginated SQL queries (`LIMIT`/`OFFSET`) for past executions log retrieval to ensure optimal database performance.
@@ -17,14 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Settings Export & Import capability in the Settings UI view, allowing users to save and load `config.toml` configurations dynamically using native file save/open dialogs.
 - Added date-time display format customization in Settings (defaulting to "YYYY-MM-DD h:m a"), allowing users to standardize timestamps in backups, history runs, and branch metadata lists.
 
-
 ### Changed
 
 - Standardized the report generation interface in the History View to use the new multi-tab Markdown preview modal matching the Branches Explorer.
 - Replaced native OS-specific emojis throughout the desktop UI with SVG-based Lucide icons styled via theme-aware CSS variables.
 - Enhanced the collapsable backup snapshots list in the Backups view with left-accent active borders, fade-in transitions, layout height stability, accessible zebra-striped references table, and a dedicated Restore button with RotateCcw icon.
-
-
 
 ### Fixed
 
@@ -153,7 +158,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/MohamedGamil/git-purge/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MohamedGamil/git-purge/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/MohamedGamil/git-purge/compare/v0.1.0-beta.1...v0.1.1
 [0.1.0-beta.1]: https://github.com/MohamedGamil/git-purge/releases/tag/v0.1.0-beta.1

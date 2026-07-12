@@ -55,7 +55,7 @@
         <div v-if="!isOnline" class="network-warning" title="Your device is offline or the VPN connection is lost. Git remote synchronization is temporarily disabled.">
           <span class="warning-dot"></span> Offline
         </div>
-        <span>v0.2.0</span>
+        <span>v0.3.0</span>
       </div>
     </aside>
 
