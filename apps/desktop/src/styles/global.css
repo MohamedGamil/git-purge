@@ -135,3 +135,34 @@ code, pre {
   background-color: rgba(198, 120, 221, 0.15);
   color: var(--accent-purple);
 }
+
+/* Lucide SVG Icon Styling (styled using CSS variables) */
+.lucide-icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2px;
+  fill: none;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Sizing Modifiers */
+.lucide-icon.size-sm {
+  width: 14px;
+  height: 14px;
+}
+.lucide-icon.size-lg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Color Modifiers mapped to Theme Tokens */
+.lucide-icon.color-primary { color: var(--primary); }
+.lucide-icon.color-success { color: var(--success); }
+.lucide-icon.color-warning { color: var(--warning); }
+.lucide-icon.color-danger { color: var(--danger); }
+.lucide-icon.color-info { color: var(--info); }
+.lucide-icon.color-muted { color: var(--muted); }
+

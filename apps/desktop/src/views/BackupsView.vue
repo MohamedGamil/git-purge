@@ -30,7 +30,7 @@
         <div class="list-header">
           <h2>Backup Snapshots ({{ snapshots.length }})</h2>
           <button class="btn btn-secondary btn-sm" @click="fetchSnapshots" :disabled="loading">
-            🔄 Refresh
+            <RefreshCw class="lucide-icon" style="margin-right: 4px;" /> Refresh
           </button>
         </div>
 
@@ -57,30 +57,33 @@
                 </span>
                 <span class="snap-date">{{ formattedDate(snap.createdAt) }}</span>
               </div>
-              <div class="snap-right">
+              <div class="snap-side-items">
                 <span class="ref-count">{{ snap.refCount }} refs</span>
-                <span class="arrow" :class="{ 'arrow-down': activeSnapshotId === snap.id }">▶</span>
+                <div class="snap-actions">
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    @click="verifySnapshot(snap.id); $event.stopPropagation();"
+                    :disabled="verifyingId === snap.id"
+                  >
+                    <span v-if="verifyingId === snap.id">Verifying...</span>
+                    <span v-else><ShieldCheck class="lucide-icon" style="margin-right: 4px;" /> Verify Integrity</span>
+                  </button>
+                </div>
+                <div class="snap-right">
+                  <span class="arrow" :class="{ 'arrow-down': activeSnapshotId === snap.id }">
+                    <ChevronRight class="lucide-icon size-sm" />
+                  </span>
+                </div>
               </div>
             </div>
 
             <!-- Expanded Details -->
             <div v-if="activeSnapshotId === snap.id" class="snap-details">
-              <div class="snap-actions">
-                <button
-                  class="btn btn-secondary btn-sm"
-                  @click="verifySnapshot(snap.id)"
-                  :disabled="verifyingId === snap.id"
-                >
-                  <span v-if="verifyingId === snap.id">Verifying...</span>
-                  <span v-else>🔍 Verify Integrity</span>
-                </button>
-              </div>
-
               <!-- Verification Results -->
               <div v-if="verifyResults && verifyResults.snapshotId === snap.id" class="verify-results-box" :class="verifyResults.ok ? 'verify-ok' : 'verify-failed'">
-                <p v-if="verifyResults.ok">✅ Snapshot integrity verified. {{ verifyResults.checkedRefs }} refs checked successfully.</p>
+                <p v-if="verifyResults.ok"><CircleCheck class="lucide-icon color-success" style="margin-right: 4px;" /> Snapshot integrity verified. {{ verifyResults.checkedRefs }} refs checked successfully.</p>
                 <div v-else>
-                  <p class="text-danger">❌ Integrity problems detected ({{ verifyResults.problems.length }}):</p>
+                  <p class="text-danger"><CircleX class="lucide-icon color-danger" style="margin-right: 4px;" /> Integrity problems detected ({{ verifyResults.problems.length }}):</p>
                   <ul>
                     <li v-for="prob in verifyResults.problems" :key="prob">{{ prob }}</li>
                   </ul>
@@ -119,8 +122,8 @@
                         </span>
                       </td>
                       <td>
-                        <button class="btn btn-primary btn-sm btn-tiny" @click="openRestoreModal(ref)">
-                          Rest
+                        <button class="btn btn-secondary btn-sm btn-tiny btn-restore" @click="openRestoreModal(ref)">
+                          <RotateCcw class="lucide-icon size-sm" style="margin-right: 4px;" /> Restore
                         </button>
                       </td>
                     </tr>
@@ -150,7 +153,7 @@
 
           <button class="btn btn-secondary w-100" @click="handlePrune" :disabled="pruning">
             <span v-if="pruning">Pruning...</span>
-            <span v-else>🧹 Prune Snapshots</span>
+            <span v-else><Trash2 class="lucide-icon" style="margin-right: 4px;" /> Prune Snapshots</span>
           </button>
 
           <div v-if="pruneReport" class="prune-report-box">
@@ -195,7 +198,7 @@
         </div>
 
         <div v-if="restoreForce" class="warning-box">
-          ⚠️ <strong>Force Overwrite Enabled:</strong> This will silently overwrite the existing local reference if names conflict!
+          <TriangleAlert class="lucide-icon color-warning" style="margin-right: 4px;" /> <strong>Force Overwrite Enabled:</strong> This will silently overwrite the existing local reference if names conflict!
         </div>
 
         <div class="modal-actions">
@@ -212,6 +215,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue';
+import { RefreshCw, ChevronRight, ShieldCheck, CircleCheck, CircleX, Trash2, TriangleAlert, RotateCcw } from '@lucide/vue';
 import { useReposStore } from '../stores/repos';
 import {
   backupList,
@@ -294,8 +298,8 @@ const handleRepoChange = () => {
   }
 };
 
-const toggleSnapshot = async (id: string) => {
-  if (activeSnapshotId.value === id) {
+const toggleSnapshot = async (id: string, forceOpen = false) => {
+  if (activeSnapshotId.value === id && !forceOpen) {
     activeSnapshotId.value = null;
     snapshotDetail.value = null;
     verifyResults.value = null;
@@ -320,6 +324,8 @@ const verifySnapshot = async (id: string) => {
 
   const taskId = `verify-${id}-${Date.now()}`;
   let unlistenFn: (() => void) | null = null;
+
+  toggleSnapshot(id, true);
 
   try {
     unlistenFn = await listenProgress((event) => {
@@ -525,15 +531,25 @@ onMounted(() => {
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  transition: border-color var(--transition-fast);
+  /* border-left: 2px solid transparent; */
+  transition: all var(--transition-fast);
+  min-height: 50px;
 }
 
 .snap-card:hover {
   border-color: var(--muted);
+  background-color: rgba(255, 255, 255, 0.01);
+}
+
+:root[data-theme="light"] .snap-card:hover {
+  background-color: rgba(0, 0, 0, 0.005);
 }
 
 .snap-active {
   border-color: var(--primary) !important;
+  border-left-color: var(--primary) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 10px rgba(149, 204, 255, 0.08);
+  min-height: 340px;
 }
 
 .snap-header {
@@ -543,6 +559,7 @@ onMounted(() => {
   padding: var(--spacing-sm) var(--spacing-md);
   cursor: pointer;
   background-color: var(--surface-raised);
+  min-height: fit-content;
 }
 
 .snap-meta {
@@ -583,6 +600,11 @@ onMounted(() => {
   transform: rotate(90deg);
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .snap-details {
   border-top: 1px solid var(--border);
   padding: var(--spacing-md);
@@ -590,11 +612,26 @@ onMounted(() => {
   flex-direction: column;
   gap: var(--spacing-md);
   background-color: var(--surface);
+  animation: fadeIn 0.25s ease-out;
+  min-height: 340px;
+}
+
+.snap-side-items {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-md);
+  align-items: center;
+  justify-content: end;
+  min-width: 30%;
 }
 
 .snap-actions {
   display: flex;
   gap: var(--spacing-sm);
+}
+
+.ref-count {
+  font-size: 11px;
 }
 
 .verify-results-box {
@@ -625,6 +662,7 @@ onMounted(() => {
   border-radius: var(--radius-xs);
   max-height: 250px;
   overflow-y: auto;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .refs-table {
@@ -634,7 +672,7 @@ onMounted(() => {
 }
 
 .refs-table th, .refs-table td {
-  padding: 6px var(--spacing-sm);
+  padding: 8px var(--spacing-sm);
   border-bottom: 1px solid var(--border);
   text-align: left;
 }
@@ -646,6 +684,23 @@ onMounted(() => {
   position: sticky;
   top: 0;
   z-index: 1;
+  border-bottom: 2px solid var(--border);
+}
+
+.refs-table tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.015);
+}
+
+.refs-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.035);
+}
+
+:root[data-theme="light"] .refs-table tbody tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+:root[data-theme="light"] .refs-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.025);
 }
 
 .branch-name {
@@ -662,6 +717,16 @@ onMounted(() => {
 .btn-tiny {
   font-size: 10px;
   padding: 1px var(--spacing-xs);
+}
+
+.btn-restore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px var(--spacing-sm);
+  transition: all var(--transition-fast);
 }
 
 /* Side Panel */

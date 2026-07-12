@@ -11,7 +11,7 @@
       <!-- Status Notice/Banner based on environment -->
       <div v-if="isKeyringUnsupported" class="unsupported-banner card">
         <div class="banner-header">
-          <span class="info-icon">🔑</span>
+          <Key class="lucide-icon color-primary" style="margin-right: 6px;" />
           <h3>System Keyring Service Unavailable</h3>
         </div>
         <p class="banner-body">
@@ -25,7 +25,7 @@
 
       <div v-else-if="isMockEnabled" class="mock-banner card">
         <div class="banner-header">
-          <span class="info-icon">ℹ️</span>
+          <Info class="lucide-icon" style="margin-right: 6px;" />
           <h3>Mock Mode Enabled</h3>
         </div>
         <p class="banner-body">
@@ -192,7 +192,7 @@
               :disabled="submitting"
             >
               <span v-if="submitting">Saving Credential...</span>
-              <span v-else>💾 Save Credential</span>
+              <span v-else><Save class="lucide-icon" style="margin-right: 4px;" /> Save Credential</span>
             </button>
           </form>
         </section>
@@ -203,6 +203,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { Key, Info, Save } from '@lucide/vue';
 import { 
   authList, 
   authAdd, 

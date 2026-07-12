@@ -11,42 +11,42 @@
 
       <nav class="nav-links">
         <router-link to="/" class="nav-item" active-class="active">
-          <span class="icon">📊</span>
+          <LayoutDashboard class="lucide-icon icon" />
           <span>Dashboard</span>
         </router-link>
 
         <router-link to="/branches" class="nav-item" active-class="active">
-          <span class="icon">🌿</span>
+          <GitBranch class="lucide-icon icon" />
           <span>Branches</span>
         </router-link>
 
         <router-link to="/cleanup" class="nav-item" active-class="active">
-          <span class="icon">🧹</span>
+          <Sparkles class="lucide-icon icon" />
           <span>Cleanup</span>
         </router-link>
 
         <router-link to="/backups" class="nav-item" active-class="active">
-          <span class="icon">💾</span>
+          <Database class="lucide-icon icon" />
           <span>Backups</span>
         </router-link>
 
         <router-link to="/diff" class="nav-item" active-class="active">
-          <span class="icon">🔍</span>
+          <GitCompare class="lucide-icon icon" />
           <span>Compare / Diff</span>
         </router-link>
 
         <router-link to="/history" class="nav-item" active-class="active">
-          <span class="icon">⏳</span>
+          <History class="lucide-icon icon" />
           <span>History</span>
         </router-link>
 
         <router-link to="/auth" class="nav-item" active-class="active">
-          <span class="icon">🔑</span>
+          <Key class="lucide-icon icon" />
           <span>Authentication</span>
         </router-link>
 
         <router-link to="/settings" class="nav-item" active-class="active">
-          <span class="icon">⚙️</span>
+          <Settings class="lucide-icon icon" />
           <span>Settings</span>
         </router-link>
       </nav>
@@ -69,6 +69,16 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useTheme } from './composables/useTheme';
+import {
+  LayoutDashboard,
+  GitBranch,
+  Sparkles,
+  Database,
+  GitCompare,
+  History,
+  Key,
+  Settings
+} from '@lucide/vue';
 
 useTheme();
 
@@ -156,9 +166,10 @@ onUnmounted(() => {
 }
 
 .icon {
-  font-size: 16px;
   width: 20px;
+  height: 16px;
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 

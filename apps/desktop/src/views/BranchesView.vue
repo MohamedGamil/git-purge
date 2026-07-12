@@ -19,10 +19,10 @@
             <label for="chk-auto-fetch">Auto Fetch</label>
           </div>
           <button class="btn btn-secondary btn-sm flex-1" @click="openReportModal" :disabled="store.loading || store.isScanning || isBackingUp">
-            📋 Generate Report
+            <ClipboardList class="lucide-icon" style="margin-right: 4px;" /> Generate Report
           </button>
           <button class="btn btn-secondary btn-sm flex-1" @click="triggerBackupSnapshot" :disabled="store.loading || store.isScanning || isBackingUp">
-            💾 Create Snapshot
+            <Database class="lucide-icon" style="margin-right: 4px;" /> Create Snapshot
           </button>
         </div>
         <div class="branches-header-actions-end">
@@ -64,7 +64,7 @@
               <span class="progress-msg">{{ store.scanProgressMessage }}</span>
             </div>
             <button class="btn btn-secondary btn-sm cancel-btn" @click="store.cancelActiveTask">
-              ✕ Cancel Scan
+              <X class="lucide-icon" style="margin-right: 4px;" /> Cancel Scan
             </button>
           </div>
 
@@ -78,14 +78,14 @@
               <span class="progress-msg">{{ backupProgressMessage }}</span>
             </div>
             <button class="btn btn-secondary btn-sm cancel-btn" @click="cancelBackup">
-              ✕ Cancel Backup
+              <X class="lucide-icon" style="margin-right: 4px;" /> Cancel Backup
             </button>
           </div>
 
           <!-- Normal State Buttons -->
           <div v-else class="engine-buttons-wrapper">
             <button class="btn btn-primary w-100 scan-main-btn" @click="triggerScan" :disabled="store.loading">
-              🔄 Scan & Classify
+              <RefreshCw class="lucide-icon" style="margin-right: 4px;" /> Scan & Classify
             </button>
           </div>
           <p class="last-scanned" v-if="store.scannedAt">Last Scan: {{ formattedScannedAt }}</p>
@@ -192,7 +192,7 @@
                       v-model="selectedBranches"
                       :disabled="branch.classification.protected || store.loading || store.isScanning || isBackingUp"
                     />
-                    <span v-if="branch.classification.protected" class="lock-icon" title="Protected ref. Cannot delete or archive.">🔒</span>
+                    <span v-if="branch.classification.protected" class="lock-icon" title="Protected ref. Cannot delete or archive."><Lock class="lucide-icon color-primary" /></span>
                   </div>
                 </td>
                 <td>
@@ -240,13 +240,13 @@
         </div>
         <div class="drawer-right">
           <button class="btn btn-secondary" v-if="selectedBranches.length === 2" @click="triggerCompare">
-            🔍 Compare Both
+            <GitCompare class="lucide-icon" style="margin-right: 4px;" /> Compare Both
           </button>
           <button class="btn btn-secondary" @click="triggerBulkAction('archive')">
-            📦 Archive Selected
+            <Archive class="lucide-icon" style="margin-right: 4px;" /> Archive Selected
           </button>
           <button class="btn btn-danger" @click="triggerBulkAction('delete')">
-            🗑️ Purge/Delete Selected
+            <Trash2 class="lucide-icon" style="margin-right: 4px;" /> Purge/Delete Selected
           </button>
         </div>
       </div>
@@ -257,7 +257,7 @@
       <div class="modal-card card report-modal-card">
         <header class="modal-header">
           <h3>Audit Reports</h3>
-          <button class="close-btn" @click="showReportModal = false">✕</button>
+          <button class="close-btn" @click="showReportModal = false"><X class="lucide-icon" /></button>
         </header>
 
         <div class="report-tabs">
@@ -266,14 +266,14 @@
             :class="{ active: selectedReportType === 'audit' }" 
             @click="selectedReportType = 'audit'"
           >
-            📋 Branch Audit
+            <ClipboardList class="lucide-icon" style="margin-right: 4px;" /> Branch Audit
           </button>
           <button 
             class="report-tab-btn" 
             :class="{ active: selectedReportType === 'trend' }" 
             @click="selectedReportType = 'trend'"
           >
-            📈 Cleanup Trend
+            <TrendingUp class="lucide-icon" style="margin-right: 4px;" /> Cleanup Trend
           </button>
         </div>
 
@@ -285,8 +285,8 @@
           <pre v-else class="report-preview"><code>{{ reportContent }}</code></pre>
         </main>
         <footer class="modal-footer">
-          <button class="btn btn-secondary" @click="copyReportToClipboard">📋 Copy to Clipboard</button>
-          <button class="btn btn-primary" @click="downloadReportFile">📥 Download File</button>
+          <button class="btn btn-secondary" @click="copyReportToClipboard"><ClipboardList class="lucide-icon" style="margin-right: 4px;" /> Copy to Clipboard</button>
+          <button class="btn btn-primary" @click="downloadReportFile"><Download class="lucide-icon" style="margin-right: 4px;" /> Download File</button>
         </footer>
       </div>
     </div>
@@ -295,8 +295,8 @@
     <div v-if="showDuplicateWarning" class="modal-overlay" @click.self="showDuplicateWarning = false">
       <div class="modal-card card warning-modal-card">
         <header class="modal-header">
-          <h3>⚠️ Duplicate Snapshot Warning</h3>
-          <button class="close-btn" @click="showDuplicateWarning = false">✕</button>
+          <h3><TriangleAlert class="lucide-icon color-warning" style="margin-right: 6px;" /> Duplicate Snapshot Warning</h3>
+          <button class="close-btn" @click="showDuplicateWarning = false"><X class="lucide-icon" /></button>
         </header>
         <main class="modal-body warning-body">
           <p>No branches or commit tips have changed since the last backup snapshot.</p>
@@ -318,6 +318,19 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { 
+  ClipboardList, 
+  Database, 
+  X, 
+  RefreshCw, 
+  Lock, 
+  GitCompare, 
+  Archive, 
+  Trash2, 
+  TriangleAlert, 
+  TrendingUp, 
+  Download 
+} from '@lucide/vue';
 import { useReposStore } from '../stores/repos';
 import { 
   type Branch,

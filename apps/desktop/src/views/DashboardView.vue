@@ -34,7 +34,7 @@
       <div class="section-header">
         <h2>Tracked Repositories</h2>
         <button class="btn btn-primary" @click="handleBrowseFolder" :disabled="store.loading">
-          <span class="icon-spacing">📁</span> Add Repository
+          <FolderPlus class="lucide-icon" style="margin-right: 6px;" /> Add Repository
         </button>
       </div>
 
@@ -63,13 +63,13 @@
 
           <div class="repo-actions">
             <button class="btn btn-secondary btn-sm" @click="exploreRepo(repo.id)">
-              🌿 Explore
+              <GitBranch class="lucide-icon" style="margin-right: 4px;" /> Explore
             </button>
             <button class="btn btn-secondary btn-sm" @click="viewBackups(repo.id)">
-              💾 Backups
+              <Database class="lucide-icon" style="margin-right: 4px;" /> Backups
             </button>
             <button class="btn btn-danger-alt btn-sm" @click="confirmDeleteId = repo.id">
-              🗑️ Remove
+              <Trash2 class="lucide-icon" style="margin-right: 4px;" /> Remove
             </button>
           </div>
 
@@ -111,6 +111,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
 import { useReposStore } from '../stores/repos';
 import { isMock } from '../api/ipc';
+import { FolderPlus, GitBranch, Database, Trash2 } from '@lucide/vue';
 
 const router = useRouter();
 const store = useReposStore();

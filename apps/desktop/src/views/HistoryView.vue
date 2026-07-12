@@ -121,7 +121,7 @@
           <p class="description">Export a comprehensive log of branch cleanup trends and status metrics.</p>
           <div class="engine-buttons-wrapper">
             <button class="btn btn-primary w-100" @click="openReportModal" :disabled="store.loading || loadingHistory || loadingRuns">
-              📋 Generate Report
+              <ClipboardList class="lucide-icon" style="margin-right: 4px;" /> Generate Report
             </button>
           </div>
         </div>
@@ -178,8 +178,11 @@
                         class="btn-icon" 
                         @click="toggleRunExpand(run.id)"
                         :disabled="store.loading || loadingHistory || loadingRuns"
+                        style="display: inline-flex; align-items: center; gap: 4px;"
                       >
-                        {{ expandedRuns.has(run.id) ? '▲ Hide' : '▼ View Branches (' + run.branches.length + ')' }}
+                        <ChevronUp v-if="expandedRuns.has(run.id)" class="lucide-icon" />
+                        <ChevronDown v-else class="lucide-icon" />
+                        {{ expandedRuns.has(run.id) ? 'Hide' : 'View Branches (' + run.branches.length + ')' }}
                       </button>
                       <span v-else class="text-muted text-sm">None</span>
                     </td>
@@ -191,7 +194,7 @@
                         <h4>Deleted/Archived Branches ({{ run.branches.length }})</h4>
                         <ul class="branches-list">
                           <li v-for="branch in run.branches" :key="branch" class="branch-item code-font">
-                            <span class="branch-icon">🌿</span> {{ branch }}
+                            <GitBranch class="lucide-icon" style="margin-right: 4px;" /> {{ branch }}
                           </li>
                         </ul>
                       </div>
@@ -206,16 +209,18 @@
                 class="btn btn-secondary btn-sm" 
                 :disabled="runsOffset === 0 || loadingRuns || store.loading || loadingHistory"
                 @click="runsOffset -= runsLimit; loadRuns();"
+                style="display: inline-flex; align-items: center; gap: 4px;"
               >
-                ◀ Previous
+                <ChevronLeft class="lucide-icon" /> Previous
               </button>
               <span class="pagination-info">Page {{ Math.floor(runsOffset / runsLimit) + 1 }}</span>
               <button 
                 class="btn btn-secondary btn-sm" 
                 :disabled="!hasMoreRuns || loadingRuns || store.loading || loadingHistory"
                 @click="loadNextPage()"
+                style="display: inline-flex; align-items: center; gap: 4px;"
               >
-                Next ▶
+                Next <ChevronRight class="lucide-icon" />
               </button>
             </div>
           </div>
@@ -228,7 +233,7 @@
       <div class="modal-card card report-modal-card">
         <header class="modal-header">
           <h3>Audit Reports</h3>
-          <button class="close-btn" @click="showReportModal = false">✕</button>
+          <button class="close-btn" @click="showReportModal = false"><X class="lucide-icon" /></button>
         </header>
 
         <div class="report-tabs">
@@ -237,14 +242,14 @@
             :class="{ active: selectedReportType === 'audit' }" 
             @click="selectedReportType = 'audit'"
           >
-            📋 Branch Audit
+            <ClipboardList class="lucide-icon" style="margin-right: 4px;" /> Branch Audit
           </button>
           <button 
             class="report-tab-btn" 
             :class="{ active: selectedReportType === 'trend' }" 
             @click="selectedReportType = 'trend'"
           >
-            📈 Cleanup Trend
+            <TrendingUp class="lucide-icon" style="margin-right: 4px;" /> Cleanup Trend
           </button>
         </div>
 
@@ -256,8 +261,8 @@
           <pre v-else class="report-preview"><code>{{ reportContent }}</code></pre>
         </main>
         <footer class="modal-footer">
-          <button class="btn btn-secondary" @click="copyReportToClipboard">📋 Copy to Clipboard</button>
-          <button class="btn btn-primary" @click="downloadReportFile">📥 Download File</button>
+          <button class="btn btn-secondary" @click="copyReportToClipboard"><ClipboardList class="lucide-icon" style="margin-right: 4px;" /> Copy to Clipboard</button>
+          <button class="btn btn-primary" @click="downloadReportFile"><Download class="lucide-icon" style="margin-right: 4px;" /> Download File</button>
         </footer>
       </div>
     </div>
@@ -267,6 +272,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useReposStore } from '../stores/repos';
+import { ClipboardList, ChevronUp, ChevronDown, GitBranch, ChevronLeft, ChevronRight, X, TrendingUp, Download } from '@lucide/vue';
 import { historyGet, historyRunsGet, reportGenerate, saveFile } from '../api/ipc';
 import { save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatChartDate } from '../utils/date';

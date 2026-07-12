@@ -49,7 +49,7 @@
             title="Swap references A and B"
             :disabled="!branchA && !branchB"
           >
-            ⇆
+            <ArrowLeftRight class="lucide-icon" />
           </button>
 
           <div class="select-item">
@@ -80,7 +80,7 @@
   
           <button class="btn btn-primary compare-btn" @click="runDiff" :disabled="!branchA || !branchB || loading">
             <span v-if="loading">Comparing...</span>
-            <span v-else>🔍 Compare References</span>
+            <span v-else><GitCompare class="lucide-icon" style="margin-right: 4px;" /> Compare References</span>
           </button>
         </div>
       </section>
@@ -140,6 +140,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useReposStore } from '../stores/repos';
 import { diff, type ClientDiffResult } from '../api/ipc';
+import { ArrowLeftRight, GitCompare } from '@lucide/vue';
 
 const route = useRoute();
 const store = useReposStore();

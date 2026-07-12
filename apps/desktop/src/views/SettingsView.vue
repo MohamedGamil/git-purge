@@ -70,7 +70,7 @@
             <div class="input-with-button">
               <input id="backups-root" type="text" v-model="backupsRoot" class="form-input path-input" />
               <button type="button" class="btn btn-secondary btn-sm browse-btn" @click="handleBrowseFolder">
-                📁 Browse
+                <Folder class="lucide-icon" style="margin-right: 4px;" /> Browse
               </button>
             </div>
             <p class="field-hint">Base directory where bare mirror repositories are initialized for safe recovery.</p>
@@ -83,10 +83,10 @@
           <p class="section-desc">Export your current settings configuration to a backup file, or import settings from an existing file.</p>
           <div class="migration-actions">
             <button type="button" class="btn btn-secondary btn-sm" @click="handleExportSettings" :disabled="saving">
-              📤 Export Settings TOML
+              <Upload class="lucide-icon" style="margin-right: 4px;" /> Export Settings TOML
             </button>
             <button type="button" class="btn btn-secondary btn-sm" @click="handleImportSettings" :disabled="saving">
-              📥 Import Settings TOML
+              <Download class="lucide-icon" style="margin-right: 4px;" /> Import Settings TOML
             </button>
           </div>
         </section>
@@ -95,7 +95,7 @@
         <div class="actions-bar">
           <button type="submit" class="btn btn-primary btn-save" :disabled="saving">
             <span v-if="saving">Saving Settings...</span>
-            <span v-else>💾 Save Changes</span>
+            <span v-else><Save class="lucide-icon" style="margin-right: 4px;" /> Save Changes</span>
           </button>
           <span v-if="saveSuccess" class="success-msg">✓ Settings saved successfully!</span>
         </div>
@@ -107,6 +107,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { Folder, Upload, Download, Save } from '@lucide/vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
 import { settingsGet, settingsSave, settingsExport, settingsImport, type Settings } from '../api/ipc';
 

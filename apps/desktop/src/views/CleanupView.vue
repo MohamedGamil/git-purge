@@ -33,8 +33,8 @@
           <div class="filter-item">
             <label for="action-kind">Action Mode</label>
             <select id="action-kind" v-model="actionKind" class="form-input" :disabled="store.loading || loadingPlan || isExecuting">
-              <option value="delete">🗑️ Purge/Delete Mode</option>
-              <option value="archive">📦 Archive Mode</option>
+              <option value="delete">Purge/Delete Mode</option>
+              <option value="archive">Archive Mode</option>
             </select>
           </div>
 
@@ -105,7 +105,7 @@
 
           <button class="btn btn-primary w-100" @click="generatePlan" :disabled="store.loading || loadingPlan || isExecuting">
             <span v-if="loadingPlan">Analyzing...</span>
-            <span v-else>🔍 Generate Cleanup Plan</span>
+            <span v-else><Search class="lucide-icon" style="margin-right: 4px;" /> Generate Cleanup Plan</span>
           </button>
         </div>
       </aside>
@@ -143,7 +143,9 @@
               <div v-for="act in planResult.actions" :key="act.refName" class="action-card" :class="{ 'destructive-card': act.destructive }">
                 <div class="action-card-header">
                   <span class="action-type" :class="act.action === 'archive' ? 'text-archive' : 'text-delete'">
-                    {{ act.action === 'archive' ? '📦 Archive' : '🗑️ Delete' }}
+                    <Archive v-if="act.action === 'archive'" class="lucide-icon" style="margin-right: 4px;" />
+                    <Trash2 v-else class="lucide-icon" style="margin-right: 4px;" />
+                    {{ act.action === 'archive' ? 'Archive' : 'Delete' }}
                   </span>
                   <span class="action-branch"><code>{{ act.refName }}</code></span>
                   <span v-if="act.destructive" class="badge badge-danger">Unmerged Branch</span>
@@ -184,13 +186,13 @@
               </div>
 
               <button class="btn btn-danger w-100 cancel-btn" @click="handleCancel">
-                🛑 Cancel Operations
+                <OctagonAlert class="lucide-icon" style="margin-right: 4px;" /> Cancel Operations
               </button>
             </div>
 
             <!-- Run Report / Success Display -->
             <div v-else-if="runReport" class="run-report-card card">
-              <h3 class="success-header">🎉 Cleanup Complete</h3>
+              <h3 class="success-header"><PartyPopper class="lucide-icon" style="margin-right: 6px;" /> Cleanup Complete</h3>
               <div class="report-stats">
                 <div class="report-stat">
                   <span class="stat-lbl">Attempted</span>
@@ -226,10 +228,10 @@
               <!-- Dynamic Safeguards Description -->
               <div class="safeguards-description">
                 <div v-if="actionKind === 'delete'" class="mode-info delete-info">
-                  <p>🗑️ <strong>Delete/Purge Mode:</strong> You are about to permanently delete matching branches from the remote and local systems. This action cannot be undone.</p>
+                  <p><Trash2 class="lucide-icon color-danger" style="margin-right: 4px;" /> <strong>Delete/Purge Mode:</strong> You are about to permanently delete matching branches from the remote and local systems. This action cannot be undone.</p>
                 </div>
                 <div v-else class="mode-info archive-info">
-                  <p>📦 <strong>Archive Mode:</strong> Selected branches will be safely archived (renamed/prefixed to <code>archive/</code> or backed up in bare mirrors). The original references will be deleted from the active tracking list.</p>
+                  <p><Archive class="lucide-icon color-primary" style="margin-right: 4px;" /> <strong>Archive Mode:</strong> Selected branches will be safely archived (renamed/prefixed to <code>archive/</code> or backed up in bare mirrors). The original references will be deleted from the active tracking list.</p>
                 </div>
               </div>
 
@@ -241,14 +243,14 @@
                   <span v-else>Disable pre-archival backup snapshot</span>
                 </label>
                 <div v-if="noBackup" class="warning-box">
-                  ⚠️ <strong>Caution:</strong> Proceeding without a backup snapshot is highly dangerous and cannot be undone!
+                  <TriangleAlert class="lucide-icon color-danger" style="margin-right: 4px;" /> <strong>Caution:</strong> Proceeding without a backup snapshot is highly dangerous and cannot be undone!
                 </div>
               </div>
 
               <!-- Unmerged Destructive Confirmation (SAFE-02) -->
               <div v-if="hasDestructiveActions" class="destructive-confirmation">
                 <label for="confirm-token">
-                  ⚠️ This plan contains unmerged branches. Type <strong>DELETE</strong> to confirm:
+                  <TriangleAlert class="lucide-icon color-danger" style="margin-right: 4px;" /> This plan contains unmerged branches. Type <strong>DELETE</strong> to confirm:
                 </label>
                 <input
                   id="confirm-token"
@@ -267,7 +269,7 @@
                 :disabled="!canExecute || store.loading || loadingPlan || isExecuting"
                 @click="executePlan"
               >
-                🗑️ Execute Destructive Purge
+                <Trash2 class="lucide-icon" style="margin-right: 4px;" /> Execute Destructive Purge
               </button>
               <button
                 v-else
@@ -275,7 +277,7 @@
                 :disabled="!canExecute || store.loading || loadingPlan || isExecuting"
                 @click="executePlan"
               >
-                📦 Execute Branch Archival
+                <Archive class="lucide-icon" style="margin-right: 4px;" /> Execute Branch Archival
               </button>
               
               <p class="dry-run-hint">Changes will only be applied to the repository after you click the button above.</p>
@@ -290,6 +292,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useReposStore } from '../stores/repos';
+import { Search, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert } from '@lucide/vue';
 import {
   plan,
   deleteBranches,

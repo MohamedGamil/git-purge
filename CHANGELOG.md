@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Standardized the report generation interface in the History View to use the new multi-tab Markdown preview modal matching the Branches Explorer.
+- Replaced native OS-specific emojis throughout the desktop UI with SVG-based Lucide icons styled via theme-aware CSS variables.
+- Enhanced the collapsable backup snapshots list in the Backups view with left-accent active borders, fade-in transitions, layout height stability, accessible zebra-striped references table, and a dedicated Restore button with RotateCcw icon.
+
+
 
 ### Fixed
 

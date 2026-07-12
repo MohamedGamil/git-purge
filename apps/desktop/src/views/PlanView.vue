@@ -8,7 +8,7 @@
         </p>
       </div>
       <button class="btn btn-secondary btn-sm" @click="goBack" :disabled="isExecuting">
-        ✕ Abort & Go Back
+        <X class="lucide-icon" style="margin-right: 4px;" /> Abort & Go Back
       </button>
     </header>
 
@@ -43,7 +43,9 @@
           <div v-for="act in planResult?.actions" :key="act.refName" class="action-card" :class="{ 'destructive-card': act.destructive }">
             <div class="action-card-header">
               <span class="action-type" :class="act.action === 'archive' ? 'text-archive' : 'text-delete'">
-                {{ act.action === 'archive' ? '📦 Archive' : '🗑️ Delete' }}
+                <Archive v-if="act.action === 'archive'" class="lucide-icon" style="margin-right: 4px;" />
+                <Trash2 v-else class="lucide-icon" style="margin-right: 4px;" />
+                {{ act.action === 'archive' ? 'Archive' : 'Delete' }}
               </span>
               <span class="action-branch"><code>{{ act.refName }}</code></span>
               <span v-if="act.destructive" class="badge badge-danger">Unmerged Branch</span>
@@ -73,13 +75,13 @@
             <span class="progress-msg">{{ execProgressMessage }}</span>
           </div>
           <button class="btn btn-danger w-100 cancel-btn" @click="handleCancel">
-            🛑 Cancel/Abort Operations
+            <OctagonAlert class="lucide-icon" style="margin-right: 4px;" /> Cancel/Abort Operations
           </button>
         </div>
 
         <!-- Run Report / Success Display -->
         <div v-else-if="runReport" class="run-report-card card">
-          <h3 class="success-header">🎉 Execution Complete</h3>
+          <h3 class="success-header"><PartyPopper class="lucide-icon" style="margin-right: 6px;" /> Execution Complete</h3>
           <div class="report-stats">
             <div class="report-stat">
               <span class="stat-lbl">Attempted</span>
@@ -114,7 +116,7 @@
 
           <!-- Remote Actions Warning -->
           <div v-if="hasRemoteActions" class="warning-box" style="margin-top: var(--spacing-xs); margin-bottom: var(--spacing-sm);">
-            ⚠️ <strong>Caution:</strong> This plan contains <strong>remote</strong> branch deletions. Deleting remote branches will permanently delete refs on the remote Git server.
+            <TriangleAlert class="lucide-icon color-warning" style="margin-right: 4px;" /> <strong>Caution:</strong> This plan contains <strong>remote</strong> branch deletions. Deleting remote branches will permanently delete refs on the remote Git server.
           </div>
 
           <div class="safety-options">
@@ -124,14 +126,14 @@
               Disable pre-deletion backup snapshot
             </label>
             <div v-if="noBackup" class="warning-box">
-              ⚠️ <strong>Caution:</strong> Proceeding without a backup snapshot is dangerous and cannot be undone!
+              <TriangleAlert class="lucide-icon color-danger" style="margin-right: 4px;" /> <strong>Caution:</strong> Proceeding without a backup snapshot is dangerous and cannot be undone!
             </div>
           </div>
 
           <!-- Unmerged Destructive Confirmation (SAFE-02 / SAFETY) -->
           <div v-if="hasDestructiveActions" class="destructive-confirmation">
             <label for="confirm-token">
-              ⚠️ This plan contains unmerged branches. Type <strong>DELETE</strong> to confirm destruction:
+              <TriangleAlert class="lucide-icon color-danger" style="margin-right: 4px;" /> This plan contains unmerged branches. Type <strong>DELETE</strong> to confirm destruction:
             </label>
             <input
               id="confirm-token"
@@ -147,7 +149,7 @@
             :disabled="!canExecute"
             @click="executePlan"
           >
-            🚀 Execute Plan (Write Changes)
+            <Rocket class="lucide-icon" style="margin-right: 4px;" /> Execute Plan (Write Changes)
           </button>
           <p class="dry-run-hint">Changes will only be applied after you click the button above.</p>
         </div>
@@ -160,6 +162,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useReposStore } from '../stores/repos';
+import { X, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert, Rocket } from '@lucide/vue';
 import {
   plan,
   deleteBranches,
