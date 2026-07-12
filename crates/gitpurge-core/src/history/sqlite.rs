@@ -56,7 +56,25 @@ impl SqliteHistoryStore {
                 }
             })
             .collect();
-        self.backups_root.join(format!("{}.git", sanitized_id))
+        let target_path = self.backups_root.join(format!("{}.git", sanitized_id));
+        if !target_path.exists() {
+            // Fallback 1: If self.backups_root is ~/.gitpurge/backups, check if it was in ~/.gitpurge directly
+            if let Some(parent) = self.backups_root.parent() {
+                let other_path = parent.join(format!("{}.git", sanitized_id));
+                if other_path.exists() {
+                    return other_path;
+                }
+            }
+            // Fallback 2: If self.backups_root is ~/.gitpurge, check if it was in ~/.gitpurge/backups
+            let old_path = self
+                .backups_root
+                .join("backups")
+                .join(format!("{}.git", sanitized_id));
+            if old_path.exists() {
+                return old_path;
+            }
+        }
+        target_path
     }
 
     fn load_snapshot_from_mirror(
@@ -64,7 +82,27 @@ impl SqliteHistoryStore {
         repo_id: &RepoId,
         snapshot_id: &SnapshotId,
     ) -> Result<Snapshot> {
-        let mirror_path = self.resolve_mirror_path(repo_id);
+        let db_backup_path: Option<String> = {
+            let conn = self.conn.lock().unwrap();
+            conn.query_row(
+                "SELECT backup_path FROM snapshots WHERE id = ?1;",
+                [&snapshot_id.0],
+                |row| row.get(0),
+            )
+            .ok()
+        };
+
+        let mirror_path = if let Some(ref path_str) = db_backup_path {
+            let path = PathBuf::from(path_str);
+            if path.exists() {
+                path
+            } else {
+                self.resolve_mirror_path(repo_id)
+            }
+        } else {
+            self.resolve_mirror_path(repo_id)
+        };
+
         if !mirror_path.exists() {
             return Err(crate::GitPurgeError::Snapshot(format!(
                 "Bare mirror not found: {:?}",
@@ -146,6 +184,13 @@ impl HistoryStore for SqliteHistoryStore {
             crate::model::ExecMode::DryRun => "dry-run",
             crate::model::ExecMode::Execute => "execute",
         };
+
+        let now_str = finished_at.clone();
+        let _ = conn.execute(
+            "INSERT OR IGNORE INTO repos (id, canonical_url, local_path, path_hash, display_name, default_branch, created_at, tombstoned_at)
+             VALUES (?1, NULL, NULL, 'unknown', ?1, 'main', ?2, NULL);",
+            (&report.repo.0, &now_str),
+        );
 
         // 1. Insert into runs
         conn.execute(
@@ -493,11 +538,23 @@ impl HistoryStore for SqliteHistoryStore {
         } else {
             None
         };
+        let mirror_dir = snapshot
+            .manifest_path
+            .parent()
+            .map(|p| p.to_string_lossy().to_string());
+
         let manifest_ref = format!("refs/gitpurge/meta/{}", snapshot.id.0);
 
+        let now_str = created_at.clone();
+        let _ = conn.execute(
+            "INSERT OR IGNORE INTO repos (id, canonical_url, local_path, path_hash, display_name, default_branch, created_at, tombstoned_at)
+             VALUES (?1, NULL, NULL, 'unknown', ?1, 'main', ?2, NULL);",
+            (&snapshot.repo.0, &now_str),
+        );
+
         conn.execute(
-            "INSERT OR REPLACE INTO snapshots (id, repo_id, created_at, trigger, ref_count, note, verified_at, manifest_ref)
-             VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7);",
+            "INSERT OR REPLACE INTO snapshots (id, repo_id, created_at, trigger, ref_count, note, verified_at, manifest_ref, backup_path)
+             VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7, ?8);",
             (
                 &snapshot.id.0,
                 &snapshot.repo.0,
@@ -506,46 +563,55 @@ impl HistoryStore for SqliteHistoryStore {
                 snapshot.refs.len() as i64,
                 verified_at,
                 manifest_ref,
+                mirror_dir,
             ),
         ).map_err(|e| crate::GitPurgeError::Config(format!("Failed to save snapshot: {}", e)))?;
         Ok(())
     }
 
     fn list_snapshots(&self, repo: &RepoId) -> Result<Vec<Snapshot>> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT id, created_at, trigger, ref_count, verified_at FROM snapshots WHERE repo_id = ?1 ORDER BY created_at DESC;"
-        ).map_err(|e| crate::GitPurgeError::Config(format!("Failed to prepare snapshots list: {}", e)))?;
+        let snapshot_infos = {
+            let conn = self.conn.lock().unwrap();
+            let mut stmt = conn.prepare(
+                "SELECT id, created_at, trigger, ref_count, verified_at FROM snapshots WHERE repo_id = ?1 ORDER BY created_at DESC;"
+            ).map_err(|e| crate::GitPurgeError::Config(format!("Failed to prepare snapshots list: {}", e)))?;
 
-        let rows = stmt
-            .query_map([&repo.0], |row| {
-                let id: String = row.get(0)?;
-                let created_at_str: String = row.get(1)?;
-                let trigger_str: String = row.get(2)?;
-                let _ref_count: i64 = row.get(3)?;
-                let verified_at: Option<String> = row.get(4)?;
+            let rows = stmt
+                .query_map([&repo.0], |row| {
+                    let id: String = row.get(0)?;
+                    let created_at_str: String = row.get(1)?;
+                    let trigger_str: String = row.get(2)?;
+                    let _ref_count: i64 = row.get(3)?;
+                    let verified_at: Option<String> = row.get(4)?;
 
-                let created_at = time::OffsetDateTime::parse(
-                    &created_at_str,
-                    &time::format_description::well_known::Rfc3339,
-                )
-                .unwrap_or_else(|_| time::OffsetDateTime::now_utc());
-                let trigger = match trigger_str.as_str() {
-                    "pre-op" => SnapshotTrigger::PreDelete,
-                    "scheduled" => SnapshotTrigger::Scheduled,
-                    _ => SnapshotTrigger::Manual,
-                };
+                    let created_at = time::OffsetDateTime::parse(
+                        &created_at_str,
+                        &time::format_description::well_known::Rfc3339,
+                    )
+                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+                    let trigger = match trigger_str.as_str() {
+                        "pre-op" => SnapshotTrigger::PreDelete,
+                        "scheduled" => SnapshotTrigger::Scheduled,
+                        _ => SnapshotTrigger::Manual,
+                    };
 
-                Ok((SnapshotId(id), created_at, trigger, verified_at.is_some()))
-            })
-            .map_err(|e| {
-                crate::GitPurgeError::Config(format!("Failed to query snapshots: {}", e))
-            })?;
+                    Ok((SnapshotId(id), created_at, trigger, verified_at.is_some()))
+                })
+                .map_err(|e| {
+                    crate::GitPurgeError::Config(format!("Failed to query snapshots: {}", e))
+                })?;
+
+            let mut infos = Vec::new();
+            for r in rows {
+                infos.push(
+                    r.map_err(|e| crate::GitPurgeError::Config(format!("Row error: {}", e)))?,
+                );
+            }
+            infos
+        };
 
         let mut result = Vec::new();
-        for r in rows {
-            let (id, _created_at, _trigger, verified) =
-                r.map_err(|e| crate::GitPurgeError::Config(format!("Row error: {}", e)))?;
+        for (id, _created_at, _trigger, verified) in snapshot_infos {
             let mut snapshot = self.load_snapshot_from_mirror(repo, &id)?;
             snapshot.verified = verified;
             result.push(snapshot);
@@ -555,9 +621,9 @@ impl HistoryStore for SqliteHistoryStore {
     }
 
     fn get_snapshot(&self, id: &SnapshotId) -> Result<Option<Snapshot>> {
-        let conn = self.conn.lock().unwrap();
-        let row_opt = conn
-            .query_row(
+        let row_opt = {
+            let conn = self.conn.lock().unwrap();
+            conn.query_row(
                 "SELECT repo_id, created_at, trigger, verified_at FROM snapshots WHERE id = ?1;",
                 [&id.0],
                 |row| {
@@ -583,7 +649,8 @@ impl HistoryStore for SqliteHistoryStore {
             .optional()
             .map_err(|e| {
                 crate::GitPurgeError::Config(format!("Failed to get snapshot details: {}", e))
-            })?;
+            })?
+        };
 
         if let Some((repo_id, _created_at, _trigger, verified)) = row_opt {
             let mut snapshot = self.load_snapshot_from_mirror(&repo_id, id)?;

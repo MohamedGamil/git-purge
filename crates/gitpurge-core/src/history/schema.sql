@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS snapshots (
     ref_count    INTEGER NOT NULL,
     note         TEXT,
     verified_at  TEXT,
-    manifest_ref TEXT NOT NULL
+    manifest_ref TEXT NOT NULL,
+    backup_path  TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_runs_repo_time    ON runs(repo_id, started_at);

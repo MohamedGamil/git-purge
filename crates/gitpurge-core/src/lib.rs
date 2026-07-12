@@ -107,6 +107,14 @@ impl Engine {
     /// adapters (gix/git2 git backend, keyring secret store, SQLite history store).
     #[allow(unsafe_code)]
     pub fn open(config: Config) -> Result<Self> {
+        let data_dir = config.resolve_data_dir();
+        if let Some(bd) = directories::BaseDirs::new() {
+            let old_dir = bd.home_dir().join(".git-purge");
+            if old_dir.exists() && !data_dir.exists() {
+                let _ = std::fs::rename(&old_dir, &data_dir);
+            }
+        }
+
         // Configure libgit2 network connection and operation timeouts to protect against offline state/VPN loss.
         unsafe {
             let _ = git2::opts::set_server_connect_timeout_in_milliseconds(5000);
@@ -1166,11 +1174,11 @@ pub fn log_operation(op: &str, branch: &str, scope: &str, result: &str) {
     use std::io::Write;
 
     let log_dir = if let Some(bd) = directories::BaseDirs::new() {
-        bd.home_dir().join(".git-purge")
+        bd.home_dir().join(".gitpurge")
     } else if let Ok(home) = std::env::var("HOME") {
-        std::path::PathBuf::from(home).join(".git-purge")
+        std::path::PathBuf::from(home).join(".gitpurge")
     } else {
-        std::env::temp_dir().join(".git-purge")
+        std::env::temp_dir().join(".gitpurge")
     };
 
     let _ = std::fs::create_dir_all(&log_dir);

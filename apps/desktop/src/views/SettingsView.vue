@@ -85,7 +85,7 @@
                 <Folder class="lucide-icon" style="margin-right: 4px;" /> Browse
               </button>
             </div>
-            <p class="field-hint">Base directory where bare mirror repositories are initialized for safe recovery.</p>
+            <p class="field-hint">Base directory where bare mirror repositories are initialized for safe recovery. Defaults to ~/.gitpurge (or %USERPROFILE%\.gitpurge on Windows) if left blank.</p>
           </div>
         </section>
 

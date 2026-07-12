@@ -33,7 +33,25 @@ impl BackupMirrorManager {
                 }
             })
             .collect();
-        self.backups_root.join(format!("{}.git", sanitized_id))
+        let target_path = self.backups_root.join(format!("{}.git", sanitized_id));
+        if !target_path.exists() {
+            // Fallback 1: If self.backups_root is ~/.gitpurge/backups, check if it was in ~/.gitpurge directly
+            if let Some(parent) = self.backups_root.parent() {
+                let other_path = parent.join(format!("{}.git", sanitized_id));
+                if other_path.exists() {
+                    return other_path;
+                }
+            }
+            // Fallback 2: If self.backups_root is ~/.gitpurge, check if it was in ~/.gitpurge/backups
+            let old_path = self
+                .backups_root
+                .join("backups")
+                .join(format!("{}.git", sanitized_id));
+            if old_path.exists() {
+                return old_path;
+            }
+        }
+        target_path
     }
 
     /// Open the bare mirror for a repository, initializing it if it does not exist.
