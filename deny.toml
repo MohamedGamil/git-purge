@@ -35,15 +35,15 @@ exceptions = []
 [bans]
 # Prefer a single version of each crate; flag accidental duplicate trees.
 multiple-versions = "warn"
-wildcard-dependencies = "deny"
+wildcards = "deny"
 # ARCHITECTURE GUARD (docs/02 §1): the CLI and desktop crates must NOT depend on
 # the git engines or the DB directly — only gitpurge-core may. A dedicated
 # architecture test enforces this too; the ban list documents the intent.
 deny = [
-    { name = "git2", allowed-by = ["gitpurge-core"] },
-    { name = "gix", allowed-by = ["gitpurge-core"] },
-    { name = "rusqlite", allowed-by = ["gitpurge-core"] },
-    { name = "keyring", allowed-by = ["gitpurge-core"] },
+    { name = "git2", wrappers = ["gitpurge-core"] },
+    { name = "gix", wrappers = ["gitpurge-core"] },
+    { name = "rusqlite", wrappers = ["gitpurge-core"] },
+    { name = "keyring", wrappers = ["gitpurge-core"] },
 ]
 skip = []
 skip-tree = []

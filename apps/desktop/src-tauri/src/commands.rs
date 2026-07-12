@@ -2113,7 +2113,9 @@ pub fn save_file(path: String, content: String) -> Result<(), SerializableError>
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), SerializableError> {
     #[cfg(target_os = "windows")]
-    let res = std::process::Command::new("cmd").args(["/C", "start", &url]).spawn();
+    let res = std::process::Command::new("cmd")
+        .args(["/C", "start", &url])
+        .spawn();
 
     #[cfg(target_os = "macos")]
     let res = std::process::Command::new("open").arg(&url).spawn();
