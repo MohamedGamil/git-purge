@@ -77,10 +77,19 @@ impl Default for ProtectionPolicy {
         // The immutable well-known set (CONVENTIONS §7.3). `config`/policy loading
         // unions user additions on top of this; it can never be shrunk.
         Self {
-            well_known: ["main", "master", "develop", "staging", "production", "HEAD"]
-                .iter()
-                .map(|s| (*s).to_string())
-                .collect(),
+            well_known: [
+                "main",
+                "master",
+                "main-legacy",
+                "develop",
+                "staging",
+                "prod",
+                "production",
+                "HEAD",
+            ]
+            .iter()
+            .map(|s| (*s).to_string())
+            .collect(),
             protected_names: Vec::new(),
             protected_globs: Vec::new(),
         }

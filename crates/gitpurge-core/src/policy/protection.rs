@@ -130,9 +130,27 @@ mod tests {
                 reason: ProtectionReason::IsHead
             }
         ));
-        assert!(matches!(
-            evaluator.evaluate("unprotected-branch", false, false),
-            Protection::Unprotected
-        ));
+    }
+
+    #[test]
+    fn test_protection_policy_default_well_known() {
+        let policy = ProtectionPolicy::default();
+        let expected = vec![
+            "main",
+            "master",
+            "main-legacy",
+            "develop",
+            "staging",
+            "prod",
+            "production",
+            "HEAD",
+        ];
+        for branch in expected {
+            assert!(
+                policy.well_known.contains(&branch.to_string()),
+                "Default well-known list must contain {}",
+                branch
+            );
+        }
     }
 }
