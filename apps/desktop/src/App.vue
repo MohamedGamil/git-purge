@@ -4,7 +4,7 @@
     <aside class="sidebar">
       <div class="logo">
         <img :src="brandIcon" alt="Git Purge Logo" class="brand-logo" />
-        <span>Git Purge</span>
+        <span class="app-name">Git Purge</span>
       </div>
 
       <nav class="nav-links">
@@ -140,9 +140,16 @@ onUnmounted(() => {
 }
 
 .brand-logo {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.app-name {
+  color: var(--on-surface-strong);
+  font-size: 16px;
 }
 
 .nav-links {

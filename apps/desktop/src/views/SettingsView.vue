@@ -34,7 +34,7 @@
               <option value="YYYY-MM-DD HH:mm:ss">YYYY-MM-DD HH:mm:ss (e.g., 2026-07-12 06:37:12)</option>
               <option value="MM/DD/YYYY h:m a">MM/DD/YYYY h:m a (e.g., 07/12/2026 6:37 am)</option>
               <option value="DD/MM/YYYY HH:mm">DD/MM/YYYY HH:mm (e.g., 12/07/2026 06:37)</option>
-              <option value="locale">Locale Default (Browser Locale)</option>
+              <option value="locale">System Default</option>
             </select>
             <p class="field-hint">Format used for displaying timestamps in backups, history, and branch lists.</p>
           </div>
