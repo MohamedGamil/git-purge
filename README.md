@@ -55,6 +55,11 @@ Long-lived repositories accumulate thousands of branches: features that shipped 
 - [Features](#features)
 - [Architecture](#architecture)
 - [Install](#install)
+  - [Windows](#windows-x64)
+  - [macOS](#macos-intel--apple-silicon)
+  - [Linux](#linux-x86_64--aarch64)
+  - [Git Integration](#git-integration)
+  - [Uninstall](#uninstall)
 - [Quick Start](#quick-start)
 - [Build From Source](#build-from-source)
 - [Documentation](#documentation)
@@ -199,6 +204,31 @@ git purge scan
 git purge plan --merged
 git purge ui
 ```
+
+---
+
+### 🗑️ Uninstall
+
+#### 1. Desktop GUI App
+* **Windows:** Go to *Settings > Apps > Installed Apps* (or *Control Panel > Uninstall a program*), locate **Git Purge**, and click **Uninstall**.
+* **macOS:** Drag the **Git Purge** application from your `Applications` folder into the **Trash**, and empty it.
+* **Linux:**
+  * Debian / Ubuntu: Run `sudo apt remove git-purge` (or `sudo dpkg -r git-purge`).
+  * RedHat / Fedora: Run `sudo dnf remove git-purge` (or `sudo rpm -e git-purge`).
+  * AppImage: Simply delete the `.AppImage` file from your system.
+
+#### 2. CLI Utility
+Simply delete the `git-purge` executable from its installation location:
+* **Windows:**
+  * User-level: Delete `%LOCALAPPDATA%\Programs\git-purge\git-purge.exe` and remove the directory from your PATH environment variable.
+  * System-level: Delete `%ProgramFiles%\git-purge\git-purge.exe` (requires administrator privilege).
+* **macOS / Linux:**
+  * User-level: Delete `~/.local/bin/git-purge`.
+  * System-level: Delete `/usr/local/bin/git-purge` (requires `sudo`).
+
+#### 3. Configuration & Database Files (Optional)
+To completely delete all repositories registry database, configurations, and backup snapshots:
+* Delete the `~/.gitpurge/` directory (located under your home folder on all operating systems).
 
 ---
 

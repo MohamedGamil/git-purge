@@ -55,7 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }   # deb + rpm + AppImage
+          - { os: ubuntu-22.04,   target: x86_64-unknown-linux-gnu }   # deb + rpm + AppImage
           - { os: windows-latest, target: x86_64-pc-windows-msvc }     # msi + nsis
           - { os: macos-latest,   target: aarch64-apple-darwin }       # dmg + app
           - { os: macos-latest,   target: x86_64-apple-darwin }

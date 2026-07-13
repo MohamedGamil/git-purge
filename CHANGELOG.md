@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.3.8] — 2026-07-13
+
+### Fixed
+
+- Updated Linux desktop build runner to `ubuntu-22.04` to ensure dynamic linking against GLIBC 2.35, making the built Debian, RPM, and AppImage installers fully backward-compatible with Ubuntu 22.04+ (avoiding `GLIBC_2.38 not found` errors).
+
 ## [0.3.7] — 2026-07-13
 
 ### Fixed
@@ -246,7 +252,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.7...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.8...HEAD
+[0.3.8]: https://github.com/MohamedGamil/git-purge/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/MohamedGamil/git-purge/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/MohamedGamil/git-purge/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/MohamedGamil/git-purge/compare/v0.3.4...v0.3.5
