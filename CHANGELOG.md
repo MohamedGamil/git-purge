@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.3.7] — 2026-07-13
+
+### Fixed
+
 - Enabled Tauri installer bundling in `tauri.conf.json`, staged flat compiled installers in `release.yml` to resolve empty artifact upload warnings, and implemented repackaging logic to bundle both CLI and Desktop apps together for Linux, Windows, and macOS.
 
 ## [0.3.6] — 2026-07-13
@@ -242,7 +246,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.6...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.7...HEAD
+[0.3.7]: https://github.com/MohamedGamil/git-purge/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/MohamedGamil/git-purge/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/MohamedGamil/git-purge/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/MohamedGamil/git-purge/compare/v0.3.3...v0.3.4
