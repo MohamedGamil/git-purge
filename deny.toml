@@ -48,6 +48,7 @@ exceptions = []
 # Prefer a single version of each crate; flag accidental duplicate trees.
 multiple-versions = "warn"
 wildcards = "deny"
+allow-wildcard-paths = true
 # ARCHITECTURE GUARD (docs/02 §1): the CLI and desktop crates must NOT depend on
 # the git engines or the DB directly — only gitpurge-core may. A dedicated
 # architecture test enforces this too; the ban list documents the intent.

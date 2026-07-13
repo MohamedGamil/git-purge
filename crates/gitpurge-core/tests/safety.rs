@@ -4,10 +4,7 @@
 
 use gitpurge_core::{
     clock::FakeClock,
-    model::{
-        ActionFilter, BackupOptions, BranchName, ExecMode, RepoId,
-        Repository, RestoreSpec,
-    },
+    model::{ActionFilter, BackupOptions, BranchName, ExecMode, RepoId, Repository, RestoreSpec},
     testkit, Config, Engine, GitPurgeError,
 };
 
