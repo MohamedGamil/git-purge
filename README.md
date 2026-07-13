@@ -5,6 +5,9 @@
 <h1 align="center">Git Purge</h1>
 
 <p align="center">
+<a href="https://github.com/MohamedGamil/git-purge/releases">
+<img src="https://img.shields.io/github/v/release/MohamedGamil/git-purge?color=orange&logo=github" alt="Latest Release">
+</a>
 <a href="https://github.com/MohamedGamil/git-purge/actions/workflows/ci.yml">
 <img src="https://github.com/MohamedGamil/git-purge/actions/workflows/ci.yml/badge.svg" alt="CI status">
 </a>
