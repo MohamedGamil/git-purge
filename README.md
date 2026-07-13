@@ -20,7 +20,10 @@
 <em>A CLI-first Rust utility with an optional Tauri + Vue desktop UI for cleaning up stale, merged, and abandoned git branches without ever losing work.</em>
 </p>
 
-<br>
+<p align="center">
+  <img src="assets/screenshots/01-dashboard.png" alt="Git Purge Dashboard" width="800" style="border-radius: 8px">
+</p>
+
 <br>
 
 ## Why Git Purge?
@@ -53,6 +56,7 @@ Long-lived repositories accumulate thousands of branches: features that shipped 
 <summary>Click to expand</summary>
 
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Install](#install)
   - [Windows](#-windows-x64)
@@ -82,6 +86,63 @@ Long-lived repositories accumulate thousands of branches: features that shipped 
 - **Diff & Show** — Compare two refs; view a file/tree at any ref or commit.
 - **Reports & Trends** — Audit reports (md/json/html) and historical trend tracking backed by SQLite.
 - **Auth keychain Integration** — SSH key / HTTPS token / user-pass credentials via the OS keychain, with an encrypted-file fallback.
+
+---
+
+## Screenshots
+
+<table align="center" width="100%">
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <a href="assets/screenshots/01-dashboard.png">
+        <img src="assets/screenshots/01-dashboard.png" width="100%" alt="Dashboard" style="border-radius: 6px;"><br>
+        <sub><b>Dashboard</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="assets/screenshots/02-branches.png">
+        <img src="assets/screenshots/02-branches.png" width="100%" alt="Branches View" style="border-radius: 6px;"><br>
+        <sub><b>Branches View</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="assets/screenshots/03-cleanup.png">
+        <img src="assets/screenshots/03-cleanup.png" width="100%" alt="Cleanup Planner" style="border-radius: 6px;"><br>
+        <sub><b>Cleanup Planner</b></sub>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <a href="assets/screenshots/04-backups.png">
+        <img src="assets/screenshots/04-backups.png" width="100%" alt="Backup Snapshots" style="border-radius: 6px;"><br>
+        <sub><b>Backup Snapshots</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="assets/screenshots/05-compare.png">
+        <img src="assets/screenshots/05-compare.png" width="100%" alt="Branch Comparison" style="border-radius: 6px;"><br>
+        <sub><b>Branch Comparison</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="assets/screenshots/06-history.png">
+        <img src="assets/screenshots/06-history.png" width="100%" alt="History Trends" style="border-radius: 6px;"><br>
+        <sub><b>History Trends</b></sub>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <a href="assets/screenshots/07-settings.png">
+        <img src="assets/screenshots/07-settings.png" width="100%" alt="Settings" style="border-radius: 6px;"><br>
+        <sub><b>Settings</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="33%"></td>
+    <td align="center" valign="top" width="33%"></td>
+  </tr>
+</table>
 
 ---
 
