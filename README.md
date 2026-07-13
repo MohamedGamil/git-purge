@@ -103,49 +103,184 @@ The desktop app is **standalone-capable**: it embeds `gitpurge-core`, so it work
 
 ## Install
 
-**Primary: portable tarball (zero-setup, no runtime dependencies).**
+Git Purge releases are published to the [GitHub Releases Page](https://github.com/MohamedGamil/git-purge/releases) with three package choices:
+1. **Combined Package:** Bundles both the CLI utility and the Desktop App installer.
+2. **CLI Only:** Compact tarball/zip containing only the portable CLI binary.
+3. **Desktop App Only:** System-specific installer/package for the GUI app.
 
-Download the tarball for your platform from the [latest release](https://github.com/MohamedGamil/git-purge/releases), extract it, and put the binary on your `PATH` (or let it do that for you):
+---
 
+### 💻 Windows (x64)
+
+#### Download Options
+* **Both (CLI & Desktop):** `git-purge-combined-<version>-x86_64-pc-windows-msvc.zip`
+* **CLI Only:** `git-purge-<version>-x86_64-pc-windows-msvc.zip`
+* **Desktop App:** `Git Purge_<version>_x64_en-US.msi` or `Git Purge_<version>_x64-setup.exe`
+
+#### Installation & Launch
+* **Desktop App:** Double-click the `.msi` or `.exe` installer and follow the prompt. Once installed, launch **Git Purge** from your Start Menu.
+* **CLI Utility:** Extract the CLI `.zip` archive, open PowerShell in the extracted folder, and register it to your user PATH:
+  ```powershell
+  .\git-purge.exe install-cli --user
+  ```
+  Once the CLI is installed on your PATH, you can also launch the desktop GUI directly by running:
+  ```powershell
+  git-purge ui
+  ```
+
+---
+
+### 🍏 macOS (Intel & Apple Silicon)
+
+#### Download Options
+* **Both (CLI & Desktop):** `git-purge-combined-<version>-<arch>-apple-darwin.tar.gz`
+* **CLI Only:** `git-purge-<version>-<arch>-apple-darwin.tar.gz`
+* **Desktop App:** `Git Purge_<version>_<arch>.dmg`
+
+> [!NOTE]
+> Choose `aarch64` for Apple Silicon (M1/M2/M3) and `x86_64` for Intel-based Macs.
+
+#### Installation & Launch
+* **Desktop App:** Mount the `.dmg` file and drag the **Git Purge** app into your `Applications` folder. You can launch it from Launchpad or Finder.
+* **CLI Utility:** Extract the archive, open terminal in that folder, and run:
+  ```bash
+  ./git-purge install-cli --user
+  ```
+  Once the CLI is installed on your PATH, you can launch the desktop GUI from the terminal by running:
+  ```bash
+  git-purge ui
+  ```
+
+---
+
+### 🐧 Linux (x86_64 & aarch64)
+
+#### Download Options
+* **Both (CLI & Desktop):** `git-purge-combined-<version>-x86_64-unknown-linux-gnu.tar.gz`
+* **CLI Only:** `git-purge-<version>-<target>.tar.gz` (`gnu` or `musl` build)
+* **Desktop App:** 
+  * Debian / Ubuntu: `Git Purge_<version>_amd64.deb`
+  * RedHat / Fedora: `Git Purge-<version>-1.x86_64.rpm`
+  * Portable AppImage: `Git Purge_<version>_amd64.AppImage`
+
+#### Installation & Launch
+* **Desktop App:**
+  * **Debian/Ubuntu:**
+    ```bash
+    sudo apt install ./Git_Purge_<version>_amd64.deb
+    ```
+    Launch from your Desktop Applications menu or by running `gitpurge-desktop` in the terminal.
+  * **RedHat/Fedora:**
+    ```bash
+    sudo dnf install ./Git_Purge-<version>-1.x86_64.rpm
+    ```
+    Launch from your Desktop Applications menu or by running `gitpurge-desktop` in the terminal.
+  * **AppImage:** Make executable and run:
+    ```bash
+    chmod +x Git_Purge_<version>_amd64.AppImage
+    ./Git_Purge_<version>_amd64.AppImage
+    ```
+* **CLI Utility:** Extract the tarball, open your terminal in the folder, and run:
+  ```bash
+  ./git-purge install-cli --user
+  ```
+  Once the CLI is installed on your PATH, you can also launch the GUI by running:
+  ```bash
+  git-purge ui
+  ```
+
+---
+
+### 💡 Git Integration
+
+Once the CLI is installed on your `PATH`, it registers itself as a native Git subcommand. You can run it directly:
 ```bash
-tar -xzf git-purge-<version>-<target>.tar.gz
-cd git-purge-<version>-<target>
-./git-purge install-cli --user     # adds git-purge to your PATH
-git-purge --version
+git purge scan
+git purge plan --merged
+git purge ui
 ```
-
-Once on your `PATH`, it also works as a git subcommand: `git purge scan`.
-
-**Desktop app bundles** (`.deb` / `.rpm` / `.AppImage` on Linux, `.msi` / `.exe` on Windows, `.dmg` on macOS) are attached to the same release.
 
 ---
 
 ## Quick Start
 
-The core workflow is **scan → plan → backup → delete → restore**, and every mutating step is dry-run until you pass `--execute`:
+The core workflow is **scan → plan → backup → delete → restore**, and every mutating step is dry-run by default until you pass `--execute` (or `-e`):
 
+### 1. Manage Tracked Repositories
+Git Purge tracks repositories locally via a SQLite-backed registry:
 ```bash
-# 1. Track a repo (or run inside one)
-git-purge repo add ./my-project
+# Add a repository to track
+git-purge repo add ./my-project --label "Backend Core"
 
-# 2. See how your branches are classified
-git-purge scan
-
-# 3. Preview what a cleanup WOULD delete (dry-run — nothing changes)
-git-purge plan --merged --age "1 year ago"
-
-# 4. Take an explicit backup snapshot (delete does this automatically too)
-git-purge backup create
-
-# 5. Actually delete — requires --execute; backs up first, confirms before acting
-git-purge delete --merged --age "1 year ago" --execute
-
-# 6. Changed your mind? Restore a branch (or restore it as a tag) from a snapshot
-git-purge restore <snapshot-id> feature/old-thing
-git-purge restore <snapshot-id> feature/old-thing --as-tag
+# List all tracked repositories
+git-purge repo list
 ```
 
-Add `--json` to any read command for machine-readable output, `--yes` to skip confirmations in automation, and `git-purge ui` to launch the desktop app.
+### 2. Scan & Classify Branches
+Check the status of branches in a tracked repository (runs in read-only mode):
+```bash
+# Scan the current repository
+git-purge scan
+
+# Scan and output in JSON format for scripting/automation
+git-purge scan --json
+```
+
+### 3. Plan & Preview Cleanup (Dry-Run by Default)
+Plan shows exactly what deletions or archiving actions would be performed, along with the reasons:
+```bash
+# Preview deleting branches merged into main that are older than 30 days
+git-purge plan --merged --age "30 days ago"
+
+# Preview archiving unmerged inactive branches older than 90 days
+git-purge plan --unmerged --age "90 days ago"
+```
+
+### 4. Perform Safe Deletions & Archiving
+Mutating operations require the explicit `--execute` flag. A pre-operation backup is automatically verified before any changes are applied:
+```bash
+# Safely delete merged branches older than 30 days (asks for confirmation)
+git-purge delete --merged --age "30 days ago" --execute
+
+# Archive unmerged branches into a legacy archive branch instead of deleting them
+git-purge archive --unmerged --age "90 days ago" --execute
+
+# Run non-interactively in CI (skips confirmation prompt)
+git-purge delete --merged --yes --execute
+```
+
+### 5. Snapshot Backup & Restore
+If a branch deletion or archive needs to be reverted, you can restore it from any previous point-in-time snapshot:
+```bash
+# List all point-in-time backup snapshots
+git-purge backup list
+
+# Re-create a deleted branch back to its original state from a snapshot
+git-purge restore <snapshot-id> feature/stale-branch
+
+# Restore a branch as a lightweight Git tag instead
+git-purge restore <snapshot-id> feature/stale-branch --as-tag
+```
+
+### 6. Inspect Diffs & File History
+Compare branch states and view specific file structures from history without checking out the branches:
+```bash
+# Compare local branches or branch history
+git-purge diff main feature/stale-branch
+
+# View a file's content at a specific ref/commit
+git-purge show src/main.rs --ref main
+```
+
+### 7. Reports & History Trends
+Generate HTML, Markdown, or JSON audit reports, and view technical debt reduction history:
+```bash
+# Generate a clean HTML audit report
+git-purge report --format html --output ./reports/audit-july.html
+
+# View cleanup run history and trends logged in SQLite
+git-purge history
+```
 
 ---
 
