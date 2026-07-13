@@ -89,7 +89,7 @@ jobs:
       - name: Stage desktop bundles
         run: |
           mkdir -p dist-desktop
-          find target -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.exe" -o -name "*.dmg" \) -exec cp {} dist-desktop/ \; || true
+          find target -type f -path "*/release/bundle/*" \( -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.exe" -o -name "*.dmg" \) -exec cp {} dist-desktop/ \; || true
         shell: bash
       - uses: actions/upload-artifact@v4
         with:
@@ -183,5 +183,3 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/*
-            artifacts/SHA256SUMS
-            artifacts/SHA256SUMS.minisig
