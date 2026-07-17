@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.4.0] — 2026-07-17
+
+### Added
+
 - Implemented Vue Pinia stores (`useBranchesStore`, `useBackupsStore`, `useHistoryStore`, `useSettingsStore`) in `apps/desktop/src/stores/` with comprehensive unit and interaction tests to centralize reactive state and Tauri IPC API calls (P13-T1).
 - Extracted standalone `show` subcommand to `crates/gitpurge-cli/src/cmd/show.rs` separate from the legacy `diff` subcommand (P13-T6).
 - Added `scripts/verify-release.sh` to automate validation of minisign signatures and SHA256 checksums in package releases (P13-T4).
@@ -292,7 +300,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem).
 - License changed from dual MIT/Apache-2.0 to Apache-2.0.
 
-[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.3.8...HEAD
+[Unreleased]: https://github.com/MohamedGamil/git-purge/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/MohamedGamil/git-purge/compare/v0.3.8...v0.4.0
 [0.3.8]: https://github.com/MohamedGamil/git-purge/compare/v0.3.7...v0.3.8
 [0.3.7]: https://github.com/MohamedGamil/git-purge/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/MohamedGamil/git-purge/compare/v0.3.5...v0.3.6
