@@ -297,10 +297,6 @@ import { useToastStore } from '../stores/toast';
 import { Search, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert } from '@lucide/vue';
 
 const toastStore = useToastStore();
-import {
-  type ClientPlan,
-  type ClientRunReport
-} from '../api/ipc';
 
 const store = useReposStore();
 const branchesStore = useBranchesStore();
@@ -354,7 +350,6 @@ const confirmToken = ref('');
 
 // Execution state
 const isExecuting = computed(() => branchesStore.isExecuting);
-const execTaskId = computed(() => branchesStore.execTaskId);
 const execProgress = computed(() => branchesStore.execProgress);
 const execProgressMessage = computed(() => branchesStore.execProgressMessage);
 const runReport = computed(() => branchesStore.runReport);

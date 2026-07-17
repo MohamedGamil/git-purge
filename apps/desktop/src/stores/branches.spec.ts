@@ -83,7 +83,7 @@ describe('useBranchesStore', () => {
     const execPromise = store.executeDelete('repo-1', planData, { noBackup: true });
 
     expect(store.isExecuting).toBe(true);
-    const report = await execPromise;
+    await execPromise;
     expect(store.isExecuting).toBe(false);
     expect(store.runReport).toEqual(mockReport);
     expect(store.execProgress).toBe(100);

@@ -6,7 +6,7 @@ import {
   settingsExport,
   type Settings
 } from '../api/ipc';
-import { useTheme, type ThemeMode } from '../composables/useTheme';
+import { useTheme } from '../composables/useTheme';
 
 export const useSettingsStore = defineStore('settings', {
   state: () => ({

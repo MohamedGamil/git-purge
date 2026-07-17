@@ -341,7 +341,6 @@ import {
   GitCompare, 
   Archive, 
   Trash2, 
-  TriangleAlert, 
   TrendingUp, 
   Download 
 } from '@lucide/vue';
@@ -353,12 +352,11 @@ import { useToastStore } from '../stores/toast';
 import ModalDialog from '../components/ModalDialog.vue';
 import { 
   type Branch,
+  type ClientPlan,
   reportGenerate, 
-  listenProgress, 
-  cancel,
   saveFile
 } from '../api/ipc';
-import { ask, save } from '@tauri-apps/plugin-dialog';
+import { save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatLocalDateTime, formatLocalTime } from '../utils/date';
 
 const router = useRouter();
@@ -412,17 +410,16 @@ const promptSingleDelete = (branch: Branch) => {
     onConfirm: async () => {
       if (!store.activeRepoId) return;
       
-      const plan = {
+      const plan: ClientPlan = {
         repoId: store.activeRepoId,
         kind: 'delete',
+        createdAt: new Date().toISOString(),
         actions: [{
           refName: branch.name,
-          refPath: branch.refPath,
           action: 'delete',
+          reason: 'Manual deletion',
           classification: branch.classification,
-          destructive: true,
-          commitSha: branch.tipSha,
-          commitShort: branch.tipShort
+          destructive: true
         }]
       };
 
@@ -450,17 +447,16 @@ const promptSingleArchive = (branch: Branch) => {
     onConfirm: async () => {
       if (!store.activeRepoId) return;
       
-      const plan = {
+      const plan: ClientPlan = {
         repoId: store.activeRepoId,
         kind: 'archive',
+        createdAt: new Date().toISOString(),
         actions: [{
           refName: branch.name,
-          refPath: branch.refPath,
           action: 'archive',
+          reason: 'Manual archival',
           classification: branch.classification,
-          destructive: false,
-          commitSha: branch.tipSha,
-          commitShort: branch.tipShort
+          destructive: false
         }]
       };
 

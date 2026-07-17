@@ -82,7 +82,7 @@ describe('useBackupsStore', () => {
     const promise = store.verifySnapshot('snap-1');
     expect(store.isVerifying).toBe(true);
 
-    const report = await promise;
+    await promise;
     expect(store.isVerifying).toBe(false);
     expect(store.verifyReport).toEqual(mockReport);
     expect(store.verifyProgress).toBe(100);
@@ -100,7 +100,7 @@ describe('useBackupsStore', () => {
     const store = useBackupsStore();
     expect(store.isPruning).toBe(false);
 
-    const report = await store.pruneBackups('repo-1', 0);
+    await store.pruneBackups('repo-1', 0);
     expect(store.isPruning).toBe(false);
     expect(store.pruneReport).toEqual(mockPruneReport);
   });

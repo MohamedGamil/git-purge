@@ -2,8 +2,7 @@ import { defineStore } from 'pinia';
 import {
   historyGet,
   historyRunsGet,
-  reportGenerate,
-  type ClientRunReport
+  reportGenerate
 } from '../api/ipc';
 
 export const useHistoryStore = defineStore('history', {

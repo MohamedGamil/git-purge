@@ -221,12 +221,6 @@ import { useBackupsStore } from '../stores/backups';
 import { useToastStore } from '../stores/toast';
 
 const toastStore = useToastStore();
-import {
-  type ClientSnapshot,
-  type ClientSnapshotDetail,
-  type ClientVerifyReport,
-  type ClientPruneReport
-} from '../api/ipc';
 import { formatLocalDateTime } from '../utils/date';
 
 const store = useReposStore();
