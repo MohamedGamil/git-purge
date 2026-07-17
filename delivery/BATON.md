@@ -29,6 +29,10 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P13-T1 | Pinia stores for remaining views | 48 | 2026-07-17 |
+| P13-T4 | SHA256 checksums + signing verification | 48 | 2026-07-17 |
+| P13-T10 | Disable context menu & shortcuts in production | 48 | 2026-07-17 |
+| P13-T6 | `git-purge show` as separate CLI command | 48 | 2026-07-17 |
 | P12-T3 | `history import --legacy-json` | 47 | 2026-07-17 |
 | P12-T5 | Performance benchmark suite | 47 | 2026-07-17 |
 | P12-T7 | `SECURITY.md` threat-model content | 47 | 2026-07-17 |
@@ -40,11 +44,6 @@ duplicating work.
 | P10-T3 | Split Tauri `commands.rs` into domain modules | 45 | 2026-07-17 |
 | P11-T7 | Wire auth CLI commands to real backends | 44 | 2026-07-17 |
 | P10-T2 | Break up `lib.rs` into Engine modules | 44 | 2026-07-17 |
-| P11-T4 | Credential resolver chain | 43 | 2026-07-17 |
-| P11-T5 | git2 credential callback bridge | 43 | 2026-07-17 |
-| P10-T6 | Amend ADR-0002 (drop shell git fallback) | 43 | 2026-07-17 |
-| P11-T3 | Encrypted file `SecretStore` fallback | 42 | 2026-07-17 |
-| P10-T1 | Extract delete action into `action/delete.rs` | 42 | 2026-07-17 |
 
 ---
 
@@ -78,14 +77,10 @@ duplicating work.
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 13 | P13-T4 | SHA256 checksums + signing verification | 1 ED | Quick Win | — |
-| 14 | P13-T1 | Pinia stores for remaining views | 2 ED | Quick Win | — |
-| 15 | P13-T7 | In-memory task registry for ongoing cleanups | 1.5 ED | Medium | ⛔ P13-T1 |
-| 16 | P13-T8 | Global toast notification system | 1.0 ED | Quick Win | ⛔ P13-T1 |
-| 17 | P13-T9 | Custom themed modal dialogs | 1.5 ED | Medium | ⛔ P13-T1 |
-| 18 | P13-T10 | Disable context menu & shortcuts in production | 0.5 ED | Quick Win | — |
-| 19 | P13-T11 | Custom naming convention regex UI input | 0.5 ED | Medium | ⛔ P13-T1 |
-| 20 | P13-T2 | `tauri-driver` + WebDriver e2e smoke suite | 2 ED | High | ⛔ P13-T1 |
+| 15 | P13-T7 | In-memory task registry for ongoing cleanups | 1.5 ED | Medium | — |
+| 16 | P13-T8 | Global toast notification system | 1.0 ED | Quick Win | — |
+| 17 | P13-T9 | Custom themed modal dialogs | 1.5 ED | Medium | — |
+| 19 | P13-T11 | Custom naming convention regex UI input | 0.5 ED | Medium | — |
+| 20 | P13-T2 | `tauri-driver` + WebDriver e2e smoke suite | 2 ED | High | — |
 | 21 | P13-T3 | Accessibility pass | 1.5 ED | Medium | — |
-| 22 | P13-T5 | Cross-platform release verification | 1 ED | Medium | ⛔ P13-T4 |
-| 23 | P13-T6 | `git-purge show` as separate CLI command | 0.5 ED | Low | — |
+| 22 | P13-T5 | Cross-platform release verification | 1 ED | Medium | — |

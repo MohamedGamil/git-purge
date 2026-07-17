@@ -292,18 +292,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useReposStore } from '../stores/repos';
+import { useBranchesStore } from '../stores/branches';
 import { Search, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert } from '@lucide/vue';
 import {
-  plan,
-  deleteBranches,
-  archiveBranches,
-  cancel,
-  listenProgress,
   type ClientPlan,
   type ClientRunReport
 } from '../api/ipc';
 
 const store = useReposStore();
+const branchesStore = useBranchesStore();
 
 const selectedRepoId = ref(store.activeRepoId || '');
 const actionKind = ref<'delete' | 'archive'>('delete');
@@ -344,21 +341,34 @@ watch(actionKind, (newKind) => {
   generatePlan();
 });
 
-const loadingPlan = ref(false);
-const planError = ref<string | null>(null);
-const planResult = ref<ClientPlan | null>(null);
+const loadingPlan = computed(() => branchesStore.loadingPlan);
+const planError = computed(() => branchesStore.planError);
+const planResult = computed(() => branchesStore.planResult);
 
 // Safety configurations
 const noBackup = ref(false);
 const confirmToken = ref('');
 
 // Execution state
-const isExecuting = ref(false);
-const execTaskId = ref<string | null>(null);
-const execProgress = ref(0);
-const execProgressMessage = ref('');
-const runReport = ref<ClientRunReport | null>(null);
+const isExecuting = computed(() => branchesStore.isExecuting);
+const execTaskId = computed(() => branchesStore.execTaskId);
+const execProgress = computed(() => branchesStore.execProgress);
+const execProgressMessage = computed(() => branchesStore.execProgressMessage);
+const runReport = computed(() => branchesStore.runReport);
 const executionLogs = ref<string[]>([]);
+
+// Watch progress message to append to logs
+watch(execProgressMessage, (msg) => {
+  if (msg) {
+    executionLogs.value.push(msg);
+    setTimeout(() => {
+      const container = document.querySelector('.ops-log-content');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }, 50);
+  }
+});
 
 const hasDestructiveActions = computed(() => {
   return planResult.value?.actions.some(a => a.destructive) || false;
@@ -375,82 +385,42 @@ const canExecute = computed(() => {
 const handleRepoChange = () => {
   if (selectedRepoId.value) {
     store.selectRepo(selectedRepoId.value);
-    planResult.value = null;
-    runReport.value = null;
+    branchesStore.resetPlanAndReport();
   }
 };
 
 const generatePlan = async () => {
   if (!selectedRepoId.value) return;
 
-  loadingPlan.value = true;
-  planError.value = null;
-  runReport.value = null;
-
   try {
-    planResult.value = await plan(selectedRepoId.value, {
+    await branchesStore.generatePlan(selectedRepoId.value, {
       kind: actionKind.value,
       age: ageOverride.value.trim() || undefined,
       merged: mergedOnly.value,
       includeUnmerged: includeUnmerged.value
     });
   } catch (err: any) {
-    planError.value = err?.message || 'Failed to generate plan';
-  } finally {
-    loadingPlan.value = false;
+    console.error('Plan generation failed:', err);
   }
 };
 
 const executePlan = async () => {
   if (!canExecute.value || !selectedRepoId.value || !planResult.value) return;
 
-  isExecuting.value = true;
-  execProgress.value = 0;
-  execProgressMessage.value = 'Preparing execution...';
   executionLogs.value = [];
-
-  const taskId = `cleanup-${selectedRepoId.value}-${Date.now()}`;
-  execTaskId.value = taskId;
-
-  let unlistenFn: (() => void) | null = null;
+  const execOpts = {
+    noBackup: noBackup.value,
+    confirmedToken: hasDestructiveActions.value ? confirmToken.value : undefined,
+    targetBranch: archiveTargetBranch.value.trim() || 'main-legacy',
+    strategy: archiveStrategy.value
+  };
 
   try {
-    unlistenFn = await listenProgress((event) => {
-      if (event.taskId === taskId) {
-        execProgress.value = Math.round((event.current / (event.total || 1)) * 100);
-        execProgressMessage.value = event.message;
-        if (event.message) {
-          executionLogs.value.push(event.message);
-          setTimeout(() => {
-            const container = document.querySelector('.ops-log-content');
-            if (container) {
-              container.scrollTop = container.scrollHeight;
-            }
-          }, 50);
-        }
-        if (event.done) {
-          isExecuting.value = false;
-          execTaskId.value = null;
-          if (unlistenFn) unlistenFn();
-        }
-      }
-    });
-
-    const execOpts = {
-      noBackup: noBackup.value,
-      confirmedToken: hasDestructiveActions.value ? confirmToken.value : undefined,
-      targetBranch: archiveTargetBranch.value.trim() || 'main-legacy',
-      strategy: archiveStrategy.value
-    };
-
-    let report: ClientRunReport;
     if (actionKind.value === 'archive') {
-      report = await archiveBranches(selectedRepoId.value, planResult.value, execOpts, taskId);
+      await branchesStore.executeArchive(selectedRepoId.value, planResult.value, execOpts);
     } else {
-      report = await deleteBranches(selectedRepoId.value, planResult.value, execOpts, taskId);
+      await branchesStore.executeDelete(selectedRepoId.value, planResult.value, execOpts);
     }
-
-    runReport.value = report;
     confirmToken.value = '';
 
     // Refresh repo lists and active repo details
@@ -460,35 +430,21 @@ const executePlan = async () => {
     }
   } catch (err: any) {
     alert('Cleanup failed: ' + (err?.message || err));
-    isExecuting.value = false;
-    execTaskId.value = null;
-    if (unlistenFn) unlistenFn();
   }
 };
 
 const handleCancel = async () => {
-  if (execTaskId.value) {
-    try {
-      await cancel(execTaskId.value);
-    } catch (err) {
-      console.error('Failed to cancel task:', err);
-    } finally {
-      isExecuting.value = false;
-      execTaskId.value = null;
-    }
-  }
+  await branchesStore.cancelActiveTask();
 };
 
 const resetFlow = () => {
-  planResult.value = null;
-  runReport.value = null;
+  branchesStore.resetPlanAndReport();
 };
 
 watch(() => store.activeRepoId, (newId) => {
   if (newId) {
     selectedRepoId.value = newId;
-    planResult.value = null;
-    runReport.value = null;
+    branchesStore.resetPlanAndReport();
   }
 });
 

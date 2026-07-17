@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Implemented Vue Pinia stores (`useBranchesStore`, `useBackupsStore`, `useHistoryStore`, `useSettingsStore`) in `apps/desktop/src/stores/` with comprehensive unit and interaction tests to centralize reactive state and Tauri IPC API calls (P13-T1).
+- Extracted standalone `show` subcommand to `crates/gitpurge-cli/src/cmd/show.rs` separate from the legacy `diff` subcommand (P13-T6).
+- Added `scripts/verify-release.sh` to automate validation of minisign signatures and SHA256 checksums in package releases (P13-T4).
+- Added context menu (`contextmenu`) and key combination listener intercepts in `apps/desktop/src/main.ts` to disable developer tools shortcuts and reloading in production builds (P13-T10).
 - Implemented `history import --legacy-json` CLI command and history store backend to import legacy SQLite metrics history with chronological sorting and metrics-hash deduplication (P12-T3).
 - Added Criterion benchmark suite (`crates/gitpurge-core/benches/engine_bench.rs`) measuring scan, plan, and report operations on a 500-branch repository, with optimized configuration settings for fast execution (P12-T5).
 - Expanded `SECURITY.md` with threat model, STRIDE mitigations, trust boundaries, sandboxing details, and safety invariants SAFE-01 to SAFE-07 (P12-T7).
@@ -37,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Migrated all desktop frontend views (`App.vue`, `BranchesView.vue`, `BackupsView.vue`, `HistoryView.vue`, `PlanView.vue`, `CleanupView.vue`, `DiffView.vue`, `SettingsView.vue`) to use central Pinia stores instead of direct IPC API calls (P13-T1).
+- Updated minisign signature generation output to `.sig` files in the GitHub release workflow (P13-T4).
 - Formally amended `ADR-0002` (Hybrid git engine) to drop the system `git` CLI shell-out fallback.
 - Transitioned `gitpurge-core` from `#![forbid(unsafe_code)]` to `#![deny(unsafe_code)]` with a single audited exemption for `libgit2` global timeout configuration per ADR-0006.
 - Updated conventions, project guides, and task lists to align with the Apache-2.0 only license model.

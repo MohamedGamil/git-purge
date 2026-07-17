@@ -118,7 +118,7 @@ fn run() -> Result<()> {
         }
         Some(cli::Commands::Show { ref_spec, path }) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
-            cmd::diff::handle_show(&engine, &repo_id, ref_spec, path, args.json)?;
+            cmd::show::handle_show(&engine, &repo_id, ref_spec, path, args.json)?;
         }
         Some(cli::Commands::Report {
             r#type,

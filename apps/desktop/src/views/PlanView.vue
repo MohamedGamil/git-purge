@@ -162,13 +162,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useReposStore } from '../stores/repos';
+import { useBranchesStore } from '../stores/branches';
 import { X, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert, Rocket } from '@lucide/vue';
 import {
-  plan,
-  deleteBranches,
-  archiveBranches,
-  cancel,
-  listenProgress,
   type ClientPlan,
   type ClientRunReport
 } from '../api/ipc';
@@ -176,25 +172,26 @@ import {
 const route = useRoute();
 const router = useRouter();
 const store = useReposStore();
+const branchesStore = useBranchesStore();
 
 const repoId = computed(() => route.query.repoId as string);
 const actionKind = computed(() => (route.query.actionKind || 'delete') as 'delete' | 'archive');
 const refsParam = computed(() => (route.query.refs as string) || '');
 
-const loadingPlan = ref(true);
-const planError = ref<string | null>(null);
-const planResult = ref<ClientPlan | null>(null);
+const loadingPlan = computed(() => branchesStore.loadingPlan);
+const planError = computed(() => branchesStore.planError);
+const planResult = computed(() => branchesStore.planResult);
 
 // Safety configuration
 const noBackup = ref(false);
 const confirmToken = ref('');
 
 // Execution state
-const isExecuting = ref(false);
-const execTaskId = ref<string | null>(null);
-const execProgress = ref(0);
-const execProgressMessage = ref('');
-const runReport = ref<ClientRunReport | null>(null);
+const isExecuting = computed(() => branchesStore.isExecuting);
+const execTaskId = computed(() => branchesStore.execTaskId);
+const execProgress = computed(() => branchesStore.execProgress);
+const execProgressMessage = computed(() => branchesStore.execProgressMessage);
+const runReport = computed(() => branchesStore.runReport);
 
 const activeRepo = computed(() => {
   return store.repos.find(r => r.id === repoId.value);
@@ -218,68 +215,36 @@ const canExecute = computed(() => {
 
 const generatePlan = async () => {
   if (!repoId.value || !refsParam.value) {
-    planError.value = 'Missing repository or branches parameters.';
-    loadingPlan.value = false;
+    branchesStore.planError = 'Missing repository or branches parameters.';
     return;
   }
 
-  loadingPlan.value = true;
-  planError.value = null;
-
   try {
     const refsList = refsParam.value.split(',');
-    planResult.value = await plan(repoId.value, {
+    await branchesStore.generatePlan(repoId.value, {
       kind: actionKind.value,
       refs: refsList
     });
   } catch (err: any) {
-    planError.value = err?.message || 'Failed to generate plan';
-  } finally {
-    loadingPlan.value = false;
+    console.error('Plan generation failed:', err);
   }
 };
 
 const executePlan = async () => {
   if (!canExecute.value || !repoId.value || !planResult.value) return;
 
-  isExecuting.value = true;
-  execProgress.value = 0;
-  execProgressMessage.value = 'Preparing execution...';
-
-  const taskId = `exec-${repoId.value}-${Date.now()}`;
-  execTaskId.value = taskId;
-
-  let unlistenFn: (() => void) | null = null;
+  const execOpts = {
+    noBackup: noBackup.value,
+    confirmedToken: hasDestructiveActions.value ? confirmToken.value : undefined
+  };
 
   try {
-    // 1. Setup listener
-    unlistenFn = await listenProgress((event) => {
-      if (event.taskId === taskId) {
-        execProgress.value = Math.round((event.current / (event.total || 1)) * 100);
-        execProgressMessage.value = event.message;
-        if (event.done) {
-          isExecuting.value = false;
-          execTaskId.value = null;
-          if (unlistenFn) unlistenFn();
-        }
-      }
-    });
-
-    const execOpts = {
-      noBackup: noBackup.value,
-      confirmedToken: hasDestructiveActions.value ? confirmToken.value : undefined
-    };
-
-    // 2. Run command
-    let report: ClientRunReport;
     if (actionKind.value === 'archive') {
-      report = await archiveBranches(repoId.value, planResult.value, execOpts, taskId);
+      await branchesStore.executeArchive(repoId.value, planResult.value, execOpts);
     } else {
-      report = await deleteBranches(repoId.value, planResult.value, execOpts, taskId);
+      await branchesStore.executeDelete(repoId.value, planResult.value, execOpts);
     }
 
-    runReport.value = report;
-    
     // Refresh repo info and branches list in the background
     await store.fetchRepos();
     if (store.activeRepoId === repoId.value) {
@@ -287,23 +252,11 @@ const executePlan = async () => {
     }
   } catch (err: any) {
     alert('Execution failed: ' + (err?.message || err));
-    isExecuting.value = false;
-    execTaskId.value = null;
-    if (unlistenFn) unlistenFn();
   }
 };
 
 const handleCancel = async () => {
-  if (execTaskId.value) {
-    try {
-      await cancel(execTaskId.value);
-    } catch (err) {
-      console.error('Failed to cancel task:', err);
-    } finally {
-      isExecuting.value = false;
-      execTaskId.value = null;
-    }
-  }
+  await branchesStore.cancelActiveTask();
 };
 
 const goBack = () => {
@@ -315,6 +268,7 @@ const finishFlow = () => {
 };
 
 onMounted(() => {
+  branchesStore.resetPlanAndReport();
   generatePlan();
 });
 </script>

@@ -117,16 +117,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { Folder, Upload, Download, Save } from '@lucide/vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
-import { settingsGet, settingsSave, settingsExport, settingsImport, type Settings } from '../api/ipc';
+import { useSettingsStore } from '../stores/settings';
+import { type Settings } from '../api/ipc';
 
 const { theme, setTheme } = useTheme();
+const settingsStore = useSettingsStore();
 
-const loading = ref(true);
-const saving = ref(false);
+const loading = computed(() => settingsStore.loading);
+const saving = computed(() => settingsStore.saving);
 const saveSuccess = ref(false);
 
 // Form Fields State
@@ -139,9 +141,8 @@ const backupsRoot = ref('');
 const dateFormat = ref('YYYY-MM-DD h:m a');
 
 const loadSettings = async () => {
-  loading.value = true;
   try {
-    const settings = await settingsGet();
+    const settings = await settingsStore.fetchSettings();
     policyAge.value = settings.policy.age;
     policyNamingRegex.value = settings.policy.namingRegex;
     policyProtected.value = settings.policy.protectedRefs.join(', ');
@@ -156,8 +157,6 @@ const loadSettings = async () => {
     }
   } catch (err: any) {
     alert('Failed to load settings: ' + err.message);
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -181,7 +180,6 @@ const handleBrowseFolder = async () => {
 };
 
 const saveSettings = async () => {
-  saving.value = true;
   saveSuccess.value = false;
 
   const protectedList = policyProtected.value
@@ -208,16 +206,13 @@ const saveSettings = async () => {
   };
 
   try {
-    await settingsSave(settingsPayload);
-    localStorage.setItem('gitpurge-date-format', dateFormat.value);
+    await settingsStore.saveSettings(settingsPayload);
     saveSuccess.value = true;
     setTimeout(() => {
       saveSuccess.value = false;
     }, 3000);
   } catch (err: any) {
     alert('Failed to save settings: ' + err.message);
-  } finally {
-    saving.value = false;
   }
 };
 
@@ -228,14 +223,11 @@ const handleExportSettings = async () => {
       filters: [{ name: 'TOML Configuration', extensions: ['toml'] }]
     });
     if (path) {
-      saving.value = true;
-      await settingsExport(path);
+      await settingsStore.exportSettings(path);
       alert('Settings exported successfully!');
     }
   } catch (err: any) {
     alert('Export failed: ' + err.message);
-  } finally {
-    saving.value = false;
   }
 };
 
@@ -250,8 +242,7 @@ const handleImportSettings = async () => {
       const confirmed = confirm('Importing settings will overwrite your current configuration. Are you sure you want to proceed?');
       if (!confirmed) return;
 
-      saving.value = true;
-      const newSettings = await settingsImport(selected);
+      const newSettings = await settingsStore.importSettings(selected);
       
       // Update UI state with new settings
       policyAge.value = newSettings.policy.age;
@@ -261,15 +252,12 @@ const handleImportSettings = async () => {
       backupsRoot.value = newSettings.backupsRoot;
       themeMode.value = newSettings.theme;
       dateFormat.value = newSettings.dateFormat || 'YYYY-MM-DD h:m a';
-      localStorage.setItem('gitpurge-date-format', dateFormat.value);
       handleThemeChange();
 
       alert('Settings imported and applied successfully!');
     }
   } catch (err: any) {
     alert('Import failed: ' + err.message);
-  } finally {
-    saving.value = false;
   }
 };
 

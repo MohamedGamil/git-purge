@@ -73,7 +73,8 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import brandIcon from './assets/brand_icon.png';
 import { useTheme } from './composables/useTheme';
-import { settingsGet, openUrl } from './api/ipc';
+import { openUrl } from './api/ipc';
+import { useSettingsStore } from './stores/settings';
 import {
   LayoutDashboard,
   GitBranch,
@@ -86,6 +87,7 @@ import {
 } from '@lucide/vue';
 
 useTheme();
+const settingsStore = useSettingsStore();
 
 const currentYear = new Date().getFullYear();
 const isOnline = ref(navigator.onLine);
@@ -108,10 +110,7 @@ onMounted(async () => {
   window.addEventListener('offline', updateOnlineStatus);
 
   try {
-    const appSettings = await settingsGet();
-    if (appSettings.dateFormat) {
-      localStorage.setItem('gitpurge-date-format', appSettings.dateFormat);
-    }
+    await settingsStore.fetchSettings();
   } catch (err) {
     console.error('Failed to load application settings:', err);
   }

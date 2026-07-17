@@ -272,8 +272,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useReposStore } from '../stores/repos';
+import { useHistoryStore } from '../stores/history';
 import { ClipboardList, ChevronUp, ChevronDown, GitBranch, ChevronLeft, ChevronRight, X, TrendingUp, Download } from '@lucide/vue';
-import { historyGet, historyRunsGet, reportGenerate, saveFile } from '../api/ipc';
+import { saveFile } from '../api/ipc';
 import { save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatChartDate } from '../utils/date';
 
@@ -303,14 +304,17 @@ interface RunRecord {
 }
 
 const store = useReposStore();
+const historyStore = useHistoryStore();
+
 const selectedRepoId = ref(store.activeRepoId || '');
-const loadingHistory = ref(false);
 const unsupportedMsg = ref<string | null>(null);
-const historyData = ref<HistoryEntry[]>([]);
+
+const historyData = computed(() => historyStore.historyData);
+const loadingHistory = computed(() => historyStore.loading);
+const runsData = computed(() => historyStore.runs);
+const loadingRuns = computed(() => historyStore.loading);
 
 // Past Runs / operations log state
-const runsData = ref<RunRecord[]>([]);
-const loadingRuns = ref(false);
 const expandedRuns = ref<Set<string>>(new Set());
 const runsLimit = 10;
 const runsOffset = ref(0);
@@ -318,8 +322,8 @@ const hasMoreRuns = ref(true);
 
 // Report Generation state
 const showReportModal = ref(false);
-const generatingReport = ref(false);
-const reportContent = ref('');
+const generatingReport = computed(() => historyStore.isGeneratingReport);
+const reportContent = computed(() => historyStore.reportContent);
 const selectedReportType = ref<'audit' | 'trend'>('audit');
 
 const handleRepoChange = () => {
@@ -362,16 +366,12 @@ const loadRuns = async (reset = false) => {
     runsOffset.value = 0;
   }
   expandedRuns.value = new Set();
-  loadingRuns.value = true;
   try {
-    const raw = await historyRunsGet(selectedRepoId.value, runsLimit, runsOffset.value);
+    const raw = await historyStore.fetchRuns(selectedRepoId.value, runsLimit, runsOffset.value);
     const newRuns = raw as RunRecord[];
     hasMoreRuns.value = newRuns.length === runsLimit;
-    runsData.value = newRuns;
   } catch (err: any) {
     console.error('Failed to load past executions:', err);
-  } finally {
-    loadingRuns.value = false;
   }
 };
 
@@ -383,20 +383,16 @@ const loadNextPage = () => {
 
 const loadHistory = async () => {
   if (!selectedRepoId.value) return;
-  loadingHistory.value = true;
   unsupportedMsg.value = null;
-  historyData.value = [];
   try {
-    const raw = await historyGet(selectedRepoId.value);
+    const raw = await historyStore.fetchHistory(selectedRepoId.value);
     // Sort chronologically
-    historyData.value = (raw as HistoryEntry[]).sort(
+    historyStore.historyData = (raw as HistoryEntry[]).sort(
       (a, b) => parseSafeDate(a.recordedAt).getTime() - parseSafeDate(b.recordedAt).getTime()
     );
     await loadRuns(true);
   } catch (err: any) {
     unsupportedMsg.value = err?.message || 'History is currently unavailable.';
-  } finally {
-    loadingHistory.value = false;
   }
 };
 
@@ -452,16 +448,11 @@ const openReportModal = async () => {
 
 const fetchReport = async () => {
   if (!selectedRepoId.value) return;
-  generatingReport.value = true;
-  reportContent.value = '';
   try {
-    const res = await reportGenerate(selectedRepoId.value, 'markdown', selectedReportType.value);
-    reportContent.value = res.content;
+    await historyStore.generateReport(selectedRepoId.value, 'markdown', selectedReportType.value);
   } catch (err: any) {
     alert('Failed to generate report: ' + err.message);
     showReportModal.value = false;
-  } finally {
-    generatingReport.value = false;
   }
 };
 

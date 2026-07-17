@@ -400,7 +400,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P13-T1 · Pinia stores for remaining views 🔲
+### P13-T1 · Pinia stores for remaining views ✅
 
 **Goal:** Pinia stores for branches, backups, history, settings with tests.
 
@@ -436,7 +436,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P13-T4 · SHA256 checksums + signing verification 🔲
+### P13-T4 · SHA256 checksums + signing verification ✅
 
 **Goal:** Automate checksums + minisign signatures in `release.yml`.
 
@@ -461,7 +461,7 @@ all 3 platforms.
 
 ---
 
-### P13-T6 · `git-purge show` as separate CLI command 🔲
+### P13-T6 · `git-purge show` as separate CLI command ✅
 
 **Goal:** Standalone `show <ref> [<path>]` command per CONVENTIONS §9.
 
@@ -509,7 +509,7 @@ all 3 platforms.
 
 ---
 
-### P13-T10 · Disable context menu & shortcuts in production 🔲
+### P13-T10 · Disable context menu & shortcuts in production ✅
 
 **Goal:** Restrict standard browser right-click context menu and developer hotkeys in production builds to secure frontend diagnostics.
 

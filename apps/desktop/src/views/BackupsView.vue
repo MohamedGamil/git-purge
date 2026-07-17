@@ -214,16 +214,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { RefreshCw, ChevronRight, ShieldCheck, CircleCheck, CircleX, Trash2, TriangleAlert, RotateCcw } from '@lucide/vue';
 import { useReposStore } from '../stores/repos';
+import { useBackupsStore } from '../stores/backups';
 import {
-  backupList,
-  backupShow,
-  backupVerify,
-  backupPrune,
-  restore,
-  listenProgress,
   type ClientSnapshot,
   type ClientSnapshotDetail,
   type ClientVerifyReport,
@@ -232,31 +227,32 @@ import {
 import { formatLocalDateTime } from '../utils/date';
 
 const store = useReposStore();
+const backupsStore = useBackupsStore();
 
 const selectedRepoId = ref(store.activeRepoId || '');
-const snapshots = ref<ClientSnapshot[]>([]);
-const loading = ref(false);
+const snapshots = computed(() => backupsStore.snapshots);
+const loading = computed(() => backupsStore.loading);
 
 const activeSnapshotId = ref<string | null>(null);
-const snapshotDetail = ref<ClientSnapshotDetail | null>(null);
-const loadingDetails = ref(false);
+const snapshotDetail = computed(() => backupsStore.activeSnapshot);
+const loadingDetails = computed(() => backupsStore.loading);
 
 // Verify State
-const verifyingId = ref<string | null>(null);
-const verifyResults = ref<ClientVerifyReport | null>(null);
+const verifyingId = computed(() => backupsStore.isVerifying ? activeSnapshotId.value : null);
+const verifyResults = computed(() => backupsStore.verifyReport);
 
 // Prune State
 const pruneKeep = ref(5);
 const pruneAge = ref('');
-const pruning = ref(false);
-const pruneReport = ref<ClientPruneReport | null>(null);
+const pruning = computed(() => backupsStore.isPruning);
+const pruneReport = computed(() => backupsStore.pruneReport);
 
 // Restore State
 const restoreRef = ref<any | null>(null);
 const restoreTargetType = ref<'branch' | 'tag'>('branch');
 const restoreName = ref('');
 const restoreForce = ref(false);
-const restoring = ref(false);
+const restoring = computed(() => backupsStore.isRestoring);
 
 const formattedDate = (dateStr: string) => {
   return formatLocalDateTime(dateStr);
@@ -278,13 +274,10 @@ const triggerBadgeClass = (trig: string) => {
 
 const fetchSnapshots = async () => {
   if (!selectedRepoId.value) return;
-  loading.value = true;
   try {
-    snapshots.value = await backupList(selectedRepoId.value);
+    await backupsStore.fetchSnapshots(selectedRepoId.value);
   } catch (err: any) {
     alert('Failed to load snapshots: ' + err.message);
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -292,8 +285,8 @@ const handleRepoChange = () => {
   if (selectedRepoId.value) {
     store.activeRepoId = selectedRepoId.value;
     activeSnapshotId.value = null;
-    snapshotDetail.value = null;
-    verifyResults.value = null;
+    backupsStore.activeSnapshot = null;
+    backupsStore.verifyReport = null;
     fetchSnapshots();
   }
 };
@@ -301,68 +294,35 @@ const handleRepoChange = () => {
 const toggleSnapshot = async (id: string, forceOpen = false) => {
   if (activeSnapshotId.value === id && !forceOpen) {
     activeSnapshotId.value = null;
-    snapshotDetail.value = null;
-    verifyResults.value = null;
+    backupsStore.activeSnapshot = null;
+    backupsStore.verifyReport = null;
   } else {
     activeSnapshotId.value = id;
-    snapshotDetail.value = null;
-    verifyResults.value = null;
-    loadingDetails.value = true;
+    backupsStore.activeSnapshot = null;
+    backupsStore.verifyReport = null;
     try {
-      snapshotDetail.value = await backupShow(id);
+      await backupsStore.fetchSnapshotDetail(id);
     } catch (err: any) {
       alert('Failed to load snapshot details: ' + err.message);
-    } finally {
-      loadingDetails.value = false;
     }
   }
 };
 
 const verifySnapshot = async (id: string) => {
-  verifyingId.value = id;
-  verifyResults.value = null;
-
-  const taskId = `verify-${id}-${Date.now()}`;
-  let unlistenFn: (() => void) | null = null;
-
-  toggleSnapshot(id, true);
-
+  await toggleSnapshot(id, true);
   try {
-    unlistenFn = await listenProgress((event) => {
-      if (event.taskId === taskId) {
-        // We can print verification progress if we want, or just let it finish
-      }
-    });
-
-    const report = await backupVerify(id, taskId);
-    verifyResults.value = {
-      ...report,
-      snapshotId: id
-    };
+    await backupsStore.verifySnapshot(id);
   } catch (err: any) {
     alert('Verification failed: ' + err.message);
-  } finally {
-    verifyingId.value = null;
-    if (unlistenFn) unlistenFn();
   }
 };
 
 const handlePrune = async () => {
   if (!selectedRepoId.value) return;
-  pruning.value = true;
-  pruneReport.value = null;
   try {
-    const report = await backupPrune(
-      selectedRepoId.value,
-      pruneKeep.value,
-      pruneAge.value.trim() || undefined
-    );
-    pruneReport.value = report;
-    await fetchSnapshots();
+    await backupsStore.pruneBackups(selectedRepoId.value, pruneKeep.value);
   } catch (err: any) {
     alert('Prune failed: ' + err.message);
-  } finally {
-    pruning.value = false;
   }
 };
 
@@ -375,9 +335,8 @@ const openRestoreModal = (refItem: any) => {
 
 const executeRestore = async () => {
   if (!activeSnapshotId.value || !restoreRef.value) return;
-  restoring.value = true;
   try {
-    const outcome = await restore(activeSnapshotId.value, {
+    const outcome = await backupsStore.restoreRef(activeSnapshotId.value, {
       refName: restoreRef.value.branch,
       targetType: restoreTargetType.value,
       newName: restoreName.value.trim() !== restoreRef.value.branch ? restoreName.value.trim() : undefined,
@@ -388,8 +347,6 @@ const executeRestore = async () => {
     restoreRef.value = null;
   } catch (err: any) {
     alert('Restore failed: ' + err.message);
-  } finally {
-    restoring.value = false;
   }
 };
 

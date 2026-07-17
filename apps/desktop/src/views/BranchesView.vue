@@ -332,31 +332,30 @@ import {
   Download 
 } from '@lucide/vue';
 import { useReposStore } from '../stores/repos';
+import { useSettingsStore } from '../stores/settings';
+import { useBackupsStore } from '../stores/backups';
 import { 
   type Branch,
   reportGenerate, 
-  backupCreate, 
-  backupList, 
-  backupShow, 
   listenProgress, 
   cancel,
-  saveFile,
-  settingsGet
+  saveFile
 } from '../api/ipc';
 import { ask, save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatLocalDateTime, formatLocalTime } from '../utils/date';
 
 const router = useRouter();
 const store = useReposStore();
+const settingsStore = useSettingsStore();
+const backupsStore = useBackupsStore();
 
 const selectedRepoId = ref(store.activeRepoId || '');
 const selectedBranches = ref<string[]>([]);
 
-// Backup Snapshot state
-const isBackingUp = ref(false);
-const backupProgress = ref(0);
-const backupProgressMessage = ref('');
-const activeBackupTaskId = ref('');
+// Backup Snapshot state mapped to store
+const isBackingUp = computed(() => backupsStore.isBackingUp);
+const backupProgress = computed(() => backupsStore.backupProgress);
+const backupProgressMessage = computed(() => backupsStore.backupProgressMessage);
 
 // Duplicate warning details
 const showDuplicateWarning = ref(false);
@@ -414,8 +413,10 @@ const stalenessAge = ref('');
 
 const loadSettings = async () => {
   try {
-    const settings = await settingsGet();
-    stalenessAge.value = settings.policy.age;
+    if (!settingsStore.settings) {
+      await settingsStore.fetchSettings();
+    }
+    stalenessAge.value = settingsStore.settings?.policy.age || '';
   } catch (err) {
     console.error('Failed to load settings:', err);
   }
@@ -535,13 +536,11 @@ const triggerBackupSnapshot = async () => {
   if (!store.activeRepoId) return;
   
   try {
-    const list = await backupList(store.activeRepoId);
+    const list = await backupsStore.fetchSnapshots(store.activeRepoId);
     if (list && list.length > 0) {
-      // Sort desc so latest is first
-      const sorted = [...list].sort((a, b) => b.id.localeCompare(a.id));
-      const latest = sorted[0];
+      const latest = list[0];
       
-      const details = await backupShow(latest.id);
+      const details = await backupsStore.fetchSnapshotDetail(latest.id);
       if (details && details.refs) {
         // Filter current branches to local only for comparison with local-only snapshots
         const currentLocal = store.branches.filter(b => b.classification.locality === 'local');
@@ -575,54 +574,23 @@ const proceedWithBackup = async () => {
   showDuplicateWarning.value = false;
   if (!store.activeRepoId) return;
 
-  isBackingUp.value = true;
-  backupProgress.value = 0;
-  backupProgressMessage.value = 'Preparing snapshot...';
-  
-  const taskId = 'backup-' + Math.random().toString(36).slice(2, 7);
-  activeBackupTaskId.value = taskId;
-  
-  let unsubscribe: (() => void) | null = null;
-  
   try {
-    unsubscribe = await listenProgress((evt: any) => {
-      if (evt.taskId === taskId) {
-        backupProgress.value = evt.pct;
-        backupProgressMessage.value = evt.message;
-      }
-    });
-
-    const options = {
-      trigger: 'manual' as const,
+    const snapshot = await backupsStore.createBackup(store.activeRepoId, {
+      trigger: 'manual',
       verify: true,
       refs: []
-    };
-    
-    const snapshot = await backupCreate(store.activeRepoId, options, taskId);
+    });
     alert(`Snapshot backup created successfully!\nID: ${snapshot.id}\nRefs: ${snapshot.refCount}`);
-    
     await store.selectRepo(store.activeRepoId);
   } catch (err: any) {
     if (err?.message !== 'CANCELLED') {
       alert('Snapshot backup failed: ' + (err?.message || err));
     }
-  } finally {
-    isBackingUp.value = false;
-    activeBackupTaskId.value = '';
-    if (unsubscribe) {
-      unsubscribe();
-    }
   }
 };
 
 const cancelBackup = async () => {
-  if (activeBackupTaskId.value) {
-    try {
-      await cancel(activeBackupTaskId.value);
-    } catch (err: any) {
-      console.error('Failed to cancel backup:', err);
-    }
-  }
+  await backupsStore.cancelBackupTask();
 };
 
 const handleRepoChange = () => {

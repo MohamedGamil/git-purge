@@ -139,20 +139,22 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useReposStore } from '../stores/repos';
-import { diff, type ClientDiffResult } from '../api/ipc';
+import { useBranchesStore } from '../stores/branches';
 import { ArrowLeftRight, GitCompare } from '@lucide/vue';
 
 const route = useRoute();
 const store = useReposStore();
+const branchesStore = useBranchesStore();
 
 const selectedRepoId = ref(store.activeRepoId || '');
 const branchA = ref('');
 const branchB = ref('');
 const searchA = ref('');
 const searchB = ref('');
-const loading = ref(false);
-const diffResult = ref<ClientDiffResult | null>(null);
 const showRemote = ref(false);
+
+const loading = computed(() => branchesStore.loadingDiff);
+const diffResult = computed(() => branchesStore.diffResult);
 
 const filteredBranchesA = computed(() => {
   let list = store.branches;
@@ -193,20 +195,16 @@ const handleRepoChange = () => {
     store.selectRepo(selectedRepoId.value);
     branchA.value = '';
     branchB.value = '';
-    diffResult.value = null;
+    branchesStore.diffResult = null;
   }
 };
 
 const runDiff = async () => {
   if (!selectedRepoId.value || !branchA.value || !branchB.value) return;
-  loading.value = true;
-  diffResult.value = null;
   try {
-    diffResult.value = await diff(selectedRepoId.value, branchA.value, branchB.value);
+    await branchesStore.compareBranches(selectedRepoId.value, branchA.value, branchB.value);
   } catch (err: any) {
     alert('Diff failed: ' + err.message);
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -220,7 +218,7 @@ const statusBadgeClass = (status: string) => {
 watch(() => store.activeRepoId, (newId) => {
   if (newId) {
     selectedRepoId.value = newId;
-    diffResult.value = null;
+    branchesStore.diffResult = null;
   }
 });
 

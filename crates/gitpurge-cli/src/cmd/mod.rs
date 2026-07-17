@@ -7,4 +7,5 @@ pub mod install_cli;
 pub mod repo;
 pub mod reporting;
 pub mod scan;
+pub mod show;
 pub mod ui;
