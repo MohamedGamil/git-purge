@@ -7,8 +7,10 @@
 //! **SAFE-07**: no secret material ever appears in logs, errors, snapshots, or reports.
 
 mod credential;
+pub mod keyring_store;
 
 pub use credential::{Credential, CredentialEntry, CredentialKind, CredentialQuery};
+pub use keyring_store::KeyringSecretStore;
 
 use crate::error::Result;
 use crate::model::RepoId;

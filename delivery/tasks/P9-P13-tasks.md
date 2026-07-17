@@ -60,7 +60,7 @@ backup → execute → restore.
 
 ---
 
-### P9-T5 · Coverage gate in CI 🔲
+### P9-T5 · Coverage gate in CI ✅ (2026-07-17)
 
 **Goal:** Add `cargo llvm-cov` to CI with ≥50% gate, ramp plan to ≥80%.
 
@@ -85,7 +85,7 @@ tracked `todo!("P<n>-T<m>")`.
 
 ---
 
-### P9-T7 · Exit-code stability tests 🔲
+### P9-T7 · Exit-code stability tests ✅ (2026-07-17)
 
 **Goal:** Tests asserting stable exit codes. Document the exit-code map.
 
@@ -220,7 +220,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P11-T2 · Keyring `SecretStore` adapter 🔲
+### P11-T2 · Keyring `SecretStore` adapter ✅ (2026-07-17)
 
 **Goal:** `SecretStore` backed by OS keychain via `keyring` crate.
 
@@ -268,7 +268,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P11-T6 · `safe_07` secret hygiene regression suite 🔲
+### P11-T6 · `safe_07` secret hygiene regression suite ✅ (2026-07-17)
 
 **Goal:** Comprehensive test asserting no credential material in any output path.
 

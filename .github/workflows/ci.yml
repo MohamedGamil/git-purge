@@ -54,3 +54,15 @@ jobs:
         with:
           command: check
           arguments: --workspace --exclude gitpurge-desktop
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Run coverage check
+        run: cargo llvm-cov --workspace --exclude gitpurge-desktop --all-features --fail-under-lines 50

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Keyring `SecretStore` adapter (`KeyringSecretStore`) using the OS keychain to securely store credential payloads, accompanied by a secure JSON index for list and test queries.
+- E2E CLI exit-code verification tests asserting stable exit codes (SUCCESS, USAGE, CONFIG, NOT_FOUND) mapped from internal error variants.
+- Line-coverage check utilizing `cargo-llvm-cov` to the CI pipeline with a 50% line-coverage threshold gate, along with a corresponding local `coverage` Makefile target.
+- Regression tests asserting secret material redaction in both `Credential` and `KeyringSecretStore` structures under `SAFE-07` guidelines.
 - Snapshot testing for all major CLI commands (`repo list/add/show`, `scan`, `plan`, `delete`, `backup list`, `history`, `diff`, `show`, `completions`) in both human-readable comfort tables and JSON formats.
 - Dedicated workspace round-trip integration test validating the `scan` -> `plan` -> `backup` -> `execute` -> `restore` sequence.
 - Comprehensive regression testing verifying secret material redaction in credential debug outputs under `SAFE-07` rules.
