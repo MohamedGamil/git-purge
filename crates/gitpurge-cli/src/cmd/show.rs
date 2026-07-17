@@ -1,12 +1,9 @@
 //! Subcommand handler for `show` (CLI Spec §8.9).
 
-use gitpurge_core::{
-    model::RepoId,
-    Engine, GitPurgeError, Result,
-};
+use super::diff::parse_ref_spec;
+use gitpurge_core::{model::RepoId, Engine, GitPurgeError, Result};
 use serde_json::json;
 use std::path::Path;
-use super::diff::parse_ref_spec;
 
 pub fn handle_show(
     engine: &Engine,
