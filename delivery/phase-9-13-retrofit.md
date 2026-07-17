@@ -1,6 +1,6 @@
 # Phase 9 — Safety Retrofit & Testing Debt (Critical)
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-12` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [DEFINITION_OF_DONE](DEFINITION_OF_DONE.md), [11-safety-model.md](../docs/11-safety-model.md), [12-testing-strategy.md](../docs/12-testing-strategy.md), [analysis](../.scratch/analysis/delivery-vs-specs-analysis.md)`
 
 ## Goal
@@ -66,7 +66,7 @@ Total ≈ 8.25 ED.
 
 # Phase 10 — Structural Consolidation & Spec Alignment (High)
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-12` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [02-architecture.md](../docs/02-architecture.md), [ADR-0001](../docs/adr/ADR-0001-hexagonal-architecture.md), [ADR-0002](../docs/adr/ADR-0002-git-engine-hybrid.md), [ADR-0006](../docs/adr/ADR-0006-unsafe-libgit2-timeouts.md), [CONVENTIONS](CONVENTIONS.md), [analysis](../.scratch/analysis/delivery-vs-specs-analysis.md)`
 
 ## Goal
@@ -126,7 +126,7 @@ Total ≈ 6.25–7.25 ED (depending on P10-T6 decision).
 
 # Phase 11 — Authentication & Credential Management (Critical)
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-12` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [09-authentication.md](../docs/09-authentication.md), [14-security.md](../docs/14-security.md), [ADR-0002](../docs/adr/ADR-0002-git-engine-hybrid.md), [phase-6-auth.md](phase-6-auth.md), [analysis](../.scratch/analysis/delivery-vs-specs-analysis.md)`
 
 ## Goal
@@ -184,7 +184,7 @@ Total ≈ 8.5 ED.
 
 # Phase 12 — Reporting Completion & Hardening Foundations (High)
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-12` ·
+`Status: In Progress` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [10-reporting-and-history.md](../docs/10-reporting-and-history.md), [12-testing-strategy.md](../docs/12-testing-strategy.md), [phase-5-reporting.md](phase-5-reporting.md), [phase-8-hardening-release.md](phase-8-hardening-release.md), [analysis](../.scratch/analysis/delivery-vs-specs-analysis.md)`
 
 ## Goal
@@ -243,7 +243,7 @@ Total ≈ 12.0 ED.
 
 # Phase 13 — Desktop Polish & Packaging Finalization (Medium)
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-12` ·
+`Status: In Progress` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [06-ui-spec.md](../docs/06-ui-spec.md), [07-ui-design-system.md](../docs/07-ui-design-system.md), [13-distribution-and-ci.md](../docs/13-distribution-and-ci.md), [ADR-0003](../docs/adr/ADR-0003-ui-vue-tauri.md), [phase-4-ui.md](phase-4-ui.md), [phase-7-packaging.md](phase-7-packaging.md), [analysis](../.scratch/analysis/delivery-vs-specs-analysis.md)`
 
 ## Goal

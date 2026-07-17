@@ -1,6 +1,6 @@
 # Phase 6 — Authentication & secure storage
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p6--authentication--secure-storage-9-ed), [CONVENTIONS §4/§5](CONVENTIONS.md), [architecture §3](../docs/02-architecture.md), [09-authentication.md](../docs/09-authentication.md), [14-security.md](../docs/14-security.md)`
 
 ## Goal

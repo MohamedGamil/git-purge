@@ -1,6 +1,6 @@
 # Phase 8 — Hardening, security review & 1.0
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: In Progress` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p8--hardening-security-review--10-8-ed), [CONVENTIONS §12/§13](CONVENTIONS.md), [DoD](DEFINITION_OF_DONE.md), [14-security.md](../docs/14-security.md), [12-testing-strategy.md](../docs/12-testing-strategy.md)`
 
 ## Goal

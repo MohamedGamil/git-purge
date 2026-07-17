@@ -1,6 +1,6 @@
 # Phase 7 — Packaging, distribution & CI release
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p7--packaging-distribution--ci-release-9-ed), [CONVENTIONS §1/§14](CONVENTIONS.md), [13-distribution-and-ci.md](../docs/13-distribution-and-ci.md)`
 
 ## Goal

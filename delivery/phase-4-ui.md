@@ -1,6 +1,6 @@
 # Phase 4 — Desktop UI (Tauri + Vue)
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p4--desktop-ui-18-ed), [CONVENTIONS §10/§12](CONVENTIONS.md), [architecture §4/§7](../docs/02-architecture.md), [ADR-0003](../docs/adr/ADR-0003-ui-vue-tauri.md), [ADR-0004](../docs/adr/ADR-0004-shared-core-embedding.md), [06-ui-spec.md](../docs/06-ui-spec.md), [07-ui-design-system.md](../docs/07-ui-design-system.md), [14-security.md](../docs/14-security.md)`
 
 ## Goal

@@ -1,6 +1,6 @@
 # Phase 1 — Core read engine (git + classify + diff)
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p1--core-read-engine-12-ed), [CONVENTIONS §4/§8](CONVENTIONS.md), [architecture §3](../docs/02-architecture.md), [domain model §2–§7](../docs/03-domain-model.md), [ADR-0002](../docs/adr/ADR-0002-git-engine-hybrid.md)`
 
 ## Goal

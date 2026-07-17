@@ -1,6 +1,6 @@
 # Phase 0 — Foundations & scaffolding
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p0--foundations--scaffolding-6-ed), [CONVENTIONS](CONVENTIONS.md), [architecture §2](../docs/02-architecture.md), [AGENT_GUIDE](AGENT_GUIDE.md), [DoD](DEFINITION_OF_DONE.md)`
 
 ## Goal

@@ -1,6 +1,6 @@
 # Phase 2 — Backup & restore
 
-`Status: Draft` · `Owner: Delivery` · `Last-updated: 2026-07-11` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [ROADMAP](../docs/ROADMAP.md#p2--backup--restore-10-ed), [CONVENTIONS §6/§7](CONVENTIONS.md), [domain model §6](../docs/03-domain-model.md), [ADR-0005](../docs/adr/ADR-0005-backup-format.md), [08-backup-and-restore.md](../docs/08-backup-and-restore.md), [11-safety-model.md](../docs/11-safety-model.md)`
 
 ## Goal
