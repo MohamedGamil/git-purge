@@ -68,4 +68,31 @@ mod tests {
             Duration::from_secs(6 * 30 * 24 * 3600)
         );
     }
+
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_parse_age_threshold_no_panic(s in "\\PC*") {
+            let _ = parse_age_threshold(&s);
+        }
+
+        #[test]
+        fn test_parse_age_threshold_valid(
+            num in 1u64..1000u64,
+            unit in proptest::sample::select(vec!["d", "day", "days", "w", "week", "weeks", "m", "month", "months", "y", "year", "years"]),
+            ago in proptest::bool::ANY,
+        ) {
+            let ago_str = if ago { " ago" } else { "" };
+            let raw_space = format!("{} {}{}", num, unit, ago_str);
+            let raw_nospace = format!("{}{}{}", num, unit, ago_str);
+
+            let res_space = parse_age_threshold(&raw_space);
+            let res_nospace = parse_age_threshold(&raw_nospace);
+
+            assert!(res_space.is_ok());
+            assert!(res_nospace.is_ok());
+            assert_eq!(res_space.unwrap(), res_nospace.unwrap());
+        }
+    }
 }

@@ -36,6 +36,12 @@ pub trait HistoryStore: Send + Sync + std::fmt::Debug {
     /// Fetch past executions for a repository.
     fn get_runs(&self, repo: &RepoId, limit: usize, offset: usize) -> Result<Vec<RunRecord>>;
 
+    /// Fetch all branch classifications captured in a specific run.
+    fn get_run_classifications(&self, run_id: &str) -> Result<Vec<crate::model::Classification>>;
+
+    /// Fetch a run record by its ID.
+    fn get_run_record(&self, run_id: &str) -> Result<Option<RunRecord>>;
+
     /// Save snapshot metadata.
     fn save_snapshot(&self, snapshot: &Snapshot) -> Result<()>;
 
@@ -53,6 +59,7 @@ pub trait HistoryStore: Send + Sync + std::fmt::Debug {
 #[derive(Debug, Default)]
 pub struct FakeHistoryStore {
     snapshots: std::sync::Mutex<std::collections::HashMap<SnapshotId, Snapshot>>,
+    runs: std::sync::Mutex<std::collections::HashMap<String, RunReport>>,
 }
 
 impl FakeHistoryStore {
@@ -60,6 +67,7 @@ impl FakeHistoryStore {
     pub fn new() -> Self {
         Self {
             snapshots: std::sync::Mutex::new(std::collections::HashMap::new()),
+            runs: std::sync::Mutex::new(std::collections::HashMap::new()),
         }
     }
 }
@@ -69,7 +77,9 @@ impl HistoryStore for FakeHistoryStore {
         Ok(())
     }
 
-    fn record_run(&self, _report: &RunReport) -> Result<()> {
+    fn record_run(&self, report: &RunReport) -> Result<()> {
+        let mut runs = self.runs.lock().unwrap();
+        runs.insert(report.id.clone(), report.clone());
         Ok(())
     }
 
@@ -86,6 +96,48 @@ impl HistoryStore for FakeHistoryStore {
 
     fn get_runs(&self, _repo: &RepoId, _limit: usize, _offset: usize) -> Result<Vec<RunRecord>> {
         Ok(Vec::new())
+    }
+
+    fn get_run_classifications(&self, run_id: &str) -> Result<Vec<crate::model::Classification>> {
+        let runs = self.runs.lock().unwrap();
+        if let Some(report) = runs.get(run_id) {
+            Ok(report.branch_snapshots.clone().unwrap_or_default())
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    fn get_run_record(&self, run_id: &str) -> Result<Option<RunRecord>> {
+        let runs = self.runs.lock().unwrap();
+        if let Some(report) = runs.get(run_id) {
+            let started_at = report.started_at;
+            let finished_at = Some(time::OffsetDateTime::now_utc());
+            Ok(Some(RunRecord {
+                id: report.id.clone(),
+                command: report.command.clone(),
+                mode: match report.mode {
+                    crate::model::ExecMode::DryRun => "dry-run".to_string(),
+                    crate::model::ExecMode::Execute => "execute".to_string(),
+                },
+                started_at,
+                finished_at,
+                snapshot_id: report.snapshot.as_ref().map(|s| s.0.clone()),
+                actor: Some("system".to_string()),
+                deleted_count: report.metrics.as_ref().and_then(|m| m.deleted).unwrap_or(0),
+                archived_count: report
+                    .metrics
+                    .as_ref()
+                    .and_then(|m| m.archived)
+                    .unwrap_or(0),
+                branches: report
+                    .branch_snapshots
+                    .as_ref()
+                    .map(|bs| bs.iter().map(|b| b.branch.0.clone()).collect())
+                    .unwrap_or_default(),
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     fn save_snapshot(&self, snapshot: &Snapshot) -> Result<()> {

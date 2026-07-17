@@ -153,4 +153,34 @@ mod tests {
             );
         }
     }
+
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_matches_glob_no_panic(pattern in "\\PC*", s in "\\PC*") {
+            let _ = matches_glob(&pattern, &s);
+        }
+
+        #[test]
+        fn test_matches_glob_wildcard_invariant(s in "\\PC*") {
+            assert!(matches_glob("*", &s));
+        }
+
+        #[test]
+        fn test_matches_glob_exact_match(s in "[a-zA-Z0-9]+") {
+            assert!(matches_glob(&s, &s));
+        }
+
+        #[test]
+        fn test_protection_evaluator_no_panic(
+            branch_name in "\\PC*",
+            is_default_branch in proptest::bool::ANY,
+            is_head in proptest::bool::ANY,
+        ) {
+            let policy = ProtectionPolicy::default();
+            let evaluator = ProtectionEvaluator::new(policy);
+            let _ = evaluator.evaluate(&branch_name, is_default_branch, is_head);
+        }
+    }
 }

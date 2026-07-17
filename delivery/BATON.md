@@ -1,6 +1,6 @@
 # Delivery Baton
 
-> **Last updated:** 2026-07-17 · **Session:** 43 · **Updated by:** Implementation loop (orient + implement + document)
+> **Last updated:** 2026-07-17 · **Session:** 46 · **Updated by:** Implementation loop (orient + implement + document)
 
 The baton is the **single source of truth** for what's done, what's in progress,
 and what's next. Every implementation session **reads the baton first** and
@@ -29,6 +29,10 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P10-T7 | Expand CI to cross-platform matrix | 46 | 2026-07-17 |
+| P12-T1 | Implement trend diffs | 46 | 2026-07-17 |
+| P12-T2 | `insta` golden tests for report renderers | 46 | 2026-07-17 |
+| P12-T4 | `proptest` property tests for policy engine | 46 | 2026-07-17 |
 | P10-T3 | Split Tauri `commands.rs` into domain modules | 45 | 2026-07-17 |
 | P11-T7 | Wire auth CLI commands to real backends | 44 | 2026-07-17 |
 | P10-T2 | Break up `lib.rs` into Engine modules | 44 | 2026-07-17 |
@@ -41,10 +45,6 @@ duplicating work.
 | P9-T7 | Exit-code stability tests | 41 | 2026-07-17 |
 | P11-T6 | `safe_07` secret hygiene regression suite | 41 | 2026-07-17 |
 | P11-T2 | Keyring `SecretStore` adapter | 41 | 2026-07-17 |
-| P9-T2 | Core integration test directory | 40 | 2026-07-17 |
-| P9-T4 | `insta` snapshot tests for CLI | 40 | 2026-07-17 |
-| P11-T1 | Credential model types | 40 | 2026-07-17 |
-| P10-T4 | Resolve license inconsistency | 40 | 2026-07-17 |
 
 ---
 
@@ -67,16 +67,12 @@ duplicating work.
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 1 | P10-T7 | Expand CI to cross-platform matrix | 1 ED | Medium | — |
 
 ### High — Phase 12: Reporting Completion & Hardening Foundations
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 5 | P12-T1 | Implement trend diffs | 1.5 ED | Quick Win | — |
-| 6 | P12-T2 | `insta` golden tests for report renderers | 1 ED | Quick Win | — |
-| 7 | P12-T4 | `proptest` property tests for policy engine | 1.5 ED | High | — |
-| 8 | P12-T3 | `history import --legacy-json` | 1 ED | Medium | ⛔ P12-T1 |
+| 8 | P12-T3 | `history import --legacy-json` | 1 ED | Medium | — |
 | 9 | P12-T5 | Performance benchmark suite | 1.5 ED | Medium | — |
 | 10 | P12-T6 | Frontend Vitest expansion | 3 ED | Medium | — |
 | 11 | P12-T7 | `SECURITY.md` threat-model content | 1 ED | Medium | — |

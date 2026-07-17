@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Expanded CI matrix workflow to run Cargo checks, clippy, and nextest test suites across `ubuntu-20.04`, `ubuntu-latest`, `macos-latest`, and `windows-latest` platforms, plus a Linux-based Vitest job for frontend desktop tests.
+- Implemented `TrendDiff` domain structures, `compare_scans` delta algorithms, and wired the `Engine::trends()` method to compute branch deltas, added/removed branches, and daily branch merge velocity over time.
+- Integrated `insta` golden-file rendering checks (`report_golden.rs`) verifying Markdown audit/trend, JSON, and HTML report formatting against static mock run fixtures.
+- Integrated `proptest` property-testing coverage inside policy modules (`age.rs`, `naming.rs`, and `protection.rs`) validating parser, glob match, and naming evaluator behaviors under arbitrary randomized inputs.
 - Split the monolithic `apps/desktop/src-tauri/src/commands.rs` into modular, domain-specific command modules under a new `commands/` directory (`mod.rs`, `repo.rs`, `branch.rs`, `backup.rs`, `history.rs`, `auth.rs`, `settings.rs`, `system.rs`, `tests.rs`), keeping files under 500 lines.
 - Added comprehensive Tauri command integration testing using `tauri::test::mock_app()` to verify settings, repo CRUD, and backup prune/list IPC command behaviors.
 - Wired the CLI `auth add` and `auth remove` commands to configure credential metadata in `config.toml` via `AuthConfig`/`CredentialMetadata` models, persisting it to disk on configuration updates.

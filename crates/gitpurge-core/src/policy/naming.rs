@@ -171,4 +171,32 @@ mod tests {
             }
         );
     }
+
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_naming_evaluator_no_panic(branch_name in "\\PC*") {
+            let policy = NamingPolicy::default();
+            if let Ok(evaluator) = NamingEvaluator::new(&policy) {
+                let _ = evaluator.evaluate(&branch_name);
+            }
+        }
+
+        #[test]
+        fn test_naming_evaluator_custom_policy(
+            branch_name in "\\PC*",
+            regex_str in "feature/[a-z]+",
+        ) {
+            let policy = NamingPolicy {
+                allowed: vec![crate::model::RegexSource(regex_str)],
+                exact_exceptions: vec!["main-legacy".to_string()],
+                substring_exceptions: vec![crate::model::CiSubstring("vue3".to_string())],
+                remediation_map: Vec::new(),
+            };
+            if let Ok(evaluator) = NamingEvaluator::new(&policy) {
+                let _ = evaluator.evaluate(&branch_name);
+            }
+        }
+    }
 }

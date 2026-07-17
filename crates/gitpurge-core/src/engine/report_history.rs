@@ -97,4 +97,43 @@ impl super::Engine {
     ) -> Result<Vec<crate::model::RunRecord>> {
         self.history.get_runs(repo, limit, offset)
     }
+
+    /// Compare two past execution runs and return a detailed trend diff.
+    pub fn trends(
+        &self,
+        repo: &RepoId,
+        old_run_id: &str,
+        new_run_id: &str,
+    ) -> Result<crate::model::TrendDiff> {
+        let old_run = self.history.get_run_record(old_run_id)?.ok_or_else(|| {
+            crate::GitPurgeError::Config(format!("Run record not found: {}", old_run_id))
+        })?;
+        let new_run = self.history.get_run_record(new_run_id)?.ok_or_else(|| {
+            crate::GitPurgeError::Config(format!("Run record not found: {}", new_run_id))
+        })?;
+
+        let old_classifications = self.history.get_run_classifications(old_run_id)?;
+        let new_classifications = self.history.get_run_classifications(new_run_id)?;
+
+        let old_scan = crate::model::ScanResult {
+            repo: repo.clone(),
+            total_branches: old_classifications.len(),
+            excluded_count: 0,
+            classifications: old_classifications,
+        };
+
+        let new_scan = crate::model::ScanResult {
+            repo: repo.clone(),
+            total_branches: new_classifications.len(),
+            excluded_count: 0,
+            classifications: new_classifications,
+        };
+
+        Ok(crate::history::trends::compare_scans(
+            &old_scan,
+            &new_scan,
+            old_run.started_at,
+            new_run.started_at,
+        ))
+    }
 }

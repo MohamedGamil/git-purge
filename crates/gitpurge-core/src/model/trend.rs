@@ -1,6 +1,6 @@
 //! Trend history domain models (CONVENTIONS §8, doc 10 §2.2)
 
-use super::RepoId;
+use super::*;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -138,4 +138,71 @@ pub struct RunRecord {
     pub archived_count: usize,
     /// List of branches deleted/archived in this run (derived from snapshot).
     pub branches: Vec<String>,
+}
+
+/// Detailed trend difference between two scans.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrendDiff {
+    /// Count deltas across the canonical metrics.
+    pub comparison: TrendComparison,
+    /// Branches that appeared in the new scan but were not in the old scan.
+    pub added_branches: Vec<String>,
+    /// Branches that were in the old scan but are no longer in the new scan.
+    pub removed_branches: Vec<String>,
+    /// Merge velocity: number of branches transitioned from Unmerged to Merged.
+    pub merge_velocity: usize,
+    /// Velocity normalized to branches merged per day (based on elapsed time).
+    pub merges_per_day: f64,
+}
+
+impl TrendEntry {
+    /// Build a `TrendEntry` from a `ScanResult` and timestamp.
+    pub fn from_scan(
+        scan: &ScanResult,
+        recorded_at: OffsetDateTime,
+        deleted_count: usize,
+        archived_count: usize,
+    ) -> Self {
+        let mut merged = 0;
+        let mut unmerged = 0;
+        let mut stale = 0;
+        let mut active = 0;
+        let mut non_standard = 0;
+        let mut protected = 0;
+
+        for c in &scan.classifications {
+            if c.merge_state == MergeState::Merged {
+                merged += 1;
+            } else {
+                unmerged += 1;
+            }
+
+            if c.activity == Activity::Stale {
+                stale += 1;
+            } else {
+                active += 1;
+            }
+
+            if matches!(c.naming, NamingVerdict::NonStandard { .. }) {
+                non_standard += 1;
+            }
+
+            if matches!(c.protection, Protection::Protected { .. }) {
+                protected += 1;
+            }
+        }
+
+        Self {
+            recorded_at,
+            total_branches: scan.total_branches,
+            merged_count: merged,
+            unmerged_count: unmerged,
+            stale_count: stale,
+            active_count: active,
+            deleted_count,
+            archived_count,
+            non_standard_count: non_standard,
+            protected_count: protected,
+        }
+    }
 }

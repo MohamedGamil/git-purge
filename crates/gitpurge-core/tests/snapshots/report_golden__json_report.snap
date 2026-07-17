@@ -1,0 +1,315 @@
+---
+source: crates/gitpurge-core/tests/report_golden.rs
+expression: json_report
+---
+{
+  "classifications": [
+    {
+      "activity": "Active",
+      "age": {
+        "nanos": 0,
+        "secs": 3600
+      },
+      "branch": "feature/login",
+      "merge_state": "Merged",
+      "naming": "Standard",
+      "protection": "Unprotected",
+      "recommendation": "DeleteMerged",
+      "remote": null,
+      "scope": "Local",
+      "tip": {
+        "author": {
+          "email": "alice@example.com",
+          "name": "Alice Developer",
+          "when": [
+            2026,
+            198,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "author_date": [
+          2026,
+          198,
+          9,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "commit_date": [
+          2026,
+          198,
+          9,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "committer": {
+          "email": "alice@example.com",
+          "name": "Alice Developer",
+          "when": [
+            2026,
+            198,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "oid": "1111111111111111111111111111111111111111",
+        "parents": [],
+        "short": "1111111",
+        "subject": "Add login feature"
+      },
+      "tracking": {
+        "ahead": 0,
+        "behind": 0,
+        "compared_against": "DefaultBranch",
+        "upstream_gone": false
+      },
+      "upstream": null
+    },
+    {
+      "activity": "Stale",
+      "age": {
+        "nanos": 0,
+        "secs": 63072000
+      },
+      "branch": "wip-stub",
+      "merge_state": "Unmerged",
+      "naming": {
+        "NonStandard": {
+          "reason": "NoCategoryPrefix"
+        }
+      },
+      "protection": "Unprotected",
+      "recommendation": "ReviewUnmerged",
+      "remote": null,
+      "scope": "Local",
+      "tip": {
+        "author": {
+          "email": "alice@example.com",
+          "name": "Alice Developer",
+          "when": [
+            2026,
+            198,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "author_date": [
+          2026,
+          197,
+          11,
+          6,
+          40,
+          0,
+          0,
+          0,
+          0
+        ],
+        "commit_date": [
+          2026,
+          197,
+          11,
+          6,
+          40,
+          0,
+          0,
+          0,
+          0
+        ],
+        "committer": {
+          "email": "alice@example.com",
+          "name": "Alice Developer",
+          "when": [
+            2026,
+            198,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "oid": "2222222222222222222222222222222222222222",
+        "parents": [],
+        "short": "2222222",
+        "subject": "Wip login stub"
+      },
+      "tracking": {
+        "ahead": 2,
+        "behind": 0,
+        "compared_against": "DefaultBranch",
+        "upstream_gone": false
+      },
+      "upstream": null
+    },
+    {
+      "activity": "Active",
+      "age": {
+        "nanos": 0,
+        "secs": 0
+      },
+      "branch": "main",
+      "merge_state": "Merged",
+      "naming": "Standard",
+      "protection": {
+        "Protected": {
+          "reason": "DefaultBranch"
+        }
+      },
+      "recommendation": "KeepProtected",
+      "remote": null,
+      "scope": "Local",
+      "tip": {
+        "author": {
+          "email": "alice@example.com",
+          "name": "Alice Developer",
+          "when": [
+            2026,
+            198,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "author_date": [
+          2026,
+          198,
+          9,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "commit_date": [
+          2026,
+          198,
+          9,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "committer": {
+          "email": "alice@example.com",
+          "name": "Alice Developer",
+          "when": [
+            2026,
+            198,
+            9,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "oid": "1111111111111111111111111111111111111111",
+        "parents": [],
+        "short": "1111111",
+        "subject": "Add login feature"
+      },
+      "tracking": {
+        "ahead": 0,
+        "behind": 0,
+        "compared_against": "DefaultBranch",
+        "upstream_gone": false
+      },
+      "upstream": null
+    }
+  ],
+  "generated_at": "2026-07-17T09:00:00Z",
+  "history": [
+    {
+      "active_count": 5,
+      "archived_count": 0,
+      "deleted_count": 0,
+      "merged_count": 2,
+      "non_standard_count": 3,
+      "protected_count": 1,
+      "recorded_at": [
+        2026,
+        197,
+        11,
+        6,
+        40,
+        0,
+        0,
+        0,
+        0
+      ],
+      "stale_count": 5,
+      "total_branches": 10,
+      "unmerged_count": 8
+    },
+    {
+      "active_count": 2,
+      "archived_count": 0,
+      "deleted_count": 7,
+      "merged_count": 2,
+      "non_standard_count": 1,
+      "protected_count": 1,
+      "recorded_at": [
+        2026,
+        198,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "stale_count": 1,
+      "total_branches": 3,
+      "unmerged_count": 1
+    }
+  ],
+  "metrics": {
+    "active": 2,
+    "merged": 2,
+    "non_standard": 1,
+    "stale": 1,
+    "total": 3,
+    "unmerged": 1
+  },
+  "repo": {
+    "display_name": "Test Repository",
+    "id": "test-repo",
+    "local_path": "/workspace/test-repo",
+    "remote_url": "https://github.com/MohamedGamil/git-purge.git"
+  },
+  "schema_version": "1"
+}

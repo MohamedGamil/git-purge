@@ -1,0 +1,192 @@
+---
+source: crates/gitpurge-core/tests/report_golden.rs
+expression: html_report
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Purge Audit Report</title>
+    <style>
+        :root {
+            /* One Dark Pro theme variables */
+            --bg-deep: #21252b;
+            --bg: #282c34;
+            --bg-raised: #2c313a;
+            --fg: #abb2bf;
+            --fg-strong: #d7dae0;
+            --border: #3e4451;
+            
+            --red: #e06c75;
+            --green: #98c379;
+            --yellow: #e5c07b;
+            --orange: #d19a66;
+            --blue: #61afef;
+            --purple: #c678dd;
+            --cyan: #56b6c2;
+            --gray: #5c6370;
+            --accent: #61afef;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                /* One Light theme variables */
+                --bg-deep: #f0f0f1;
+                --bg: #fafafa;
+                --bg-raised: #ffffff;
+                --fg: #383a42;
+                --fg-strong: #202227;
+                --border: #d4d4d6;
+                
+                --red: #e45649;
+                --green: #50a14f;
+                --yellow: #c18401;
+                --orange: #b76b01;
+                --blue: #4078f2;
+                --purple: #a626a4;
+                --cyan: #0184bc;
+                --gray: #a0a1a7;
+                --accent: #4078f2;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--fg);
+            margin: 0;
+            padding: 24px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1, h2, h3, h4 {
+            color: var(--fg-strong);
+            margin-top: 0;
+        }
+
+        .subtitle {
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .card {
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--bg-raised);
+            color: var(--fg-strong);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .badge-success { background-color: rgba(152, 195, 121, 0.15); color: var(--green); }
+        .badge-warning { background-color: rgba(229, 192, 123, 0.15); color: var(--yellow); }
+        .badge-danger { background-color: rgba(224, 108, 117, 0.15); color: var(--red); }
+        .badge-info { background-color: rgba(97, 175, 239, 0.15); color: var(--blue); }
+
+        pre {
+            background-color: var(--bg-deep);
+            color: var(--cyan);
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 14px;
+            border: 1px solid var(--border);
+        }
+
+        .tip-callout {
+            background-color: rgba(97, 175, 239, 0.1);
+            border-left: 4px solid var(--blue);
+            padding: 16px;
+            border-radius: 0 6px 6px 0;
+            margin-bottom: 20px;
+        }
+
+        .tip-callout p {
+            margin: 0;
+            color: var(--fg-strong);
+        }
+
+        .stale-bucket {
+            margin-top: 16px;
+            border-left: 2px solid var(--border);
+            padding-left: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+<h1>Git Purge Report — Test Repository</h1><p class="subtitle">Generated at 2026-07-17 09:00 UTC</p></header><div class="card">
+            <h2>📊 Repository Overall Stats</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody><tr><td><strong>Total Branches</strong></td><td>3</td><td>100.0%</td><td>All tracked branches in the mirror</td></tr><tr><td><strong>Active Branches</strong></td><td>2</td><td>66.7%</td><td>Branches with commits in the active window</td></tr><tr><td><strong>Stale Branches</strong></td><td>1</td><td>33.3%</td><td>Branches with last commit older than threshold</td></tr><tr><td><strong>Merged Branches</strong></td><td>2</td><td>66.7%</td><td>Branches fully merged into the default branch</td></tr><tr><td><strong>Unmerged Branches</strong></td><td>1</td><td>33.3%</td><td>Branches with unmerged work</td></tr><tr><td><strong>Non-Standard Naming</strong></td><td>1</td><td>33.3%</td><td>Branches violating the naming policy</td></tr></tbody></table></div><div class="card"><h2>🗑️ Recommended for Deletion</h2><table><thead><tr>
+                <th>Branch Name</th><th>Last Commit</th><th>Author</th><th>Type</th><th>Reason</th>
+            </tr></thead><tbody><tr><td><code>feature/login</code></td><td>2026-07-17</td><td>Alice Developer</td><td>Local</td><td><span class="badge badge-danger">Merged</span></td></tr></tbody></table><h3>💻 Quick Commands</h3><pre>git-purge delete --repo test-repo --branch feature/login --execute
+</pre></div><div class="card"><h2>⚠️ Naming Standards Violations</h2><table><thead><tr>
+                <th>Branch Name</th><th>Last Commit</th><th>Author</th><th>Issue</th>
+            </tr></thead><tbody><tr><td><code>wip-stub</code></td><td>2026-07-16</td><td>Alice Developer</td><td>Missing category prefix</td></tr></tbody></table></div><div class="card"><h2>📅 Categorization of Stale Branches by Age</h2><div class="stale-bucket"><h3>1–2 Years Old</h3><p>No branches in this age group.</p></div><div class="stale-bucket"><h3>2–3 Years Old</h3><table><thead><tr>
+                        <th>Branch Name</th><th>Last Commit</th><th>Author</th><th>Merged?</th><th>Type</th>
+                    </tr></thead><tbody><tr><td><code>wip-stub</code></td><td>2026-07-16</td><td>Alice Developer</td><td><span class="badge badge-warning">No</span></td><td>Local</td></tr></tbody></table></div><div class="stale-bucket"><h3>3+ Years Old</h3><p>No branches in this age group.</p></div></div><div class="card"><h2>🔍 Stale Branches: Review Required (Unmerged)</h2><table><thead><tr>
+                <th>Branch Name</th><th>Last Commit</th><th>Author</th><th>Last Commit Message</th><th>Type</th>
+            </tr></thead><tbody><tr><td><code>wip-stub</code></td><td>2026-07-16</td><td>Alice Developer</td><td>Wip login stub</td><td>Local</td></tr></tbody></table></div><div class="card"><h2>🔄 Compare against Previous Run</h2><p class="subtitle">Comparing to run on 2026-07-16 11:06 UTC</p><table><thead><tr>
+                    <th>Metric</th><th>Old Value</th><th>New Value</th><th>Absolute Change</th><th>Change Ratio</th>
+                </tr></thead><tbody><tr><td><strong>Total Branches</strong></td><td>10</td><td>3</td><td><span class="badge badge-success">-7</span></td><td>-70.0%</td></tr><tr><td><strong>Stale Branches</strong></td><td>5</td><td>1</td><td><span class="badge badge-success">-4</span></td><td>-80.0%</td></tr><tr><td><strong>Active Branches</strong></td><td>5</td><td>2</td><td><span class="badge badge-success">-3</span></td><td>-60.0%</td></tr><tr><td><strong>Merged Branches</strong></td><td>2</td><td>2</td><td><span class="badge badge-info">0</span></td><td>0.0%</td></tr><tr><td><strong>Unmerged Branches</strong></td><td>8</td><td>1</td><td><span class="badge badge-success">-7</span></td><td>-87.5%</td></tr><tr><td><strong>Non-Standard Naming</strong></td><td>3</td><td>1</td><td><span class="badge badge-success">-2</span></td><td>-66.7%</td></tr></tbody></table></div></div></body></html>

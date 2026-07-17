@@ -1,0 +1,43 @@
+---
+source: crates/gitpurge-core/tests/report_golden.rs
+expression: md_trend
+---
+# Git Purge Cleanup Progress & Trend Report — Test Repository
+
+Generated at: 2026-07-17 09:00 UTC
+
+### 🔄 Compare against Previous Run
+
+Comparing current state to run on **2026-07-16 11:06 UTC**:
+
+| Metric | Old Value | New Value | Absolute Change | Change Ratio (%) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Total Branches** | 10 | 3 | **-7** | **-70.0%** |
+| **Stale Branches** | 5 | 1 | **-4** | **-80.0%** |
+| **Active Branches** | 5 | 2 | **-3** | **-60.0%** |
+| **Merged Branches** | 2 | 2 | **0** | **0.0%** |
+| **Unmerged Branches** | 8 | 1 | **-7** | **-87.5%** |
+| **Non-Standard Naming** | 3 | 1 | **-2** | **-66.7%** |
+
+### 📉 Compare against Baseline Run
+
+Comparing current state to baseline run on **2026-07-16 11:06 UTC**:
+
+| Metric | Old Value | New Value | Absolute Change | Change Ratio (%) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Total Branches** | 10 | 3 | **-7** | **-70.0%** |
+| **Stale Branches** | 5 | 1 | **-4** | **-80.0%** |
+| **Active Branches** | 5 | 2 | **-3** | **-60.0%** |
+| **Merged Branches** | 2 | 2 | **0** | **0.0%** |
+| **Unmerged Branches** | 8 | 1 | **-7** | **-87.5%** |
+| **Non-Standard Naming** | 3 | 1 | **-2** | **-66.7%** |
+
+> [!TIP]
+> **Cleanup Milestone**: Stale branches have been reduced by **4** branches (**80.0%** reduction) since the baseline run!
+
+### 📜 Run History Log
+
+| Run Date | Total | Active | Stale | Merged | Unmerged |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| 2026-07-17 09:00 UTC | 3 | 2 | 1 | 2 | 1 |
+| 2026-07-16 11:06 UTC (Baseline) | 10 | 5 | 5 | 2 | 8 |

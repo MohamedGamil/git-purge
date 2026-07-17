@@ -521,6 +521,209 @@ impl HistoryStore for SqliteHistoryStore {
         Ok(runs)
     }
 
+    fn get_run_classifications(&self, run_id: &str) -> Result<Vec<crate::model::Classification>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT ref_name, kind, is_merged, is_stale, is_protected, is_standard, violation_reason, tip_sha, last_commit_at, author_name, subject
+             FROM branch_snapshots
+             WHERE run_id = ?1;"
+        ).map_err(|e| crate::GitPurgeError::Config(format!("Failed to prepare query: {}", e)))?;
+
+        let rows = stmt
+            .query_map([run_id], |row| {
+                let ref_name: String = row.get(0)?;
+                let kind_str: String = row.get(1)?;
+                let is_merged_val: i32 = row.get(2)?;
+                let is_stale_val: i32 = row.get(3)?;
+                let is_protected_val: i32 = row.get(4)?;
+                let is_standard_val: i32 = row.get(5)?;
+                let violation_reason: Option<String> = row.get(6)?;
+                let tip_sha: String = row.get(7)?;
+                let last_commit_at_str: String = row.get(8)?;
+                let author_name: Option<String> = row.get(9)?;
+                let subject: Option<String> = row.get(10)?;
+
+                let scope = if kind_str == "local" {
+                    crate::model::BranchScope::Local
+                } else {
+                    crate::model::BranchScope::Remote
+                };
+
+                let merge_state = if is_merged_val == 1 {
+                    crate::model::MergeState::Merged
+                } else {
+                    crate::model::MergeState::Unmerged
+                };
+
+                let activity = if is_stale_val == 1 {
+                    crate::model::Activity::Stale
+                } else {
+                    crate::model::Activity::Active
+                };
+
+                let protection = if is_protected_val == 1 {
+                    crate::model::Protection::Protected {
+                        reason: crate::model::ProtectionReason::WellKnown("Unknown".to_string()),
+                    }
+                } else {
+                    crate::model::Protection::Unprotected
+                };
+
+                let naming = if is_standard_val == 1 {
+                    crate::model::NamingVerdict::Standard
+                } else {
+                    let reason = if let Some(v_reason) = violation_reason {
+                        if v_reason == "No category prefix" {
+                            crate::model::NamingViolation::NoCategoryPrefix
+                        } else if v_reason.starts_with("Wrong prefix format: ") {
+                            crate::model::NamingViolation::WrongPrefixFormat {
+                                prefix: v_reason.replace("Wrong prefix format: ", ""),
+                            }
+                        } else if v_reason.starts_with("Non-standard prefix: ") {
+                            crate::model::NamingViolation::NonStandardPrefix {
+                                prefix: v_reason.replace("Non-standard prefix: ", ""),
+                            }
+                        } else {
+                            crate::model::NamingViolation::UnknownPrefix {
+                                prefix: v_reason.replace("Unknown prefix: ", ""),
+                            }
+                        }
+                    } else {
+                        crate::model::NamingViolation::NoCategoryPrefix
+                    };
+                    crate::model::NamingVerdict::NonStandard { reason }
+                };
+
+                let commit_date = time::OffsetDateTime::parse(
+                    &last_commit_at_str,
+                    &time::format_description::well_known::Rfc3339,
+                )
+                .unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+
+                let sig = crate::model::Signature {
+                    name: author_name.unwrap_or_default(),
+                    email: "[REDACTED]".to_string(),
+                    when: commit_date,
+                };
+
+                let tip = crate::model::Commit {
+                    oid: crate::model::Oid(tip_sha.clone()),
+                    short: tip_sha.chars().take(7).collect(),
+                    author: sig.clone(),
+                    committer: sig,
+                    author_date: commit_date,
+                    commit_date,
+                    subject: subject.unwrap_or_default(),
+                    parents: Vec::new(),
+                };
+
+                Ok(crate::model::Classification {
+                    branch: crate::model::BranchName(ref_name),
+                    scope,
+                    remote: None,
+                    upstream: None,
+                    merge_state,
+                    activity,
+                    age: std::time::Duration::from_secs(0),
+                    protection,
+                    naming,
+                    tracking: crate::model::TrackingFacet {
+                        ahead: 0,
+                        behind: 0,
+                        upstream_gone: false,
+                        compared_against: crate::model::RefBasis::Upstream,
+                    },
+                    tip,
+                    recommendation: crate::model::Recommendation::NoAction,
+                })
+            })
+            .map_err(|e| {
+                crate::GitPurgeError::Config(format!("Failed to query branch snapshots: {}", e))
+            })?;
+
+        let mut classifications = Vec::new();
+        for r in rows {
+            classifications
+                .push(r.map_err(|e| crate::GitPurgeError::Config(format!("Row error: {}", e)))?);
+        }
+
+        Ok(classifications)
+    }
+
+    fn get_run_record(&self, run_id: &str) -> Result<Option<RunRecord>> {
+        let row_data = {
+            let conn = self.conn.lock().unwrap();
+            conn.query_row(
+                "SELECT r.id, r.command, r.mode, r.started_at, r.finished_at, r.snapshot_id, r.actor,
+                        m.deleted, m.archived
+                 FROM runs r
+                 LEFT JOIN metrics m ON r.id = m.run_id
+                 WHERE r.id = ?1;",
+                [run_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, Option<String>>(4)?,
+                        row.get::<_, Option<String>>(5)?,
+                        row.get::<_, Option<String>>(6)?,
+                        row.get::<_, Option<i64>>(7)?,
+                        row.get::<_, Option<i64>>(8)?,
+                    ))
+                }
+            ).optional().map_err(|e| crate::GitPurgeError::Config(format!("Failed to query run record: {}", e)))?
+        };
+
+        if let Some((
+            id,
+            command,
+            mode,
+            started_at_str,
+            finished_at_str,
+            snapshot_id,
+            actor,
+            deleted,
+            archived,
+        )) = row_data
+        {
+            let started_at = time::OffsetDateTime::parse(
+                &started_at_str,
+                &time::format_description::well_known::Rfc3339,
+            )
+            .unwrap_or_else(|_| time::OffsetDateTime::now_utc());
+
+            let finished_at = finished_at_str.and_then(|s| {
+                time::OffsetDateTime::parse(&s, &time::format_description::well_known::Rfc3339).ok()
+            });
+
+            let mut branches = Vec::new();
+            if let Some(ref snap_id) = snapshot_id {
+                if let Ok(Some(snap)) = self.get_snapshot(&SnapshotId(snap_id.clone())) {
+                    for ref_entry in snap.refs {
+                        branches.push(ref_entry.branch.0);
+                    }
+                }
+            }
+
+            Ok(Some(RunRecord {
+                id,
+                command,
+                mode,
+                started_at,
+                finished_at,
+                snapshot_id,
+                actor,
+                deleted_count: deleted.unwrap_or(0) as usize,
+                archived_count: archived.unwrap_or(0) as usize,
+                branches,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
     fn save_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         let created_at = snapshot
@@ -1032,5 +1235,88 @@ mod tests {
             paginated_runs[0].id, "run-02",
             "Should respect limit and offset"
         );
+
+        // Verify get_run_classifications and compare_scans
+        let classifications1 = store.get_run_classifications("run-01").unwrap();
+        assert_eq!(classifications1.len(), 1);
+        assert_eq!(classifications1[0].branch.0, "feat/login");
+        assert_eq!(classifications1[0].merge_state, MergeState::Merged);
+
+        // Record a run 4 with a new unmerged branch and a deleted branch
+        let branch_class2 = Classification {
+            branch: BranchName("feat/logout".to_string()),
+            scope: BranchScope::Local,
+            remote: None,
+            upstream: None,
+            merge_state: MergeState::Unmerged,
+            activity: Activity::Active,
+            age: std::time::Duration::from_secs(3600),
+            protection: Protection::Unprotected,
+            naming: NamingVerdict::Standard,
+            tracking: TrackingFacet {
+                ahead: 0,
+                behind: 0,
+                upstream_gone: false,
+                compared_against: RefBasis::DefaultBranch,
+            },
+            tip: commit.clone(),
+            recommendation: Recommendation::NoAction,
+        };
+
+        let metrics4 = RunMetrics {
+            total: 1,
+            active: 1,
+            stale: 0,
+            merged: 0,
+            unmerged: 1,
+            non_standard: 0,
+            local_count: Some(1),
+            remote_count: Some(0),
+            protected: Some(0),
+            deleted: Some(0),
+            archived: Some(0),
+            restored: Some(0),
+        };
+
+        let time1 = time::OffsetDateTime::now_utc();
+        let time2 = time1 + time::Duration::days(2);
+
+        let report4 = RunReport {
+            id: "run-04".to_string(),
+            repo: repo_id.clone(),
+            command: "scan".to_string(),
+            mode: ExecMode::DryRun,
+            started_at: time2,
+            snapshot: None,
+            metrics: Some(metrics4),
+            branch_snapshots: Some(vec![branch_class2]),
+            results: Vec::new(),
+            success_count: 0,
+            failure_count: 0,
+            skipped_count: 0,
+        };
+        store.record_run(&report4).unwrap();
+
+        let run1 = store.get_run_record("run-01").unwrap().unwrap();
+        let run4 = store.get_run_record("run-04").unwrap().unwrap();
+
+        let scan1 = crate::model::ScanResult {
+            repo: repo_id.clone(),
+            total_branches: 1,
+            excluded_count: 0,
+            classifications: classifications1,
+        };
+        let scan4 = crate::model::ScanResult {
+            repo: repo_id.clone(),
+            total_branches: 1,
+            excluded_count: 0,
+            classifications: store.get_run_classifications("run-04").unwrap(),
+        };
+
+        let diff =
+            crate::history::trends::compare_scans(&scan1, &scan4, run1.started_at, run4.started_at);
+        assert_eq!(diff.added_branches, vec!["feat/logout".to_string()]);
+        assert_eq!(diff.removed_branches, vec!["feat/login".to_string()]);
+        assert_eq!(diff.merge_velocity, 0); // No unmerged branch in scan1 transitioned to merged in scan4
     }
 }

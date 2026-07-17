@@ -190,7 +190,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P10-T7 · Expand CI to cross-platform matrix 🔲
+### P10-T7 · Expand CI to cross-platform matrix ✅ (2026-07-17)
 
 **Goal:** CI runs on Linux + macOS + Windows.
 
@@ -298,7 +298,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P12-T1 · Implement trend diffs 🔲
+### P12-T1 · Implement trend diffs ✅ (2026-07-17)
 
 **Goal:** Replace 782B stub with full trend-diff implementation.
 
@@ -310,7 +310,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P12-T2 · `insta` golden tests for report renderers 🔲
+### P12-T2 · `insta` golden tests for report renderers ✅ (2026-07-17)
 
 **Goal:** Golden-file tests for markdown, HTML, JSON report formats.
 
@@ -334,7 +334,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P12-T4 · `proptest` property tests for policy engine 🔲
+### P12-T4 · `proptest` property tests for policy engine ✅ (2026-07-17)
 
 **Goal:** Property tests for age parsing, naming classification, protection resolution.
 

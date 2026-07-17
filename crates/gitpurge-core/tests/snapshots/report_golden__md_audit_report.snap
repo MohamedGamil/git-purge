@@ -1,0 +1,80 @@
+---
+source: crates/gitpurge-core/tests/report_golden.rs
+expression: md_audit
+---
+# Git Purge Audit Report — Test Repository
+
+Generated at: 2026-07-17 09:00 UTC
+
+## 📊 Repository Overall Stats
+
+| Metric | Count | Percentage | Description |
+| --- | --- | --- | --- |
+| **Total Branches** | 3 | 100.0% | All tracked branches in the mirror |
+| **Active Branches** | 2 | 66.7% | Branches with commits in the active window |
+| **Stale Branches** | 1 | 33.3% | Branches with last commit older than threshold |
+| **Merged Branches** | 2 | 66.7% | Branches fully merged into the default branch |
+| **Unmerged Branches** | 1 | 33.3% | Branches with unmerged work |
+| **Non-Standard Naming** | 1 | 33.3% | Branches violating the naming policy |
+
+## 🗑️ Branches Recommended for Deletion
+
+| Branch Name | Last Commit Date | Author | Type | Reason |
+| --- | --- | --- | --- | --- |
+| `feature/login` | 2026-07-17 | Alice Developer | Local | Fully merged |
+
+### 💻 Quick Commands
+```bash
+git-purge delete --repo test-repo --branch feature/login --execute
+```
+
+## ⚠️ Naming Standards Violations (Branching Strategy)
+
+| Branch Name | Last Commit Date | Author | Issue Identified |
+| --- | --- | --- | --- |
+| `wip-stub` | 2026-07-16 | Alice Developer | Missing category prefix (should contain a '/' e.g. feature/name) |
+
+## 📅 Categorization of Stale Branches by Age
+
+### 1–2 Years Old
+
+No branches in this age group.
+
+### 2–3 Years Old
+
+| Branch Name | Last Commit Date | Author | Merged? | Type |
+| --- | --- | --- | --- | --- |
+| `wip-stub` | 2026-07-16 | Alice Developer | ❌ No | Local |
+
+### 3+ Years Old
+
+No branches in this age group.
+
+## 🔍 Stale Branches: Review Required (Unmerged)
+
+| Branch Name | Last Commit Date | Author | Last Commit Message | Type |
+| --- | --- | --- | --- | --- |
+| `wip-stub` | 2026-07-16 | Alice Developer | Wip login stub | Local |
+
+## 🗂️ Categorization by Branch Prefix / Purpose
+
+### Features (1 branches)
+
+| Branch Name | Last Commit Date | Author | Merged? | Type |
+| --- | --- | --- | --- | --- |
+| `feature/login` | 2026-07-17 | Alice Developer | ✅ Yes | Local |
+
+### Bug Fixes (0 branches)
+
+### Hotfixes (0 branches)
+
+### Releases (0 branches)
+
+### Ticket-Based (0 branches)
+
+### Other/Uncategorized (2 branches)
+
+| Branch Name | Last Commit Date | Author | Merged? | Type |
+| --- | --- | --- | --- | --- |
+| `wip-stub` | 2026-07-16 | Alice Developer | ❌ No | Local |
+| `main` | 2026-07-17 | Alice Developer | ✅ Yes | Local |
