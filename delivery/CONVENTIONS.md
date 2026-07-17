@@ -172,8 +172,10 @@ the CLI verbs: `repo_list`, `scan`, `plan`, `backup_create`, `delete_branches`,
 ## 12. Coding standards
 
 - `cargo fmt` + `cargo clippy -- -D warnings` are CI gates.
-- `#![forbid(unsafe_code)]` in `gitpurge-core` and `gitpurge-cli` unless an ADR
-  justifies an exception.
+- `#![deny(unsafe_code)]` in `gitpurge-core`, with a single documented
+  `#[allow(unsafe_code)]` exemption for libgit2 global timeout configuration
+  ([ADR-0006](../docs/adr/ADR-0006-unsafe-libgit2-timeouts.md)).
+- `#![forbid(unsafe_code)]` in `gitpurge-cli` unless an ADR justifies an exception.
 - Public items documented with `///`; crate-level docs in `lib.rs`.
 - Frontend: ESLint + Prettier + `vue-tsc --noEmit` are CI gates.
 - Frontend layout, typography, components, and color systems must adhere to [DESIGN.md](../DESIGN.md).

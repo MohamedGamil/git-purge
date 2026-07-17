@@ -1,0 +1,15 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+Scanning test-repo...
+Metrics  total 3 · active 3 · stale 0 · merged 1 · unmerged 2 · non-standard 2
++-----------------+-----+--------+-----+--------------+-------------+
+| BRANCH          | AGE | MERGED | STD | AHEAD/BEHIND | AUTHOR      |
++===================================================================+
+| merged-branch   | [AGE] | yes    | no  | 0/0          | Test Author |
+|-----------------+-----+--------+-----+--------------+-------------|
+| unmerged-branch | [AGE] | no     | no  | 0/0          | Test Author |
+|-----------------+-----+--------+-----+--------------+-------------|
+| main            | [AGE] | no     | yes | 0/0          | Test Author |
++-----------------+-----+--------+-----+--------------+-------------+

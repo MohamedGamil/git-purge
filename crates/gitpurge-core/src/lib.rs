@@ -314,8 +314,8 @@ impl Engine {
         self.secrets.remove(repo, remote)
     }
 
-    /// List all credentials.
-    pub fn auth_list(&self) -> Result<Vec<auth::Credential>> {
+    /// List all credentials (metadata only).
+    pub fn auth_list(&self) -> Result<Vec<auth::CredentialEntry>> {
         self.secrets.list()
     }
 

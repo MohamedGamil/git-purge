@@ -1,0 +1,5 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+Added repo 'test-repo' → [REPO_DIR] (default branch: auto-detect)

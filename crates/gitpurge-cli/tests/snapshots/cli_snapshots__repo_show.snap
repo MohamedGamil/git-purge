@@ -1,0 +1,11 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+Repository ID:   test-repo
+Display Name:    Test Repository
+Local Path:      [REPO_DIR]
+Default Branch:  auto-detect
+Provider Hint:   Unknown
+Added At:        [DATETIME]
+Last Scanned At: never

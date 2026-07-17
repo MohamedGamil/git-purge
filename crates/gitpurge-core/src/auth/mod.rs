@@ -6,30 +6,14 @@
 //!
 //! **SAFE-07**: no secret material ever appears in logs, errors, snapshots, or reports.
 
+mod credential;
+
+pub use credential::{Credential, CredentialEntry, CredentialKind, CredentialQuery};
+
 use crate::error::Result;
 use crate::model::RepoId;
-
-/// A credential retrieved from storage.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Credential {
-    /// The kind of credential.
-    pub kind: CredentialKind,
-    /// An opaque label for display (e.g. "GitHub token for origin") — never the secret.
-    pub label: String,
-}
-
-/// The type of credential stored.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum CredentialKind {
-    /// SSH private key (path or in-memory).
-    SshKey,
-    /// HTTPS username + password.
-    HttpsBasic,
-    /// HTTPS bearer / personal-access token.
-    HttpsToken,
-    /// System SSH agent identity.
-    SshAgent,
-}
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 /// Port for secure credential storage and retrieval.
 ///
@@ -49,39 +33,96 @@ pub trait SecretStore: Send + Sync + std::fmt::Debug {
     fn remove(&self, repo: &RepoId, remote: &str) -> Result<()>;
 
     /// List all stored credentials (labels only, never secrets).
-    fn list(&self) -> Result<Vec<Credential>>;
+    fn list(&self) -> Result<Vec<CredentialEntry>>;
 
     /// Test that a stored credential can authenticate to the remote.
     fn test(&self, repo: &RepoId, remote: &str) -> Result<bool>;
 }
 
-/// In-memory fake for tests. Never stores real secrets.
+type StoreKey = (String, String);
+
+#[derive(Clone)]
+struct StoredCredential {
+    kind: CredentialKind,
+    label: String,
+    secret: Vec<u8>,
+}
+
+impl std::fmt::Debug for StoredCredential {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StoredCredential")
+            .field("kind", &self.kind)
+            .field("label", &self.label)
+            .field("secret", &"[REDACTED]")
+            .finish()
+    }
+}
+
+/// In-memory fake for tests. Never logs or exposes secrets outside [`Credential::secret`].
 #[derive(Debug, Default)]
 pub struct FakeSecretStore {
-    // TODO(P6): add fields for canned credentials.
+    entries: Mutex<HashMap<StoreKey, StoredCredential>>,
+}
+
+impl FakeSecretStore {
+    fn key(repo: &RepoId, remote: &str) -> StoreKey {
+        (repo.0.clone(), remote.to_string())
+    }
+
+    fn label_for(kind: CredentialKind, remote: &str) -> String {
+        format!("{kind:?} for {remote}")
+    }
 }
 
 impl SecretStore for FakeSecretStore {
     fn store(
         &self,
-        _repo: &RepoId,
-        _remote: &str,
-        _kind: CredentialKind,
-        _secret: &[u8],
+        repo: &RepoId,
+        remote: &str,
+        kind: CredentialKind,
+        secret: &[u8],
     ) -> Result<()> {
+        let label = Self::label_for(kind, remote);
+        self.entries.lock().unwrap().insert(
+            Self::key(repo, remote),
+            StoredCredential {
+                kind,
+                label,
+                secret: secret.to_vec(),
+            },
+        );
         Ok(())
     }
 
-    fn retrieve(&self, _repo: &RepoId, _remote: &str) -> Result<Option<Credential>> {
-        Ok(None)
+    fn retrieve(&self, repo: &RepoId, remote: &str) -> Result<Option<Credential>> {
+        let entry = self
+            .entries
+            .lock()
+            .unwrap()
+            .get(&Self::key(repo, remote))
+            .cloned();
+        Ok(entry.map(|stored| Credential::new(stored.kind, stored.label, stored.secret)))
     }
 
-    fn remove(&self, _repo: &RepoId, _remote: &str) -> Result<()> {
+    fn remove(&self, repo: &RepoId, remote: &str) -> Result<()> {
+        self.entries
+            .lock()
+            .unwrap()
+            .remove(&Self::key(repo, remote));
         Ok(())
     }
 
-    fn list(&self) -> Result<Vec<Credential>> {
-        Ok(Vec::new())
+    fn list(&self) -> Result<Vec<CredentialEntry>> {
+        let entries = self.entries.lock().unwrap();
+        Ok(entries
+            .iter()
+            .map(|((repo, remote), stored)| CredentialEntry {
+                repo: RepoId(repo.clone()),
+                remote: remote.clone(),
+                kind: stored.kind,
+                label: stored.label.clone(),
+            })
+            .collect())
     }
 
     fn test(&self, _repo: &RepoId, _remote: &str) -> Result<bool> {

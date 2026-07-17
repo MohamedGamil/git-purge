@@ -23,7 +23,7 @@ be removed (DoD §6).
 
 ---
 
-### P9-T2 · Core integration test directory 🔲
+### P9-T2 · Core integration test directory ✅ (2026-07-17)
 
 **Goal:** Create `crates/gitpurge-core/tests/` with round-trip tests: scan → plan →
 backup → execute → restore.
@@ -48,7 +48,7 @@ backup → execute → restore.
 
 ---
 
-### P9-T4 · `insta` snapshot tests for CLI 🔲
+### P9-T4 · `insta` snapshot tests for CLI ✅ (2026-07-17)
 
 **Goal:** Snapshot tests for every major CLI verb in human and JSON modes.
 
@@ -153,7 +153,7 @@ status, task-numbering divergences.
 
 ---
 
-### P10-T4 · Resolve license inconsistency 🔲
+### P10-T4 · Resolve license inconsistency ✅ (2026-07-17)
 
 **Goal:** Apache-2.0 only or dual-license — decide, then make everything consistent.
 
@@ -165,7 +165,7 @@ status, task-numbering divergences.
 
 ---
 
-### P10-T5 · Update CONVENTIONS and AGENTS.md for ADR-0006 🔲
+### P10-T5 · Update CONVENTIONS and AGENTS.md for ADR-0006 ✅ (2026-07-17)
 
 **Goal:** Replace `forbid(unsafe_code)` references with `deny(unsafe_code)` per ADR-0006.
 
@@ -208,7 +208,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P11-T1 · Credential model types 🔲
+### P11-T1 · Credential model types ✅ (2026-07-17)
 
 **Goal:** Full credential type hierarchy with redacted `Debug` (SAFE-07).
 

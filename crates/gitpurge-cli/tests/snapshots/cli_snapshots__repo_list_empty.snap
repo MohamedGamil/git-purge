@@ -1,0 +1,5 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+No repositories tracked yet. Run `git-purge repo add <path-or-url>` to track one.

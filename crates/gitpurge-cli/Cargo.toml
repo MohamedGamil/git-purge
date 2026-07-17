@@ -41,6 +41,8 @@ tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
 assert_cmd = { workspace = true }
+gitpurge-core = { path = "../gitpurge-core", features = ["testkit"] }
 insta = { workspace = true }
+regex = { workspace = true }
 tempfile = { workspace = true }
 toml = { workspace = true }

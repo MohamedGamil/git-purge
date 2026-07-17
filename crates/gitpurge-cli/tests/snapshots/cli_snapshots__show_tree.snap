@@ -1,0 +1,7 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+Tree at reference 'main':
+file.txt
+file_merged.txt

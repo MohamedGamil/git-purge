@@ -1,0 +1,6 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+
+0 files changed, 0 insertions(+), 0 deletions(-)

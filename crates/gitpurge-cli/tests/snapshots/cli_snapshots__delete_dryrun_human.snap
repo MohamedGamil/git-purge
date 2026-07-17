@@ -1,0 +1,11 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+Delete plan (dry-run) · repo=test-repo · unmerged=false
++--------+---------------+----------------------------------+--------------------+---------+
+| ACTION | REF           | REASON                           | LAST COMMIT        | MERGED? |
++==========================================================================================+
+| DELETE | merged-branch | Branch is merged and unprotected | [AGE] by Test Author | yes     |
++--------+---------------+----------------------------------+--------------------+---------+
+1 branches selected for deletion. Run with --execute to apply changes.

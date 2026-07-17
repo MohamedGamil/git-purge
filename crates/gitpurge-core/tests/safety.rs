@@ -528,12 +528,15 @@ fn safe_07_no_secrets_in_output() {
         "Secret leaked in audit report"
     );
 
-    // Test a retrieve only returns Credential with label/kind, not the raw secret
-    if let Some(cred) = engine.auth_retrieve(&repo_id, "origin").unwrap() {
-        let debug_str = format!("{:?}", cred);
-        assert!(
-            !debug_str.contains(secret_token),
-            "Secret leaked in Credential Debug"
-        );
-    }
+    // Test a retrieve only returns Credential with redacted Debug, not the raw secret
+    let cred = engine
+        .auth_retrieve(&repo_id, "origin")
+        .unwrap()
+        .expect("stored credential should be retrievable");
+    let debug_str = format!("{cred:?}");
+    assert!(
+        !debug_str.contains(secret_token),
+        "Secret leaked in Credential Debug"
+    );
+    assert!(cred.secret().eq_ignore_ascii_case(secret_token.as_bytes()));
 }

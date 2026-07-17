@@ -16,7 +16,7 @@ The YAML skeletons below are the contract the scaffolding agent implements under
 
 | Artifact | Platforms | Contents / notes |
 | :--- | :--- | :--- |
-| **Portable tarball (PRIMARY)** | Linux, macOS: `.tar.gz`; Windows: `.zip` | `git-purge` binary + `LICENSE-MIT` + `LICENSE-APACHE` + `README.md` + `install.sh`/`install.ps1` helper (wraps `git-purge install-cli`). Zero-setup, no runtime deps. |
+| **Portable tarball (PRIMARY)** | Linux, macOS: `.tar.gz`; Windows: `.zip` | `git-purge` binary + `LICENSE` + `LICENSE-APACHE` + `README.md` + `install.sh`/`install.ps1` helper (wraps `git-purge install-cli`). Zero-setup, no runtime deps. |
 | Tauri `.deb` | Debian, Ubuntu (and derivatives) | Covers the APT world. |
 | Tauri `.rpm` | RedHat, Fedora (and derivatives) | Covers the RPM world. |
 | Tauri `.AppImage` | **Any Linux** (Arch, Manjaro, others) | **Universal Linux** fallback — a self-contained, distro-agnostic bundle. Between `.deb`/`.rpm`/`.AppImage`, every named distro (Debian/Ubuntu → deb, RedHat/Fedora → rpm, Arch/Manjaro/anything-else → AppImage) is covered. |
@@ -35,7 +35,7 @@ UI works with no CLI installed — [architecture §7](02-architecture.md#7-deskt
 git-purge-1.0.0-x86_64-unknown-linux-musl/
 ├── git-purge              # the single self-contained binary
 ├── install.sh             # convenience: exec ./git-purge install-cli "$@"
-├── LICENSE-MIT
+├── LICENSE
 ├── LICENSE-APACHE
 └── README.md
 ```
@@ -307,7 +307,7 @@ Notes on **signing / integrity** (detail in [14-security.md](14-security.md)):
 
 | Requirement | Where satisfied |
 | :--- | :--- |
-| **R9** — open-source; tarball + deb/rpm/AppImage/msi/dmg bundles | §1 artifact matrix; `build-cli` + `build-desktop` jobs (§6); dual MIT/Apache license shipped in every artifact |
+| **R9** — open-source; tarball + deb/rpm/AppImage/msi/dmg bundles | §1 artifact matrix; `build-cli` + `build-desktop` jobs (§6); Apache-2.0 license files shipped in every artifact |
 | **R10** — single self-contained/portable binary; runs without install | §2.1 (static musl CLI); §1.1 tarball; §3 `install-cli`; verified by `tarball_binary_runs_no_deps` ([12-testing-strategy.md](12-testing-strategy.md#9-test--requirement--phase-mapping)) |
 | **R11** — GH Actions builds all targets on each tag → release with attached binaries | §6 `release.yml` on `v*`, matrix build, checksums + signatures, GitHub Release |
 

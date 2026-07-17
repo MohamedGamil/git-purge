@@ -48,8 +48,14 @@ fn test_cli_completions() {
 
 #[test]
 fn test_cli_install_cli_dryrun() {
+    let temp_dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_git-purge"));
-    let output = cmd.arg("install-cli").output().unwrap();
+    let output = cmd
+        .arg("install-cli")
+        .arg("--dir")
+        .arg(temp_dir.path())
+        .output()
+        .unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("[DRY-RUN] would copy"));

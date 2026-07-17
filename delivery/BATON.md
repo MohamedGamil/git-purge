@@ -1,6 +1,6 @@
 # Delivery Baton
 
-> **Last updated:** 2026-07-13 · **Session:** 37 · **Updated by:** Retrofit session
+> **Last updated:** 2026-07-17 · **Session:** 40 · **Updated by:** Implementation loop (complete)
 
 The baton is the **single source of truth** for what's done, what's in progress,
 and what's next. Every implementation session **reads the baton first** and
@@ -29,6 +29,11 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P9-T2 | Core integration test directory | 40 | 2026-07-17 |
+| P9-T4 | `insta` snapshot tests for CLI | 40 | 2026-07-17 |
+| P11-T1 | Credential model types | 40 | 2026-07-17 |
+| P10-T4 | Resolve license inconsistency | 40 | 2026-07-17 |
+| P10-T5 | Update CONVENTIONS/AGENTS.md for ADR-0006 | 40 | 2026-07-17 |
 | P7-T1 | Debug and stabilize release workflow | 37 | 2026-07-13 |
 | P9-T1 | Named safety regression tests (SAFE-01–07) | 37 | 2026-07-13 |
 | P9-T3 | Desktop architecture guard test | 37 | 2026-07-13 |
@@ -40,13 +45,6 @@ duplicating work.
 | P4-T6 | Branches view | 05 | 2026-07-11 |
 | P4-T5 | Dashboard + repo mgmt | 05 | 2026-07-11 |
 | P4-T4 | Navigation + layout | 04 | 2026-07-11 |
-| P4-T3 | Design system + theming | 04 | 2026-07-11 |
-| P4-T2 | Architecture ban test | 04 | 2026-07-11 |
-| P4-T1 | Tauri v2 scaffold + IPC | 04 | 2026-07-11 |
-| P3-T1→T8 | Actions + CLI (all) | 03 | 2026-07-11 |
-| P2-T1→T7 | Backup & Restore (all) | 02 | 2026-07-11 |
-| P1-T1→T7 | Core Read Engine (all) | 01 | 2026-07-11 |
-| P0-T1→T5,T7 | Foundations (all exc. T6) | 00 | 2026-07-11 |
 
 ---
 

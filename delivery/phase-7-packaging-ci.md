@@ -29,7 +29,7 @@ to bundle) merged. Extends the P0 `ci.yml`.
 | **P7-T3** | `release.yml` matrix on tag | GitHub Actions workflow triggered on `v*` tags: build the full CLI + desktop matrix across OS runners, collect artifacts, and create a GitHub Release with all binaries/bundles attached. Triggers only on tag ([CONVENTIONS §14](CONVENTIONS.md)). | `.github/workflows/release.yml` | P7-T1, P7-T2 | no | 2 | Pushing `vX.Y.Z` on a fixture branch produces a (draft) Release with tarballs + all bundles attached across the matrix; **R11**. |
 | **P7-T4** | Checksums + signing | Generate `SHA256SUMS` for every artifact and sign artifacts/checksums (minisign/cosign or GPG); publish public key + verification instructions. | `.github/workflows/release.yml` (sign step), `packaging/sign/*`, `docs/13-distribution-and-ci.md` (verify steps) | P7-T3 | yes | 1.5 | Every released artifact has a matching checksum; a signature verifies against the published key; a tampered artifact fails verification; **R9/R11**. |
 | **P7-T5** | `ci.yml` full gate matrix | Extend P0's `ci.yml` to a cross-platform matrix: Rust gate (fmt/clippy/nextest/deny/audit) on Linux+macOS+Windows, frontend gate (`pnpm lint`/`test`/`vue-tsc`), and coverage upload. | `.github/workflows/ci.yml` | P0-T7 | yes | 1 | PR CI runs the full matrix green; a failing frontend or clippy check blocks merge; coverage report published; **R8**. |
-| **P7-T6** | Release smoke + licensing | End-to-end release verification: tag → artifacts → checksum/signature verification, plus dual-license (`LICENSE-MIT`, `LICENSE-APACHE`) and third-party license aggregation present in artifacts. | `LICENSE-MIT`, `LICENSE-APACHE`, `packaging/verify_release.sh`, `THIRD-PARTY-LICENSES` | P7-T3, P7-T4 | yes | 1 | `verify_release.sh` downloads a draft release's artifacts, checks all checksums+signatures, and confirms both license files ship; **R9/R11**. |
+| **P7-T6** | Release smoke + licensing | End-to-end release verification: tag → artifacts → checksum/signature verification, plus Apache-2.0 license files (`LICENSE`, `LICENSE-APACHE`) and third-party license aggregation present in artifacts. | `LICENSE`, `LICENSE-APACHE`, `packaging/verify_release.sh`, `THIRD-PARTY-LICENSES` | P7-T3, P7-T4 | yes | 1 | `verify_release.sh` downloads a draft release's artifacts, checks all checksums+signatures, and confirms license files ship; **R9/R11**. |
 
 Total ≈ 9 ED.
 
@@ -40,7 +40,7 @@ Total ≈ 9 ED.
 - The portable tarball binary runs with no dependencies on a clean container;
   `install-cli` works.
 - Tauri bundles exist for deb/rpm/AppImage/msi/nsis/dmg; artifacts are signed and
-  dual-licensed.
+  licensed under Apache-2.0.
 
 ### Requirements & safety invariants satisfied
 

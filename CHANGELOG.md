@@ -9,9 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Snapshot testing for all major CLI commands (`repo list/add/show`, `scan`, `plan`, `delete`, `backup list`, `history`, `diff`, `show`, `completions`) in both human-readable comfort tables and JSON formats.
+- Dedicated workspace round-trip integration test validating the `scan` -> `plan` -> `backup` -> `execute` -> `restore` sequence.
+- Comprehensive regression testing verifying secret material redaction in credential debug outputs under `SAFE-07` rules.
+
 ### Changed
 
+- Transitioned `gitpurge-core` from `#![forbid(unsafe_code)]` to `#![deny(unsafe_code)]` with a single audited exemption for `libgit2` global timeout configuration per ADR-0006.
+- Updated conventions, project guides, and task lists to align with the Apache-2.0 only license model.
+
 ### Fixed
+
+- Sandboxed the `install-cli` CLI command integration test to target a temporary directory, avoiding conflicts with the host system's actual binary path.
+- Prevented potential secret leakage by implementing a redacted `std::fmt::Debug` manually for the `StoredCredential` type.
 
 ## [0.3.8] — 2026-07-13
 

@@ -1,0 +1,5 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+{"command":"diff","data":{"deletions":0,"entries":[],"files_changed":0,"from":{"Branch":"main"},"insertions":0,"to":{"Branch":"merged-branch"}},"dry_run":false,"error":null,"ok":true,"repo":"test-repo","schema_version":"1","warnings":[]}

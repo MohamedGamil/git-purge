@@ -1540,6 +1540,7 @@ dependencies = [
  "insta",
  "miette",
  "owo-colors",
+ "regex",
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",

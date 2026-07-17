@@ -1,0 +1,7 @@
+---
+source: crates/gitpurge-cli/tests/cli_snapshots.rs
+expression: stdout
+---
+Execution completed successfully.
+Backup snapshot created: [ULID]
+Results: 1 deleted · 0 failed · 0 skipped

@@ -31,7 +31,7 @@ if [ ! -f "${SRC_BIN}" ]; then
 fi
 
 cp "${SRC_BIN}" "${TMP_DIR}/"
-cp LICENSE-MIT "${TMP_DIR}/" || true
+cp LICENSE "${TMP_DIR}/" || true
 cp LICENSE-APACHE "${TMP_DIR}/" || true
 cp README.md "${TMP_DIR}/" || true
 
