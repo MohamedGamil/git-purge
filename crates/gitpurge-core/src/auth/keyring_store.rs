@@ -48,8 +48,9 @@ impl KeyringSecretStore {
 
         match entry.get_password() {
             Ok(json) => {
-                let index: Vec<CredentialEntry> = serde_json::from_str(&json)
-                    .map_err(|e| crate::GitPurgeError::Auth(format!("Failed to parse credentials index: {}", e)))?;
+                let index: Vec<CredentialEntry> = serde_json::from_str(&json).map_err(|e| {
+                    crate::GitPurgeError::Auth(format!("Failed to parse credentials index: {}", e))
+                })?;
                 Ok(index)
             }
             Err(keyring::Error::NoEntry) => Ok(Vec::new()),
@@ -61,10 +62,12 @@ impl KeyringSecretStore {
         let entry = Entry::new(&self.service, INDEX_KEY)
             .map_err(|e| crate::GitPurgeError::Auth(format!("Keyring error: {}", e)))?;
 
-        let json = serde_json::to_string(index)
-            .map_err(|e| crate::GitPurgeError::Auth(format!("Failed to serialize credentials index: {}", e)))?;
+        let json = serde_json::to_string(index).map_err(|e| {
+            crate::GitPurgeError::Auth(format!("Failed to serialize credentials index: {}", e))
+        })?;
 
-        entry.set_password(&json)
+        entry
+            .set_password(&json)
             .map_err(|e| crate::GitPurgeError::Auth(format!("Keyring error: {}", e)))?;
 
         Ok(())
@@ -92,10 +95,12 @@ impl SecretStore for KeyringSecretStore {
             secret: secret.to_vec(),
         };
 
-        let json = serde_json::to_string(&payload)
-            .map_err(|e| crate::GitPurgeError::Auth(format!("Failed to serialize credential payload: {}", e)))?;
+        let json = serde_json::to_string(&payload).map_err(|e| {
+            crate::GitPurgeError::Auth(format!("Failed to serialize credential payload: {}", e))
+        })?;
 
-        entry.set_password(&json)
+        entry
+            .set_password(&json)
             .map_err(|e| crate::GitPurgeError::Auth(format!("Keyring error: {}", e)))?;
 
         // 2. Update the index
@@ -119,9 +124,14 @@ impl SecretStore for KeyringSecretStore {
 
         match entry.get_password() {
             Ok(json) => {
-                let payload: KeyringPayload = serde_json::from_str(&json)
-                    .map_err(|e| crate::GitPurgeError::Auth(format!("Failed to parse credential payload: {}", e)))?;
-                Ok(Some(Credential::new(payload.kind, payload.label, payload.secret)))
+                let payload: KeyringPayload = serde_json::from_str(&json).map_err(|e| {
+                    crate::GitPurgeError::Auth(format!("Failed to parse credential payload: {}", e))
+                })?;
+                Ok(Some(Credential::new(
+                    payload.kind,
+                    payload.label,
+                    payload.secret,
+                )))
             }
             Err(keyring::Error::NoEntry) => Ok(None),
             Err(e) => Err(crate::GitPurgeError::Auth(format!("Keyring error: {}", e))),
@@ -184,7 +194,9 @@ mod tests {
 
                     // List
                     let list = store.list().unwrap();
-                    assert!(list.iter().any(|entry| entry.repo == repo && entry.remote == remote));
+                    assert!(list
+                        .iter()
+                        .any(|entry| entry.repo == repo && entry.remote == remote));
 
                     // Test
                     assert!(store.test(&repo, remote).unwrap());
@@ -194,13 +206,18 @@ mod tests {
                     let retrieved_after = store.retrieve(&repo, remote).unwrap();
                     assert!(retrieved_after.is_none());
                 } else {
-                    eprintln!("Keyring backend is mock/dummy or failed to persist in this environment.");
+                    eprintln!(
+                        "Keyring backend is mock/dummy or failed to persist in this environment."
+                    );
                 }
             }
             Err(e) => {
                 // If keyring is not supported/configured on this OS environment (e.g. headless CI without D-Bus),
                 // we print a warning and skip the test assertions so it doesn't break builds.
-                eprintln!("Keyring not supported or failed to initialize in this environment: {:?}", e);
+                eprintln!(
+                    "Keyring not supported or failed to initialize in this environment: {:?}",
+                    e
+                );
             }
         }
     }

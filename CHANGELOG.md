@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Encrypted file `SecretStore` adapter (`FileSecretStore`) using AES-256-GCM encryption and Argon2id key derivation, with a fallback when a native OS keyring is not available or desired.
+- Standalone branch deletion orchestration module (`action/delete.rs`), refactoring core deletion logic out of the main `lib.rs` engine to prepare for further structural consolidation.
 - Keyring `SecretStore` adapter (`KeyringSecretStore`) using the OS keychain to securely store credential payloads, accompanied by a secure JSON index for list and test queries.
 - E2E CLI exit-code verification tests asserting stable exit codes (SUCCESS, USAGE, CONFIG, NOT_FOUND) mapped from internal error variants.
 - Line-coverage check utilizing `cargo-llvm-cov` to the CI pipeline with a 50% line-coverage threshold gate, along with a corresponding local `coverage` Makefile target.

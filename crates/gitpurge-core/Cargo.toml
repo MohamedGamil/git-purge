@@ -33,6 +33,9 @@ rusqlite = { workspace = true }
 keyring = { workspace = true }
 directories = { workspace = true }
 zeroize = { workspace = true }
+aes-gcm = { workspace = true }
+argon2 = { workspace = true }
+rand = { workspace = true }
 
 # misc
 regex = { workspace = true }

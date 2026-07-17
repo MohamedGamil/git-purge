@@ -46,6 +46,9 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 keyring = "3"
 directories = "5"
 zeroize = "1"
+aes-gcm = { version = "0.10.3", features = ["zeroize"] }
+argon2 = { version = "0.5.3", features = ["zeroize"] }
+rand = { version = "0.8.5", features = ["std"] }
 
 # --- misc core ---
 regex = "1"

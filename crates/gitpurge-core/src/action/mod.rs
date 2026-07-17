@@ -8,3 +8,6 @@ pub use guard::execute_deletions_with_guard;
 
 pub mod archive;
 pub use archive::{archive_branches, ArchiveStrategy};
+
+pub mod delete;
+pub use delete::delete_branches;

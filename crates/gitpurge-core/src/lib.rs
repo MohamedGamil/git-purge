@@ -777,33 +777,15 @@ impl Engine {
         } else {
             "Deleting"
         };
-        let mut current_step = 0;
-        let total_steps = plan.actions.len();
-        progress.set_total(total_steps as u64);
-
-        let results = crate::action::execute_deletions_with_guard(
+        let results = crate::action::delete_branches(
             &self.config.lock().unwrap(),
             self.git.as_ref(),
             self.history.as_ref(),
             &repo,
             &plan.actions,
             no_backup,
-            |action| {
-                current_step += 1;
-                let msg = format!(
-                    "{} ({}/{}) branch {}",
-                    action_name, current_step, total_steps, action.branch.0
-                );
-                progress.tick(Some(&msg));
-
-                if action.scope == crate::model::BranchScope::Remote {
-                    let remote = action.remote.as_deref().unwrap_or("origin");
-                    self.git.delete_remote_branch(&repo, remote, &action.branch)
-                } else {
-                    self.git.delete_local_branch(&repo, &action.branch)
-                }
-            },
-            |_, _| true,
+            progress,
+            action_name,
         )?;
 
         self.scan_cache.lock().unwrap().remove(&plan.repo);

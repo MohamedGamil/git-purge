@@ -116,7 +116,7 @@ status, task-numbering divergences.
 
 ---
 
-### P10-T1 · Extract delete action into `action/delete.rs` 🔲
+### P10-T1 · Extract delete action into `action/delete.rs` ✅ (2026-07-17)
 
 **Goal:** Move ~200 lines of delete orchestration from `lib.rs` into standalone module.
 
@@ -232,7 +232,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P11-T3 · Encrypted file `SecretStore` fallback 🔲
+### P11-T3 · Encrypted file `SecretStore` fallback ✅ (2026-07-17)
 
 **Goal:** `SecretStore` backed by AES-256-GCM encrypted JSON file.
 

@@ -1,6 +1,6 @@
 # Delivery Baton
 
-> **Last updated:** 2026-07-17 · **Session:** 41 · **Updated by:** Implementation loop (orient + implement + document)
+> **Last updated:** 2026-07-17 · **Session:** 42 · **Updated by:** Implementation loop (orient + implement + document)
 
 The baton is the **single source of truth** for what's done, what's in progress,
 and what's next. Every implementation session **reads the baton first** and
@@ -29,6 +29,8 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P11-T3 | Encrypted file `SecretStore` fallback | 42 | 2026-07-17 |
+| P10-T1 | Extract delete action into `action/delete.rs` | 42 | 2026-07-17 |
 | P9-T5 | Coverage gate in CI | 41 | 2026-07-17 |
 | P9-T7 | Exit-code stability tests | 41 | 2026-07-17 |
 | P11-T6 | `safe_07` secret hygiene regression suite | 41 | 2026-07-17 |
@@ -43,7 +45,6 @@ duplicating work.
 | P9-T3 | Desktop architecture guard test | 37 | 2026-07-13 |
 | P9-T6 | Remove `cmd/stubs.rs` or implement | 37 | 2026-07-13 |
 | P9-T8 | Reconcile delivery task cards | 37 | 2026-07-13 |
-| P4-T9 | Desktop e2e + standalone | 05 | 2026-07-11 |
 
 ---
 
@@ -66,40 +67,38 @@ duplicating work.
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 1 | P11-T3 | Encrypted file `SecretStore` fallback | 2 ED | High | — |
-| 2 | P11-T4 | Credential resolver chain | 1 ED | High | ⛔ P11-T2, P11-T3 |
-| 3 | P11-T5 | git2 credential callback bridge | 1.5 ED | High | ⛔ P11-T4 |
-| 4 | P11-T7 | Wire auth CLI commands to real backends | 1 ED | Medium | ⛔ P11-T4 |
+| 1 | P11-T4 | Credential resolver chain | 1 ED | High | ⛔ P11-T2, P11-T3 |
+| 2 | P11-T5 | git2 credential callback bridge | 1.5 ED | High | ⛔ P11-T4 |
+| 3 | P11-T7 | Wire auth CLI commands to real backends | 1 ED | Medium | ⛔ P11-T4 |
 
 ### High — Phase 10: Structural Consolidation & Spec Alignment
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 5 | P10-T1 | Extract delete action into `action/delete.rs` | 0.5 ED | Quick Win | — |
-| 6 | P10-T6 | Amend ADR-0002 or build ShellGitBackend | 0.25–1.5 ED | Quick Win or High | — |
-| 7 | P10-T2 | Break up `lib.rs` into Engine modules | 2.5 ED | High | ⛔ P10-T1 |
-| 8 | P10-T3 | Split Tauri `commands.rs` into domain modules | 1 ED | Medium | — |
-| 9 | P10-T7 | Expand CI to cross-platform matrix | 1 ED | Medium | — |
+| 4 | P10-T6 | Amend ADR-0002 or build ShellGitBackend | 0.25–1.5 ED | Quick Win or High | — |
+| 5 | P10-T2 | Break up `lib.rs` into Engine modules | 2.5 ED | High | ⛔ P10-T1 |
+| 6 | P10-T3 | Split Tauri `commands.rs` into domain modules | 1 ED | Medium | — |
+| 7 | P10-T7 | Expand CI to cross-platform matrix | 1 ED | Medium | — |
 
 ### High — Phase 12: Reporting Completion & Hardening Foundations
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 10 | P12-T1 | Implement trend diffs | 1.5 ED | Quick Win | — |
-| 11 | P12-T2 | `insta` golden tests for report renderers | 1 ED | Quick Win | — |
-| 12 | P12-T4 | `proptest` property tests for policy engine | 1.5 ED | High | — |
-| 13 | P12-T3 | `history import --legacy-json` | 1 ED | Medium | ⛔ P12-T1 |
-| 14 | P12-T5 | Performance benchmark suite | 1.5 ED | Medium | — |
-| 15 | P12-T6 | Frontend Vitest expansion | 3 ED | Medium | — |
-| 16 | P12-T7 | `SECURITY.md` threat-model content | 1 ED | Medium | — |
+| 8 | P12-T1 | Implement trend diffs | 1.5 ED | Quick Win | — |
+| 9 | P12-T2 | `insta` golden tests for report renderers | 1 ED | Quick Win | — |
+| 10 | P12-T4 | `proptest` property tests for policy engine | 1.5 ED | High | — |
+| 11 | P12-T3 | `history import --legacy-json` | 1 ED | Medium | ⛔ P12-T1 |
+| 12 | P12-T5 | Performance benchmark suite | 1.5 ED | Medium | — |
+| 13 | P12-T6 | Frontend Vitest expansion | 3 ED | Medium | — |
+| 14 | P12-T7 | `SECURITY.md` threat-model content | 1 ED | Medium | — |
 
 ### Medium — Phase 13: Desktop Polish & Packaging Finalization
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 17 | P13-T4 | SHA256 checksums + signing verification | 1 ED | Quick Win | — |
-| 18 | P13-T1 | Pinia stores for remaining views | 2 ED | Quick Win | — |
-| 19 | P13-T2 | `tauri-driver` + WebDriver e2e smoke suite | 2 ED | High | ⛔ P13-T1 |
-| 20 | P13-T3 | Accessibility pass | 1.5 ED | Medium | — |
-| 21 | P13-T5 | Cross-platform release verification | 1 ED | Medium | ⛔ P13-T4 |
-| 22 | P13-T6 | `git-purge show` as separate CLI command | 0.5 ED | Low | — |
+| 15 | P13-T4 | SHA256 checksums + signing verification | 1 ED | Quick Win | — |
+| 16 | P13-T1 | Pinia stores for remaining views | 2 ED | Quick Win | — |
+| 17 | P13-T2 | `tauri-driver` + WebDriver e2e smoke suite | 2 ED | High | ⛔ P13-T1 |
+| 18 | P13-T3 | Accessibility pass | 1.5 ED | Medium | — |
+| 19 | P13-T5 | Cross-platform release verification | 1 ED | Medium | ⛔ P13-T4 |
+| 20 | P13-T6 | `git-purge show` as separate CLI command | 0.5 ED | Low | — |
