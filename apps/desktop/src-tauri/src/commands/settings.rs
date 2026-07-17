@@ -23,6 +23,13 @@ pub async fn settings_save(
     // Map fields back
     config.default_policy.age = settings.policy.age;
     if !settings.policy.naming_regex.is_empty() {
+        if let Err(e) = regex::Regex::new(&settings.policy.naming_regex) {
+            return Err(SerializableError {
+                code: "INVALID_REGEX".to_string(),
+                message: format!("Invalid naming convention regex: {}", e),
+                hint: Some("Please verify the regex pattern syntax.".to_string()),
+            });
+        }
         config.default_policy.naming.allowed = vec![gitpurge_core::model::RegexSource(
             settings.policy.naming_regex.clone(),
         )];

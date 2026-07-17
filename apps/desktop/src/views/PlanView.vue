@@ -163,6 +163,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useReposStore } from '../stores/repos';
 import { useBranchesStore } from '../stores/branches';
+import { useToastStore } from '../stores/toast';
 import { X, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert, Rocket } from '@lucide/vue';
 import {
   type ClientPlan,
@@ -173,6 +174,7 @@ const route = useRoute();
 const router = useRouter();
 const store = useReposStore();
 const branchesStore = useBranchesStore();
+const toastStore = useToastStore();
 
 const repoId = computed(() => route.query.repoId as string);
 const actionKind = computed(() => (route.query.actionKind || 'delete') as 'delete' | 'archive');
@@ -251,7 +253,7 @@ const executePlan = async () => {
       await store.runScan(repoId.value, { includeRemote: true });
     }
   } catch (err: any) {
-    alert('Execution failed: ' + (err?.message || err));
+    toastStore.error('Execution failed: ' + (err?.message || err));
   }
 };
 

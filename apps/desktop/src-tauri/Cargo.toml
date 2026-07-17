@@ -26,6 +26,7 @@ tokio = { workspace = true, features = ["sync"] }
 tauri-plugin-dialog = "2"
 time = { workspace = true }
 ulid = { workspace = true }
+regex = { workspace = true }
 
 # Linux: set GTK application name for the taskbar display
 [target.'cfg(target_os = "linux")'.dependencies]

@@ -218,6 +218,9 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { RefreshCw, ChevronRight, ShieldCheck, CircleCheck, CircleX, Trash2, TriangleAlert, RotateCcw } from '@lucide/vue';
 import { useReposStore } from '../stores/repos';
 import { useBackupsStore } from '../stores/backups';
+import { useToastStore } from '../stores/toast';
+
+const toastStore = useToastStore();
 import {
   type ClientSnapshot,
   type ClientSnapshotDetail,
@@ -277,7 +280,7 @@ const fetchSnapshots = async () => {
   try {
     await backupsStore.fetchSnapshots(selectedRepoId.value);
   } catch (err: any) {
-    alert('Failed to load snapshots: ' + err.message);
+    toastStore.error('Failed to load snapshots: ' + err.message);
   }
 };
 
@@ -303,7 +306,7 @@ const toggleSnapshot = async (id: string, forceOpen = false) => {
     try {
       await backupsStore.fetchSnapshotDetail(id);
     } catch (err: any) {
-      alert('Failed to load snapshot details: ' + err.message);
+      toastStore.error('Failed to load snapshot details: ' + err.message);
     }
   }
 };
@@ -313,7 +316,7 @@ const verifySnapshot = async (id: string) => {
   try {
     await backupsStore.verifySnapshot(id);
   } catch (err: any) {
-    alert('Verification failed: ' + err.message);
+    toastStore.error('Verification failed: ' + err.message);
   }
 };
 
@@ -322,7 +325,7 @@ const handlePrune = async () => {
   try {
     await backupsStore.pruneBackups(selectedRepoId.value, pruneKeep.value);
   } catch (err: any) {
-    alert('Prune failed: ' + err.message);
+    toastStore.error('Prune failed: ' + err.message);
   }
 };
 
@@ -343,10 +346,10 @@ const executeRestore = async () => {
       force: restoreForce.value,
       originalRef: restoreRef.value.originalRef
     });
-    alert(`Successfully restored reference ${outcome.restored} as a ${outcome.as}! Tip Commit SHA: ${outcome.sha.substring(0, 7)}`);
+    toastStore.success(`Successfully restored reference ${outcome.restored} as a ${outcome.as}!`);
     restoreRef.value = null;
   } catch (err: any) {
-    alert('Restore failed: ' + err.message);
+    toastStore.error('Restore failed: ' + err.message);
   }
 };
 

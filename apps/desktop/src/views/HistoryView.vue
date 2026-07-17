@@ -273,10 +273,13 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useReposStore } from '../stores/repos';
 import { useHistoryStore } from '../stores/history';
+import { useToastStore } from '../stores/toast';
 import { ClipboardList, ChevronUp, ChevronDown, GitBranch, ChevronLeft, ChevronRight, X, TrendingUp, Download } from '@lucide/vue';
 import { saveFile } from '../api/ipc';
 import { save } from '@tauri-apps/plugin-dialog';
 import { parseSafeDate, formatChartDate } from '../utils/date';
+
+const toastStore = useToastStore();
 
 interface HistoryEntry {
   recordedAt: string;
@@ -451,7 +454,7 @@ const fetchReport = async () => {
   try {
     await historyStore.generateReport(selectedRepoId.value, 'markdown', selectedReportType.value);
   } catch (err: any) {
-    alert('Failed to generate report: ' + err.message);
+    toastStore.error('Failed to generate report: ' + err.message);
     showReportModal.value = false;
   }
 };
@@ -465,9 +468,9 @@ watch(selectedReportType, () => {
 const copyReportToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(reportContent.value);
-    alert('Copied report content to clipboard!');
+    toastStore.success('Copied report content to clipboard!');
   } catch (err) {
-    alert('Failed to copy: ' + err);
+    toastStore.error('Failed to copy: ' + err);
   }
 };
 
@@ -488,6 +491,7 @@ const downloadReportFile = async () => {
 
     if (filePath) {
       await saveFile(filePath, reportContent.value);
+      toastStore.success('Report saved successfully!');
     }
   } catch (err: any) {
     console.error('Tauri save dialog failed, falling back to blob download:', err);
@@ -500,7 +504,7 @@ const downloadReportFile = async () => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (fallbackErr: any) {
-      alert('Failed to save report: ' + (fallbackErr?.message || fallbackErr));
+      toastStore.error('Failed to save report: ' + (fallbackErr?.message || fallbackErr));
     }
   }
 };

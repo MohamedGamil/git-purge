@@ -1762,6 +1762,7 @@ version = "0.3.8"
 dependencies = [
  "gitpurge-core",
  "gtk",
+ "regex",
  "serde",
  "serde_json",
  "tauri",

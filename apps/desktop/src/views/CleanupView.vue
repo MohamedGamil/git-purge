@@ -293,7 +293,10 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useReposStore } from '../stores/repos';
 import { useBranchesStore } from '../stores/branches';
+import { useToastStore } from '../stores/toast';
 import { Search, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert } from '@lucide/vue';
+
+const toastStore = useToastStore();
 import {
   type ClientPlan,
   type ClientRunReport
@@ -429,7 +432,7 @@ const executePlan = async () => {
       await store.selectRepo(selectedRepoId.value);
     }
   } catch (err: any) {
-    alert('Cleanup failed: ' + (err?.message || err));
+    toastStore.error('Cleanup failed: ' + (err?.message || err));
   }
 };
 

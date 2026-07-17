@@ -173,11 +173,12 @@
                 <th>Classification</th>
                 <th>Age</th>
                 <th>Committer</th>
+                <th width="80">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredBranches.length === 0">
-                <td colspan="5" class="no-branches">
+                <td colspan="6" class="no-branches">
                   No branches found matching the current filters.
                 </td>
               </tr>
@@ -223,6 +224,30 @@
                 <td class="committer-col">
                   <div class="author">{{ branch.authorName }}</div>
                   <div class="date">{{ formattedDate(branch.committedAt) }}</div>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button
+                      v-if="!branch.classification.protected"
+                      type="button"
+                      class="btn-row-action btn-delete"
+                      title="Purge/Delete Branch"
+                      @click.stop="promptSingleDelete(branch)"
+                      :disabled="store.loading || store.isScanning || isBackingUp"
+                    >
+                      <Trash2 class="lucide-icon-sm" />
+                    </button>
+                    <button
+                      v-if="!branch.classification.protected"
+                      type="button"
+                      class="btn-row-action btn-archive"
+                      title="Archive Branch"
+                      @click.stop="promptSingleArchive(branch)"
+                      :disabled="store.loading || store.isScanning || isBackingUp"
+                    >
+                      <Archive class="lucide-icon-sm" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -291,27 +316,16 @@
       </div>
     </div>
 
-    <!-- Duplicate Warning Modal -->
-    <div v-if="showDuplicateWarning" class="modal-overlay" @click.self="showDuplicateWarning = false">
-      <div class="modal-card card warning-modal-card">
-        <header class="modal-header">
-          <h3><TriangleAlert class="lucide-icon color-warning" style="margin-right: 6px;" /> Duplicate Snapshot Warning</h3>
-          <button class="close-btn" @click="showDuplicateWarning = false"><X class="lucide-icon" /></button>
-        </header>
-        <main class="modal-body warning-body">
-          <p>No branches or commit tips have changed since the last backup snapshot.</p>
-          <div class="duplicate-details">
-            <p><strong>Latest Snapshot:</strong> <code>{{ latestSnapshotId }}</code></p>
-            <p><strong>Created At:</strong> {{ formattedLatestSnapshotDate }}</p>
-          </div>
-          <p class="warning-alert-text">Creating a new snapshot now will duplicate identical reference files on disk. Do you want to proceed anyway?</p>
-        </main>
-        <footer class="modal-footer">
-          <button class="btn btn-secondary" @click="showDuplicateWarning = false">Cancel</button>
-          <button class="btn btn-danger" @click="proceedWithBackup">Yes, Proceed</button>
-        </footer>
-      </div>
-    </div>
+    <!-- Custom Modal Dialog -->
+    <ModalDialog
+      v-model:open="isModalOpen"
+      :title="modalTitle"
+      :message="modalMessage"
+      :type="modalType"
+      :confirmText="modalConfirmText"
+      :requireConfirmationText="modalRequireText"
+      @confirm="modalOnConfirm ? modalOnConfirm() : null"
+    />
   </div>
 </template>
 
@@ -334,6 +348,9 @@ import {
 import { useReposStore } from '../stores/repos';
 import { useSettingsStore } from '../stores/settings';
 import { useBackupsStore } from '../stores/backups';
+import { useBranchesStore } from '../stores/branches';
+import { useToastStore } from '../stores/toast';
+import ModalDialog from '../components/ModalDialog.vue';
 import { 
   type Branch,
   reportGenerate, 
@@ -348,6 +365,8 @@ const router = useRouter();
 const store = useReposStore();
 const settingsStore = useSettingsStore();
 const backupsStore = useBackupsStore();
+const branchesStore = useBranchesStore();
+const toastStore = useToastStore();
 
 const selectedRepoId = ref(store.activeRepoId || '');
 const selectedBranches = ref<string[]>([]);
@@ -357,8 +376,106 @@ const isBackingUp = computed(() => backupsStore.isBackingUp);
 const backupProgress = computed(() => backupsStore.backupProgress);
 const backupProgressMessage = computed(() => backupsStore.backupProgressMessage);
 
-// Duplicate warning details
-const showDuplicateWarning = ref(false);
+// Custom Modal Dialog state
+const isModalOpen = ref(false);
+const modalTitle = ref('');
+const modalMessage = ref('');
+const modalType = ref<'info' | 'warning' | 'danger'>('info');
+const modalConfirmText = ref('Confirm');
+const modalRequireText = ref('');
+const modalOnConfirm = ref<(() => void) | null>(null);
+
+const openCustomConfirm = (options: {
+  title: string;
+  message: string;
+  type?: 'info' | 'warning' | 'danger';
+  confirmText?: string;
+  requireText?: string;
+  onConfirm: () => void;
+}) => {
+  modalTitle.value = options.title;
+  modalMessage.value = options.message;
+  modalType.value = options.type || 'info';
+  modalConfirmText.value = options.confirmText || 'Confirm';
+  modalRequireText.value = options.requireText || '';
+  modalOnConfirm.value = options.onConfirm;
+  isModalOpen.value = true;
+};
+
+const promptSingleDelete = (branch: Branch) => {
+  openCustomConfirm({
+    title: 'Purge/Delete Branch',
+    message: `You are about to delete the branch "${branch.name}". This action is destructive and cannot be undone (except from backups).`,
+    type: 'danger',
+    confirmText: 'Delete Branch',
+    requireText: branch.name,
+    onConfirm: async () => {
+      if (!store.activeRepoId) return;
+      
+      const plan = {
+        repoId: store.activeRepoId,
+        kind: 'delete',
+        actions: [{
+          refName: branch.name,
+          refPath: branch.refPath,
+          action: 'delete',
+          classification: branch.classification,
+          destructive: true,
+          commitSha: branch.tipSha,
+          commitShort: branch.tipShort
+        }]
+      };
+
+      try {
+        toastStore.info(`Starting deletion of branch ${branch.name}...`);
+        await branchesStore.executeDelete(store.activeRepoId, plan, {
+          noBackup: false,
+          confirmedToken: branch.name
+        });
+        await store.fetchRepos();
+        await store.runScan(store.activeRepoId, { includeRemote: true });
+      } catch (err: any) {
+        toastStore.error(`Failed to delete branch: ${err.message || err}`);
+      }
+    }
+  });
+};
+
+const promptSingleArchive = (branch: Branch) => {
+  openCustomConfirm({
+    title: 'Archive Branch',
+    message: `You are about to archive the branch "${branch.name}". This will merge/archive it into the legacy archive branch.`,
+    type: 'warning',
+    confirmText: 'Archive Branch',
+    onConfirm: async () => {
+      if (!store.activeRepoId) return;
+      
+      const plan = {
+        repoId: store.activeRepoId,
+        kind: 'archive',
+        actions: [{
+          refName: branch.name,
+          refPath: branch.refPath,
+          action: 'archive',
+          classification: branch.classification,
+          destructive: false,
+          commitSha: branch.tipSha,
+          commitShort: branch.tipShort
+        }]
+      };
+
+      try {
+        toastStore.info(`Starting archival of branch ${branch.name}...`);
+        await branchesStore.executeArchive(store.activeRepoId, plan, { noBackup: false });
+        await store.fetchRepos();
+        await store.runScan(store.activeRepoId, { includeRemote: true });
+      } catch (err: any) {
+        toastStore.error(`Failed to archive branch: ${err.message || err}`);
+      }
+    }
+  });
+};
+
 const latestSnapshotId = ref('');
 const latestSnapshotDate = ref('');
 
@@ -443,7 +560,7 @@ const triggerScan = async () => {
     try {
       await store.runScan(store.activeRepoId, { includeRemote: true });
     } catch (err: any) {
-      alert('Scan failed: ' + err.message);
+      toastStore.error('Scan failed: ' + err.message);
     }
   }
 };
@@ -463,7 +580,7 @@ const fetchReport = async () => {
     const res = await reportGenerate(store.activeRepoId, 'markdown', selectedReportType.value);
     reportContent.value = res.content;
   } catch (err: any) {
-    alert('Failed to generate report: ' + err.message);
+    toastStore.error('Failed to generate report: ' + err.message);
     showReportModal.value = false;
   } finally {
     generatingReport.value = false;
@@ -479,9 +596,9 @@ watch(selectedReportType, () => {
 const copyReportToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(reportContent.value);
-    alert('Copied report content to clipboard!');
+    toastStore.success('Copied report content to clipboard!');
   } catch (err) {
-    alert('Failed to copy: ' + err);
+    toastStore.error('Failed to copy: ' + err);
   }
 };
 
@@ -502,6 +619,7 @@ const downloadReportFile = async () => {
 
     if (filePath) {
       await saveFile(filePath, reportContent.value);
+      toastStore.success('Report saved successfully!');
     }
   } catch (err: any) {
     console.error('Tauri save dialog failed, falling back to blob download:', err);
@@ -514,7 +632,7 @@ const downloadReportFile = async () => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (fallbackErr: any) {
-      alert('Failed to save report: ' + (fallbackErr?.message || fallbackErr));
+      toastStore.error('Failed to save report: ' + (fallbackErr?.message || fallbackErr));
     }
   }
 };
@@ -558,7 +676,15 @@ const triggerBackupSnapshot = async () => {
         if (currentHash === snapshotHash) {
           latestSnapshotId.value = latest.id;
           latestSnapshotDate.value = latest.createdAt;
-          showDuplicateWarning.value = true;
+          openCustomConfirm({
+            title: 'Duplicate Snapshot Warning',
+            message: `No branches or commit tips have changed since the last backup snapshot.\n\nLatest Snapshot: ${latest.id}\nCreated At: ${formattedLatestSnapshotDate.value}\n\nCreating a new snapshot now will duplicate identical reference files on disk. Do you want to proceed anyway?`,
+            type: 'warning',
+            confirmText: 'Yes, Proceed',
+            onConfirm: () => {
+              proceedWithBackup();
+            }
+          });
           return;
         }
       }
@@ -566,12 +692,11 @@ const triggerBackupSnapshot = async () => {
     
     await proceedWithBackup();
   } catch (err: any) {
-    alert('Backup check failed: ' + err.message);
+    toastStore.error('Backup check failed: ' + err.message);
   }
 };
 
 const proceedWithBackup = async () => {
-  showDuplicateWarning.value = false;
   if (!store.activeRepoId) return;
 
   try {
@@ -580,11 +705,11 @@ const proceedWithBackup = async () => {
       verify: true,
       refs: []
     });
-    alert(`Snapshot backup created successfully!\nID: ${snapshot.id}\nRefs: ${snapshot.refCount}`);
+    toastStore.success(`Snapshot backup created successfully! ID: ${snapshot.id}`);
     await store.selectRepo(store.activeRepoId);
   } catch (err: any) {
     if (err?.message !== 'CANCELLED') {
-      alert('Snapshot backup failed: ' + (err?.message || err));
+      toastStore.error('Snapshot backup failed: ' + (err?.message || err));
     }
   }
 };
@@ -747,28 +872,28 @@ const triggerCompare = () => {
 const triggerBulkAction = async (action: 'delete' | 'archive') => {
   if (selectedBranches.value.length > 0 && store.activeRepoId) {
     if (action === 'delete') {
-      try {
-        const hasRemote = selectedBranches.value.some(name => {
-          const branch = store.branches.find(b => b.name === name);
-          return branch && branch.classification.locality === 'remote';
+      const hasRemote = selectedBranches.value.some(name => {
+        const branch = store.branches.find(b => b.name === name);
+        return branch && branch.classification.locality === 'remote';
+      });
+      if (hasRemote) {
+        openCustomConfirm({
+          title: 'Warning: Remote Ref Deletion',
+          message: '⚠️ Warning: You have selected remote branches for deletion.\n\nThis will permanently delete the branches directly from the remote Git server.\n\nAre you sure you want to proceed?',
+          type: 'danger',
+          confirmText: 'Proceed to Plan',
+          onConfirm: () => {
+            router.push({
+              path: '/plan',
+              query: {
+                repoId: store.activeRepoId,
+                actionKind: action,
+                refs: selectedBranches.value.join(',')
+              }
+            });
+          }
         });
-        if (hasRemote) {
-          const confirmed = await ask(
-            '⚠️ Warning: You have selected remote branches for deletion.\n\n' +
-            'This will permanently delete the branches directly from the remote Git server.\n\n' +
-            'Are you sure you want to proceed?',
-            { title: 'Warning: Remote Ref Deletion', kind: 'warning' }
-          );
-          if (!confirmed) return;
-        }
-      } catch (err: any) {
-        console.error('Tauri ask dialog failed, falling back to confirm:', err);
-        const confirmed = confirm(
-          '⚠️ Warning: You have selected remote branches for deletion.\n\n' +
-          'This will permanently delete the branches directly from the remote Git server.\n\n' +
-          'Are you sure you want to proceed?'
-        );
-        if (!confirmed) return;
+        return;
       }
     }
 
@@ -1406,5 +1531,46 @@ watch(() => store.activeRepoId, (newId) => {
   color: var(--on-surface-strong);
   font-size: 13px;
   font-weight: 500;
+}
+
+.row-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-row-action {
+  background: none;
+  border: none;
+  padding: 4px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-row-action:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="light"] .btn-row-action:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.btn-row-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-delete:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.btn-archive:hover:not(:disabled) {
+  color: var(--warning);
 }
 </style>

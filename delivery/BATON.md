@@ -1,6 +1,6 @@
 # Delivery Baton
 
-> **Last updated:** 2026-07-17 · **Session:** 47 · **Updated by:** Implementation loop (orient + implement + document)
+> **Last updated:** 2026-07-17 · **Session:** 49 · **Updated by:** Implementation loop (orient + implement + document)
 
 The baton is the **single source of truth** for what's done, what's in progress,
 and what's next. Every implementation session **reads the baton first** and
@@ -29,6 +29,9 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P13-T8 | Global toast notification system | 49 | 2026-07-17 |
+| P13-T9 | Custom themed modal dialogs | 49 | 2026-07-17 |
+| P13-T11 | Custom naming convention regex UI input | 49 | 2026-07-17 |
 | P13-T1 | Pinia stores for remaining views | 48 | 2026-07-17 |
 | P13-T4 | SHA256 checksums + signing verification | 48 | 2026-07-17 |
 | P13-T10 | Disable context menu & shortcuts in production | 48 | 2026-07-17 |
@@ -43,7 +46,6 @@ duplicating work.
 | P12-T4 | `proptest` property tests for policy engine | 46 | 2026-07-17 |
 | P10-T3 | Split Tauri `commands.rs` into domain modules | 45 | 2026-07-17 |
 | P11-T7 | Wire auth CLI commands to real backends | 44 | 2026-07-17 |
-| P10-T2 | Break up `lib.rs` into Engine modules | 44 | 2026-07-17 |
 
 ---
 
@@ -78,9 +80,6 @@ duplicating work.
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
 | 15 | P13-T7 | In-memory task registry for ongoing cleanups | 1.5 ED | Medium | — |
-| 16 | P13-T8 | Global toast notification system | 1.0 ED | Quick Win | — |
-| 17 | P13-T9 | Custom themed modal dialogs | 1.5 ED | Medium | — |
-| 19 | P13-T11 | Custom naming convention regex UI input | 0.5 ED | Medium | — |
 | 20 | P13-T2 | `tauri-driver` + WebDriver e2e smoke suite | 2 ED | High | — |
 | 21 | P13-T3 | Accessibility pass | 1.5 ED | Medium | — |
 | 22 | P13-T5 | Cross-platform release verification | 1 ED | Medium | — |

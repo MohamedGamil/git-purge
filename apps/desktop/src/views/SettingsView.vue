@@ -52,7 +52,15 @@
 
           <div class="form-group">
             <label for="policy-regex">Naming Convention (Allowed Regex)</label>
-            <input id="policy-regex" type="text" v-model="policyNamingRegex" class="form-input" placeholder="^(main|master|main-legacy|develop|staging|prod|production|feat/.*|feature/.*|fix/.*|refactor/.*|docs/.*|perf/.*|test/.*|chore/.*|release/.*|hotfix/.*)$" />
+            <input
+              id="policy-regex"
+              type="text"
+              v-model="policyNamingRegex"
+              @input="validateNamingRegex"
+              :class="['form-input', { 'invalid-input': namingRegexError }]"
+              placeholder="^(main|master|main-legacy|develop|staging|prod|production|feat/.*|feature/.*|fix/.*|refactor/.*|docs/.*|perf/.*|test/.*|chore/.*|release/.*|hotfix/.*)$"
+            />
+            <p v-if="namingRegexError" class="validation-error-msg">{{ namingRegexError }}</p>
             <p class="field-hint">Branches not matching this pattern are classified as non-standard. Leave blank to enforce the default naming convention.</p>
           </div>
         </section>
@@ -105,7 +113,7 @@
 
         <!-- Save Button -->
         <div class="actions-bar">
-          <button type="submit" class="btn btn-primary btn-save" :disabled="saving">
+          <button type="submit" class="btn btn-primary btn-save" :disabled="saving || !!namingRegexError">
             <span v-if="saving">Saving Settings...</span>
             <span v-else><Save class="lucide-icon" style="margin-right: 4px;" /> Save Changes</span>
           </button>
@@ -113,6 +121,16 @@
         </div>
       </form>
     </div>
+
+    <!-- Custom Modal Dialog -->
+    <ModalDialog
+      v-model:open="isModalOpen"
+      :title="modalTitle"
+      :message="modalMessage"
+      :type="modalType"
+      :confirmText="modalConfirmText"
+      @confirm="modalOnConfirm ? modalOnConfirm() : null"
+    />
   </div>
 </template>
 
@@ -122,10 +140,13 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import { Folder, Upload, Download, Save } from '@lucide/vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
 import { useSettingsStore } from '../stores/settings';
+import { useToastStore } from '../stores/toast';
+import ModalDialog from '../components/ModalDialog.vue';
 import { type Settings } from '../api/ipc';
 
 const { theme, setTheme } = useTheme();
 const settingsStore = useSettingsStore();
+const toastStore = useToastStore();
 
 const loading = computed(() => settingsStore.loading);
 const saving = computed(() => settingsStore.saving);
@@ -139,6 +160,48 @@ const policyProtected = ref('');
 const policyExclude = ref('');
 const backupsRoot = ref('');
 const dateFormat = ref('YYYY-MM-DD h:m a');
+
+// Naming Regex Validation
+const namingRegexError = ref<string | null>(null);
+
+const validateNamingRegex = () => {
+  const val = policyNamingRegex.value.trim();
+  if (!val) {
+    namingRegexError.value = null;
+    return true;
+  }
+  try {
+    new RegExp(val);
+    namingRegexError.value = null;
+    return true;
+  } catch (err: any) {
+    namingRegexError.value = `Invalid regular expression: ${err.message}`;
+    return false;
+  }
+};
+
+// Custom Modal Dialog state
+const isModalOpen = ref(false);
+const modalTitle = ref('');
+const modalMessage = ref('');
+const modalType = ref<'info' | 'warning' | 'danger'>('info');
+const modalConfirmText = ref('Confirm');
+const modalOnConfirm = ref<(() => void) | null>(null);
+
+const openCustomConfirm = (options: {
+  title: string;
+  message: string;
+  type?: 'info' | 'warning' | 'danger';
+  confirmText?: string;
+  onConfirm: () => void;
+}) => {
+  modalTitle.value = options.title;
+  modalMessage.value = options.message;
+  modalType.value = options.type || 'info';
+  modalConfirmText.value = options.confirmText || 'Confirm';
+  modalOnConfirm.value = options.onConfirm;
+  isModalOpen.value = true;
+};
 
 const loadSettings = async () => {
   try {
@@ -155,8 +218,10 @@ const loadSettings = async () => {
     if (savedTheme) {
       themeMode.value = savedTheme;
     }
+    
+    validateNamingRegex();
   } catch (err: any) {
-    alert('Failed to load settings: ' + err.message);
+    toastStore.error('Failed to load settings: ' + err.message);
   }
 };
 
@@ -175,11 +240,16 @@ const handleBrowseFolder = async () => {
       backupsRoot.value = selected;
     }
   } catch (err: any) {
-    alert('Failed to pick directory: ' + err.message);
+    toastStore.error('Failed to pick directory: ' + err.message);
   }
 };
 
 const saveSettings = async () => {
+  if (!validateNamingRegex()) {
+    toastStore.error('Cannot save settings: The naming convention regex is invalid.');
+    return;
+  }
+
   saveSuccess.value = false;
 
   const protectedList = policyProtected.value
@@ -208,11 +278,12 @@ const saveSettings = async () => {
   try {
     await settingsStore.saveSettings(settingsPayload);
     saveSuccess.value = true;
+    toastStore.success('Settings saved successfully!');
     setTimeout(() => {
       saveSuccess.value = false;
     }, 3000);
   } catch (err: any) {
-    alert('Failed to save settings: ' + err.message);
+    toastStore.error('Failed to save settings: ' + err.message);
   }
 };
 
@@ -224,10 +295,10 @@ const handleExportSettings = async () => {
     });
     if (path) {
       await settingsStore.exportSettings(path);
-      alert('Settings exported successfully!');
+      toastStore.success('Settings exported successfully!');
     }
   } catch (err: any) {
-    alert('Export failed: ' + err.message);
+    toastStore.error('Export failed: ' + err.message);
   }
 };
 
@@ -239,25 +310,35 @@ const handleImportSettings = async () => {
       title: 'Select Configuration TOML File to Import'
     });
     if (selected && typeof selected === 'string') {
-      const confirmed = confirm('Importing settings will overwrite your current configuration. Are you sure you want to proceed?');
-      if (!confirmed) return;
+      openCustomConfirm({
+        title: 'Confirm Settings Import',
+        message: 'Importing settings will overwrite your current configuration. Are you sure you want to proceed?',
+        type: 'warning',
+        confirmText: 'Import Settings',
+        onConfirm: async () => {
+          try {
+            const newSettings = await settingsStore.importSettings(selected);
+            
+            // Update UI state with new settings
+            policyAge.value = newSettings.policy.age;
+            policyNamingRegex.value = newSettings.policy.namingRegex;
+            policyProtected.value = newSettings.policy.protectedRefs.join(', ');
+            policyExclude.value = newSettings.policy.excludeGlobs.join(', ');
+            backupsRoot.value = newSettings.backupsRoot;
+            themeMode.value = newSettings.theme;
+            dateFormat.value = newSettings.dateFormat || 'YYYY-MM-DD h:m a';
+            handleThemeChange();
+            validateNamingRegex();
 
-      const newSettings = await settingsStore.importSettings(selected);
-      
-      // Update UI state with new settings
-      policyAge.value = newSettings.policy.age;
-      policyNamingRegex.value = newSettings.policy.namingRegex;
-      policyProtected.value = newSettings.policy.protectedRefs.join(', ');
-      policyExclude.value = newSettings.policy.excludeGlobs.join(', ');
-      backupsRoot.value = newSettings.backupsRoot;
-      themeMode.value = newSettings.theme;
-      dateFormat.value = newSettings.dateFormat || 'YYYY-MM-DD h:m a';
-      handleThemeChange();
-
-      alert('Settings imported and applied successfully!');
+            toastStore.success('Settings imported and applied successfully!');
+          } catch (err: any) {
+            toastStore.error('Import failed: ' + err.message);
+          }
+        }
+      });
     }
   } catch (err: any) {
-    alert('Import failed: ' + err.message);
+    toastStore.error('Import failed: ' + err.message);
   }
 };
 
@@ -427,5 +508,17 @@ onMounted(() => {
   display: flex;
   gap: var(--spacing-md);
   margin-top: var(--spacing-xs);
+}
+
+.invalid-input {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.validation-error-msg {
+  color: var(--danger);
+  font-size: 11px;
+  margin-top: 4px;
+  font-weight: 500;
 }
 </style>

@@ -94,7 +94,7 @@
     </section>
 
     <section class="ipc-verification card">
-      <h2>IPC Connectivity Status</h2>
+      <h2>Connectivity Status</h2>
       <div class="status-indicator" :class="{ 'connected': !store.loading && !store.error }">
         <span class="status-dot"></span>
         <span>{{ statusMessage }}</span>
@@ -110,11 +110,13 @@ import { useRouter } from 'vue-router';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
 import { useReposStore } from '../stores/repos';
+import { useToastStore } from '../stores/toast';
 import { isMock } from '../api/ipc';
 import { FolderPlus, GitBranch, Database, Trash2 } from '@lucide/vue';
 
 const router = useRouter();
 const store = useReposStore();
+const toastStore = useToastStore();
 
 const { theme, setTheme } = useTheme();
 const currentTheme = ref<ThemeMode>(theme.value);
@@ -126,10 +128,10 @@ const totalBranches = computed(() => store.repos.reduce((acc, r) => acc + r.bran
 const totalStale = computed(() => store.repos.reduce((acc, r) => acc + r.stale, 0));
 
 const statusMessage = computed(() => {
-  if (isMock) return 'IPC Bridge Active and Connected (Mock Mode)';
-  if (store.loading) return 'Connecting to Rust backend...';
-  if (store.error) return 'Disconnected from Backend';
-  return 'IPC Bridge Active and Connected';
+  if (isMock) return 'Connected (Mock Mode)';
+  if (store.loading) return 'Connecting...';
+  if (store.error) return 'Disconnected';
+  return 'Connected';
 });
 
 const handleThemeChange = () => {
@@ -148,9 +150,10 @@ const handleBrowseFolder = async () => {
       // Parse folder name for the display name
       const name = selected.split(/[/\\]/).pop() || 'Git Repo';
       await store.addRepo(selected, undefined, name);
+      toastStore.success(`Successfully added repository: ${name}`);
     }
   } catch (err: any) {
-    alert('Failed to pick directory: ' + (err?.message || err));
+    toastStore.error('Failed to pick directory: ' + (err?.message || err));
   }
 };
 
@@ -172,8 +175,9 @@ const removeRepo = async (id: string) => {
     await store.removeRepo(id, dropBackups.value);
     confirmDeleteId.value = null;
     dropBackups.value = false;
+    toastStore.success('Repository removed successfully.');
   } catch (err: any) {
-    alert('Failed to remove repository: ' + err.message);
+    toastStore.error('Failed to remove repository: ' + err.message);
   }
 };
 

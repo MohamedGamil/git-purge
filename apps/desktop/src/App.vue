@@ -66,6 +66,9 @@
     <main class="main-content">
       <router-view />
     </main>
+
+    <!-- Toast Notifications -->
+    <ToastContainer />
   </div>
 </template>
 
@@ -73,8 +76,10 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import brandIcon from './assets/brand_icon.png';
 import { useTheme } from './composables/useTheme';
-import { openUrl } from './api/ipc';
+import { openUrl, listenProgress } from './api/ipc';
 import { useSettingsStore } from './stores/settings';
+import { useToastStore } from './stores/toast';
+import ToastContainer from './components/ToastContainer.vue';
 import {
   LayoutDashboard,
   GitBranch,
@@ -88,9 +93,11 @@ import {
 
 useTheme();
 const settingsStore = useSettingsStore();
+const toastStore = useToastStore();
 
 const currentYear = new Date().getFullYear();
 const isOnline = ref(navigator.onLine);
+let progressUnlisten: (() => void) | null = null;
 
 const handleOpenAuthorLink = async (e: MouseEvent) => {
   e.preventDefault();
@@ -114,11 +121,28 @@ onMounted(async () => {
   } catch (err) {
     console.error('Failed to load application settings:', err);
   }
+
+  try {
+    progressUnlisten = await listenProgress((event) => {
+      if (event.done) {
+        if (event.error) {
+          toastStore.error(event.error.message || 'Operation failed');
+        } else if (event.message) {
+          toastStore.success(event.message);
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Failed to setup progress listener:', err);
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener('online', updateOnlineStatus);
   window.removeEventListener('offline', updateOnlineStatus);
+  if (progressUnlisten) {
+    progressUnlisten();
+  }
 });
 </script>
 

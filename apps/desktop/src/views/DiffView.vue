@@ -140,11 +140,13 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useReposStore } from '../stores/repos';
 import { useBranchesStore } from '../stores/branches';
+import { useToastStore } from '../stores/toast';
 import { ArrowLeftRight, GitCompare } from '@lucide/vue';
 
 const route = useRoute();
 const store = useReposStore();
 const branchesStore = useBranchesStore();
+const toastStore = useToastStore();
 
 const selectedRepoId = ref(store.activeRepoId || '');
 const branchA = ref('');
@@ -204,7 +206,7 @@ const runDiff = async () => {
   try {
     await branchesStore.compareBranches(selectedRepoId.value, branchA.value, branchB.value);
   } catch (err: any) {
-    alert('Diff failed: ' + err.message);
+    toastStore.error('Diff failed: ' + err.message);
   }
 };
 

@@ -198,12 +198,24 @@
         </section>
       </div>
     </div>
+
+    <!-- Custom Modal Dialog -->
+    <ModalDialog
+      v-model:open="isModalOpen"
+      :title="modalTitle"
+      :message="modalMessage"
+      :type="modalType"
+      :confirmText="modalConfirmText"
+      @confirm="modalOnConfirm ? modalOnConfirm() : null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { Key, Info, Save } from '@lucide/vue';
+import { useToastStore } from '../stores/toast';
+import ModalDialog from '../components/ModalDialog.vue';
 import { 
   authList, 
   authAdd, 
@@ -211,6 +223,31 @@ import {
   authTest, 
   isMock 
 } from '../api/ipc';
+
+const toastStore = useToastStore();
+
+// Custom Modal Dialog state
+const isModalOpen = ref(false);
+const modalTitle = ref('');
+const modalMessage = ref('');
+const modalType = ref<'info' | 'warning' | 'danger'>('info');
+const modalConfirmText = ref('Confirm');
+const modalOnConfirm = ref<(() => void) | null>(null);
+
+const openCustomConfirm = (options: {
+  title: string;
+  message: string;
+  type?: 'info' | 'warning' | 'danger';
+  confirmText?: string;
+  onConfirm: () => void;
+}) => {
+  modalTitle.value = options.title;
+  modalMessage.value = options.message;
+  modalType.value = options.type || 'info';
+  modalConfirmText.value = options.confirmText || 'Confirm';
+  modalOnConfirm.value = options.onConfirm;
+  isModalOpen.value = true;
+};
 
 interface Credential {
   id: string;
@@ -309,24 +346,33 @@ const addCredential = async () => {
     formPassword.value = '';
     
     await loadCredentials();
+    toastStore.success('Credential saved successfully!');
   } catch (err: any) {
-    alert('Failed to save credential: ' + (err?.message || err));
+    toastStore.error('Failed to save credential: ' + (err?.message || err));
   } finally {
     submitting.value = false;
   }
 };
 
 const removeCredential = async (id: string) => {
-  if (!confirm('Are you sure you want to remove this credential?')) return;
-  try {
-    await authRemove(id);
-    if (testResults.value[id]) {
-      delete testResults.value[id];
+  openCustomConfirm({
+    title: 'Confirm Credential Removal',
+    message: 'Are you sure you want to remove this credential?',
+    type: 'danger',
+    confirmText: 'Remove Credential',
+    onConfirm: async () => {
+      try {
+        await authRemove(id);
+        if (testResults.value[id]) {
+          delete testResults.value[id];
+        }
+        await loadCredentials();
+        toastStore.success('Credential removed successfully!');
+      } catch (err: any) {
+        toastStore.error('Failed to remove credential: ' + (err?.message || err));
+      }
     }
-    await loadCredentials();
-  } catch (err: any) {
-    alert('Failed to remove credential: ' + (err?.message || err));
-  }
+  });
 };
 
 const testCredential = async (id: string) => {

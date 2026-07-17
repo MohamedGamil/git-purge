@@ -485,7 +485,7 @@ all 3 platforms.
 
 ---
 
-### P13-T8 · Global toast notification system 🔲
+### P13-T8 · Global toast notification system ✅ (2026-07-17)
 
 **Goal:** Reactive Pinia toast store and standard floating container component in Vue to display floating success/error alerts.
 
@@ -497,7 +497,7 @@ all 3 platforms.
 
 ---
 
-### P13-T9 · Custom themed modal dialogs 🔲
+### P13-T9 · Custom themed modal dialogs ✅ (2026-07-17)
 
 **Goal:** Beautiful Vue `<ModalDialog />` components utilizing glassmorphism and type-to-confirm safety inputs to replace native OS alert dialogues.
 
@@ -521,7 +521,7 @@ all 3 platforms.
 
 ---
 
-### P13-T11 · Custom naming convention regex UI input 🔲
+### P13-T11 · Custom naming convention regex UI input ✅ (2026-07-17)
 
 **Goal:** Configuration text input in `SettingsView.vue` to allow custom regex naming policy overrides, with validity check styling.
 
