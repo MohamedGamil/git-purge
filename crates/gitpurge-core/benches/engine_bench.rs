@@ -1,8 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use gitpurge_core::{
-    testkit, Config, Engine,
     model::ScanOptions,
-    report::{ReportType, ReportFormat},
+    report::{ReportFormat, ReportType},
+    testkit, Config, Engine,
 };
 use std::time::Duration;
 
@@ -20,7 +20,8 @@ fn bench_engine_operations(c: &mut Criterion) {
     config.data_dir = Some(temp_data_dir.path().to_path_buf());
 
     let engine = Engine::open(config).unwrap();
-    let repo_model = gitpurge_core::model::Repository::new_local(fixture.path().to_path_buf()).unwrap();
+    let repo_model =
+        gitpurge_core::model::Repository::new_local(fixture.path().to_path_buf()).unwrap();
     let repo_id = repo_model.id.clone();
 
     // Add repo to engine
@@ -44,7 +45,9 @@ fn bench_engine_operations(c: &mut Criterion) {
     // Benchmark Report Generation
     group.bench_function("report_500_branches", |b| {
         b.iter(|| {
-            let _ = engine.report(&repo_id, ReportType::Audit, ReportFormat::Markdown).unwrap();
+            let _ = engine
+                .report(&repo_id, ReportType::Audit, ReportFormat::Markdown)
+                .unwrap();
         })
     });
 

@@ -95,7 +95,8 @@ impl super::Engine {
         repo_mappings: &std::collections::HashMap<String, String>,
         execute: bool,
     ) -> Result<crate::history::ImportSummary> {
-        self.history.import_legacy_json(json_data, repo_mappings, execute)
+        self.history
+            .import_legacy_json(json_data, repo_mappings, execute)
     }
 
     /// Fetch past executions for a repository with pagination support.

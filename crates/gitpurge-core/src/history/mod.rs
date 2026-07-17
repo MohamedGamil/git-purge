@@ -3,14 +3,14 @@
 //! `HistoryStore` abstracts the SQLite trend database so the service layer
 //! (and tests) don't depend on `rusqlite` directly.
 
+/// Legacy history data import.
+pub mod import;
 /// DDL schema migrations.
 pub mod migrate;
 /// SQLite adapter for history/trends.
 pub mod sqlite;
 /// Trend calculations and comparison algorithms.
 pub mod trends;
-/// Legacy history data import.
-pub mod import;
 
 pub use sqlite::SqliteHistoryStore;
 

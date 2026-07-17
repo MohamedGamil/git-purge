@@ -1,11 +1,11 @@
 //! Legacy history import implementation (Phase 12, P12-T3).
 
-use std::collections::HashMap;
-use rusqlite::{Connection, OptionalExtension};
-use time::OffsetDateTime;
 use crate::error::Result;
-use crate::model::RepoId;
 use crate::history::ImportSummary;
+use crate::model::RepoId;
+use rusqlite::{Connection, OptionalExtension};
+use std::collections::HashMap;
+use time::OffsetDateTime;
 
 /// An entry representing a single execution scan in the legacy history format.
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -39,9 +39,8 @@ pub struct LegacyMetrics {
 
 /// Parse the legacy branch history JSON structure.
 pub fn parse_legacy_json(json_data: &str) -> Result<HashMap<String, Vec<LegacyEntry>>> {
-    serde_json::from_str(json_data).map_err(|e| {
-        crate::GitPurgeError::Config(format!("Failed to parse legacy JSON: {}", e))
-    })
+    serde_json::from_str(json_data)
+        .map_err(|e| crate::GitPurgeError::Config(format!("Failed to parse legacy JSON: {}", e)))
 }
 
 /// Helper to parse a unix timestamp f64 into an OffsetDateTime.
@@ -258,17 +257,23 @@ mod tests {
         let store = FakeHistoryStore::new();
         let mappings = HashMap::new();
 
-        let summary = store.import_legacy_json(json_data, &mappings, false).unwrap();
+        let summary = store
+            .import_legacy_json(json_data, &mappings, false)
+            .unwrap();
         assert_eq!(summary.runs_imported, 2);
         assert_eq!(summary.metrics_imported, 1);
         assert_eq!(summary.skipped_runs, 0);
 
-        let summary2 = store.import_legacy_json(json_data, &mappings, true).unwrap();
+        let summary2 = store
+            .import_legacy_json(json_data, &mappings, true)
+            .unwrap();
         assert_eq!(summary2.runs_imported, 2);
         assert_eq!(summary2.metrics_imported, 1);
         assert_eq!(summary2.skipped_runs, 0);
 
-        let summary3 = store.import_legacy_json(json_data, &mappings, true).unwrap();
+        let summary3 = store
+            .import_legacy_json(json_data, &mappings, true)
+            .unwrap();
         assert_eq!(summary3.runs_imported, 0);
         assert_eq!(summary3.metrics_imported, 0);
         assert_eq!(summary3.skipped_runs, 2);

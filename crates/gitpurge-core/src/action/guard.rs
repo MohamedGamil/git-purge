@@ -116,7 +116,10 @@ where
         while let Ok(event) = rx.recv() {
             match event {
                 DeleteEvent::Success(action) => {
-                    results.lock().unwrap().push(ActionResult::Success { action });
+                    results
+                        .lock()
+                        .unwrap()
+                        .push(ActionResult::Success { action });
                 }
                 DeleteEvent::Failed(action, error_msg) => {
                     results.lock().unwrap().push(ActionResult::Failed {
@@ -159,7 +162,10 @@ where
             ActionResult::Failed { action, .. } => action,
             ActionResult::Skipped { action } => action,
         };
-        actions_to_delete.iter().position(|a| a.branch == action.branch).unwrap_or(0)
+        actions_to_delete
+            .iter()
+            .position(|a| a.branch == action.branch)
+            .unwrap_or(0)
     });
 
     Ok(final_results)

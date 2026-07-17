@@ -207,7 +207,10 @@ pub fn handle_history_import(
         gitpurge_core::GitPurgeError::Config(format!("Failed to read legacy JSON file: {}", e))
     })?;
 
-    let repo_mappings = map.iter().cloned().collect::<std::collections::HashMap<_, _>>();
+    let repo_mappings = map
+        .iter()
+        .cloned()
+        .collect::<std::collections::HashMap<_, _>>();
 
     let summary = engine.import_history(&json_data, &repo_mappings, execute)?;
 
@@ -224,7 +227,9 @@ pub fn handle_history_import(
         );
     } else {
         if !execute {
-            println!("DRY-RUN: Showing what would be imported (run with --execute to apply changes).");
+            println!(
+                "DRY-RUN: Showing what would be imported (run with --execute to apply changes)."
+            );
         }
         println!("Legacy trend history import summary:");
         println!("  Runs parsed/imported: {}", summary.runs_imported);
