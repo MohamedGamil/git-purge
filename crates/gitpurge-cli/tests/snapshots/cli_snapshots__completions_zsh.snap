@@ -227,7 +227,7 @@ _arguments "${_arguments_options[@]}" : \
 '-x+[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--exclude=[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--protected=[Extra protected patterns added to the protected set]:PROTECTED:_default' \
-'--sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
+'-sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
 '--filter=[Free-form policy predicate expression]:FILTER:_default' \
 '--limit=[Cap the number of selected references]:LIMIT:_default' \
 '--config=[Path to config file (default\: auto-resolved via XDG/KnownFolders)]:CONFIG:_default' \
@@ -262,7 +262,7 @@ _arguments "${_arguments_options[@]}" : \
 '-x+[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--exclude=[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--protected=[Extra protected patterns added to the protected set]:PROTECTED:_default' \
-'--sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
+'-sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
 '--filter=[Free-form policy predicate expression]:FILTER:_default' \
 '--limit=[Cap the number of selected references]:LIMIT:_default' \
 '--config=[Path to config file (default\: auto-resolved via XDG/KnownFolders)]:CONFIG:_default' \
@@ -467,7 +467,7 @@ _arguments "${_arguments_options[@]}" : \
 '-x+[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--exclude=[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--protected=[Extra protected patterns added to the protected set]:PROTECTED:_default' \
-'--sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
+'-sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
 '--filter=[Free-form policy predicate expression]:FILTER:_default' \
 '--limit=[Cap the number of selected references]:LIMIT:_default' \
 '--config=[Path to config file (default\: auto-resolved via XDG/KnownFolders)]:CONFIG:_default' \
@@ -506,7 +506,7 @@ _arguments "${_arguments_options[@]}" : \
 '-x+[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--exclude=[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--protected=[Extra protected patterns added to the protected set]:PROTECTED:_default' \
-'--sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
+'-sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
 '--filter=[Free-form policy predicate expression]:FILTER:_default' \
 '--limit=[Cap the number of selected references]:LIMIT:_default' \
 '--config=[Path to config file (default\: auto-resolved via XDG/KnownFolders)]:CONFIG:_default' \
@@ -615,7 +615,7 @@ _arguments "${_arguments_options[@]}" : \
 '-x+[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--exclude=[Comma-separated glob/substring patterns to skip (case-insensitive)]:EXCLUDE:_default' \
 '--protected=[Extra protected patterns added to the protected set]:PROTECTED:_default' \
-'--sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
+'-sort=[Sort ordering (age | name | author | commits | ahead | behind)]:SORT:_default' \
 '--filter=[Free-form policy predicate expression]:FILTER:_default' \
 '--limit=[Cap the number of selected references]:LIMIT:_default' \
 '--config=[Path to config file (default\: auto-resolved via XDG/KnownFolders)]:CONFIG:_default' \

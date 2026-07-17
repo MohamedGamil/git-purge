@@ -68,51 +68,51 @@ impl TestEnv {
         let mut out = input.to_string();
 
         // 1. Sanitize Temp Directory Path (both raw and canonical/UNC/stripped forms)
-        let temp_raw = self.temp_dir.path().to_string_lossy().into_owned();
-        let temp_raw_escaped = temp_raw.replace("\\", "\\\\");
-        let temp_canonical = self.temp_dir_path.to_string_lossy().into_owned();
-        let temp_canonical_escaped = temp_canonical.replace("\\", "\\\\");
-        let temp_stripped = temp_canonical
-            .strip_prefix(r"\\?\")
-            .unwrap_or(&temp_canonical)
-            .to_string();
-        let temp_stripped_escaped = temp_stripped.replace("\\", "\\\\");
+        let mut temp_replacements = vec![
+            self.temp_dir.path().to_string_lossy().into_owned(),
+            self.temp_dir_path.to_string_lossy().into_owned(),
+        ];
+        let mut temp_escaped: Vec<String> = temp_replacements
+            .iter()
+            .map(|p| p.replace("\\", "\\\\"))
+            .collect();
+        temp_replacements.append(&mut temp_escaped);
+        let mut temp_stripped: Vec<String> = temp_replacements
+            .iter()
+            .map(|p| p.strip_prefix(r"\\?\").unwrap_or(p).to_string())
+            .collect();
+        temp_replacements.append(&mut temp_stripped);
 
-        out = out.replace(&temp_raw, "[TEMP_DIR]");
-        if !temp_raw_escaped.is_empty() {
-            out = out.replace(&temp_raw_escaped, "[TEMP_DIR]");
-        }
-        out = out.replace(&temp_canonical, "[TEMP_DIR]");
-        if !temp_canonical_escaped.is_empty() {
-            out = out.replace(&temp_canonical_escaped, "[TEMP_DIR]");
-        }
-        out = out.replace(&temp_stripped, "[TEMP_DIR]");
-        if !temp_stripped_escaped.is_empty() {
-            out = out.replace(&temp_stripped_escaped, "[TEMP_DIR]");
+        temp_replacements.retain(|s| !s.is_empty());
+        temp_replacements.sort_by_key(|s| std::cmp::Reverse(s.len()));
+        temp_replacements.dedup();
+
+        for r in temp_replacements {
+            out = out.replace(&r, "[TEMP_DIR]");
         }
 
         // Sanitize Repo Path (both raw and canonical/UNC/stripped forms)
-        let repo_raw = self.repo_raw_path.to_string_lossy().into_owned();
-        let repo_raw_escaped = repo_raw.replace("\\", "\\\\");
-        let repo_canonical = self.repo_path.to_string_lossy().into_owned();
-        let repo_canonical_escaped = repo_canonical.replace("\\", "\\\\");
-        let repo_stripped = repo_canonical
-            .strip_prefix(r"\\?\")
-            .unwrap_or(&repo_canonical)
-            .to_string();
-        let repo_stripped_escaped = repo_stripped.replace("\\", "\\\\");
+        let mut repo_replacements = vec![
+            self.repo_raw_path.to_string_lossy().into_owned(),
+            self.repo_path.to_string_lossy().into_owned(),
+        ];
+        let mut repo_escaped: Vec<String> = repo_replacements
+            .iter()
+            .map(|p| p.replace("\\", "\\\\"))
+            .collect();
+        repo_replacements.append(&mut repo_escaped);
+        let mut repo_stripped: Vec<String> = repo_replacements
+            .iter()
+            .map(|p| p.strip_prefix(r"\\?\").unwrap_or(p).to_string())
+            .collect();
+        repo_replacements.append(&mut repo_stripped);
 
-        out = out.replace(&repo_raw, "[REPO_DIR]");
-        if !repo_raw_escaped.is_empty() {
-            out = out.replace(&repo_raw_escaped, "[REPO_DIR]");
-        }
-        out = out.replace(&repo_canonical, "[REPO_DIR]");
-        if !repo_canonical_escaped.is_empty() {
-            out = out.replace(&repo_canonical_escaped, "[REPO_DIR]");
-        }
-        out = out.replace(&repo_stripped, "[REPO_DIR]");
-        if !repo_stripped_escaped.is_empty() {
-            out = out.replace(&repo_stripped_escaped, "[REPO_DIR]");
+        repo_replacements.retain(|s| !s.is_empty());
+        repo_replacements.sort_by_key(|s| std::cmp::Reverse(s.len()));
+        repo_replacements.dedup();
+
+        for r in repo_replacements {
+            out = out.replace(&r, "[REPO_DIR]");
         }
 
         // 2. Sanitize ULIDs (26 characters Base32 starting with 01)
@@ -163,6 +163,34 @@ impl TestEnv {
         if let Ok(username) = std::env::var("USERNAME") {
             out = out.replace(&username, "[USER]");
         }
+
+        // 10. Normalize table formatting & trim trailing whitespaces
+        // to ensure snapshot layout stability across different platforms.
+        let space_re = regex::Regex::new(r" {2,}").unwrap();
+        let hyphen_re = regex::Regex::new(r"-{2,}").unwrap();
+        let equal_re = regex::Regex::new(r"={2,}").unwrap();
+
+        let mut lines = Vec::new();
+        for line in out.lines() {
+            let trimmed = line.trim();
+            let is_border = (trimmed.starts_with('+')
+                && trimmed
+                    .chars()
+                    .all(|c| c == '+' || c == '-' || c == '=' || c.is_whitespace()))
+                || (trimmed.starts_with('|') || trimmed.contains(" | ") || trimmed.contains("| "));
+
+            if is_border {
+                let mut s = trimmed.to_string();
+                s = space_re.replace_all(&s, " ").into_owned();
+                s = hyphen_re.replace_all(&s, "-").into_owned();
+                s = equal_re.replace_all(&s, "=").into_owned();
+
+                lines.push(s);
+            } else {
+                lines.push(line.trim_end().to_string());
+            }
+        }
+        out = lines.join("\n");
 
         out
     }

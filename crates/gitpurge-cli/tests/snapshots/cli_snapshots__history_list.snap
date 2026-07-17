@@ -4,18 +4,18 @@ expression: stdout
 ---
 Cleanup Progress & Trend History for Repo: test-repo
 --------------------------------------------------------------------------------
-Run Date                 | Total | Active | Stale | Merged | Unmerged
+Run Date | Total | Active | Stale | Merged | Unmerged
 --------------------------------------------------------------------------------
-[DATETIME]     | 2     | 2      | 0     | 0      | 2       
-[DATETIME]     | 3     | 3      | 0     | 1      | 2       
+[DATETIME] | 2 | 2 | 0 | 0 | 2
+[DATETIME] | 3 | 3 | 0 | 1 | 2
 
 Past Operations Log
 --------------------------------------------------------------------------------
-Run ID           | Started At           | Command  | Mode     | Deleted | Archived | Actor     
+Run ID | Started At | Command | Mode | Deleted | Archived | Actor
 --------------------------------------------------------------------------------
-[SHORT_ULID]     | [DATETIME] | scan     | dry-run  | 0       | 0        | [USER]    
-[SHORT_ULID]     | [DATETIME] | delete   | execute  | 0       | 0        | [USER]    
+[SHORT_ULID] | [DATETIME] | scan | dry-run | 0 | 0 | [USER]
+[SHORT_ULID] | [DATETIME] | delete | execute | 0 | 0 | [USER]
   - Affected Branches:
     * merged-branch
-[SHORT_ULID]     | [DATETIME] | scan     | dry-run  | 0       | 0        | [USER]    
-[SHORT_ULID]     | [DATETIME] | scan     | dry-run  | 0       | 0        | [USER]
+[SHORT_ULID] | [DATETIME] | scan | dry-run | 0 | 0 | [USER]
+[SHORT_ULID] | [DATETIME] | scan | dry-run | 0 | 0 | [USER]
