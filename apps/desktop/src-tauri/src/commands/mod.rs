@@ -306,7 +306,7 @@ pub struct ClientProgressEvent {
 pub struct ActiveCleanupTask {
     pub task_id: String,
     pub repo_id: String,
-    pub kind: String, // "delete" | "archive"
+    pub kind: String,   // "delete" | "archive"
     pub status: String, // "running" | "completed" | "failed" | "cancelled"
     pub current: u64,
     pub total: u64,
