@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Split the monolithic `apps/desktop/src-tauri/src/commands.rs` into modular, domain-specific command modules under a new `commands/` directory (`mod.rs`, `repo.rs`, `branch.rs`, `backup.rs`, `history.rs`, `auth.rs`, `settings.rs`, `system.rs`, `tests.rs`), keeping files under 500 lines.
+- Added comprehensive Tauri command integration testing using `tauri::test::mock_app()` to verify settings, repo CRUD, and backup prune/list IPC command behaviors.
 - Wired the CLI `auth add` and `auth remove` commands to configure credential metadata in `config.toml` via `AuthConfig`/`CredentialMetadata` models, persisting it to disk on configuration updates.
 - Refactored `lib.rs` by splitting the monolithic 1.8K lines of engine code into modular sub-modules under `crates/gitpurge-core/src/engine/` (`core.rs`, `auth.rs`, `scan_plan.rs`, `backup.rs`, `execute.rs`, `git_ops.rs`, `report_history.rs`, `tests.rs`), keeping `lib.rs` under 200 lines (now 77 lines) and all modular files under 500 lines.
 - Priority-ordered `CredentialResolver` supporting CLI overrides, OS Keyring, fallback file store, environment variables, and interactive prompts, along with host/URL/glob specificity matching.
@@ -33,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Reverted the default SSH fallback credential authentication in `git2_backend.rs` to the proven historical implementation using SSH agent first, then defaulting to system Git credentials, fixing a regression where complex key file scanning broke remote branch deletions on self-hosted Azure DevOps/TFS servers.
 - Sandboxed the `install-cli` CLI command integration test to target a temporary directory, avoiding conflicts with the host system's actual binary path.
 - Prevented potential secret leakage by implementing a redacted `std::fmt::Debug` manually for the `StoredCredential` type.
 

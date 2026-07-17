@@ -36,3 +36,4 @@ tauri-build = { workspace = true }
 
 [dev-dependencies]
 toml = { workspace = true }
+tauri = { workspace = true, features = ["test"] }

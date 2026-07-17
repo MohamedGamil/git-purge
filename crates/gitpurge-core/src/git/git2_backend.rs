@@ -269,26 +269,11 @@ impl Git2Backend {
 
             let user = username_from_url.unwrap_or("git");
 
-            if allowed_types.contains(git2::CredentialType::USERNAME) {
-                tracing::debug!("RETURNING USERNAME CREDENTIAL: {}", user);
-                return git2::Cred::username(user);
-            }
-
+            // 1. Try SSH Key files and agent if SSH is supported
             if allowed_types.contains(git2::CredentialType::SSH_KEY)
                 || allowed_types.contains(git2::CredentialType::SSH_CUSTOM)
             {
-                // 1. Try SSH agent first
-                match git2::Cred::ssh_key_from_agent(user) {
-                    Ok(cred) => {
-                        tracing::debug!("SUCCESS: LOADED KEY FROM SSH AGENT");
-                        return Ok(cred);
-                    }
-                    Err(e) => {
-                        tracing::debug!("SSH AGENT FAILED: {:?}", e);
-                    }
-                }
-
-                // 2. Try default SSH key files dynamically
+                // Try key files first (bypasses SHA-1 limitation of agent)
                 let ssh_dir = if let Some(bd) = directories::BaseDirs::new() {
                     Some(bd.home_dir().join(".ssh"))
                 } else if let Ok(home) = std::env::var("HOME") {
@@ -303,24 +288,28 @@ impl Git2Backend {
                         let private_key = ssh_dir.join(name);
                         if private_key.exists() {
                             tracing::debug!("TRYING PRIVATE KEY FILE: {:?}", private_key);
-                            match git2::Cred::ssh_key(user, None, &private_key, None) {
-                                Ok(cred) => {
-                                    tracing::debug!("SUCCESS: LOADED KEY FILE {:?}", private_key);
-                                    return Ok(cred);
-                                }
-                                Err(e) => {
-                                    tracing::debug!(
-                                        "FAILED TO LOAD KEY FILE {:?}: {:?}",
-                                        private_key,
-                                        e
-                                    );
-                                }
+                            if let Ok(cred) = git2::Cred::ssh_key(user, None, &private_key, None) {
+                                tracing::debug!("SUCCESS: LOADED KEY FILE {:?}", private_key);
+                                return Ok(cred);
                             }
                         }
                     }
                 }
+
+                // Fall back to SSH agent
+                if let Ok(cred) = git2::Cred::ssh_key_from_agent(user) {
+                    tracing::debug!("SUCCESS: LOADED KEY FROM SSH AGENT");
+                    return Ok(cred);
+                }
             }
 
+            // 2. Fall back to USERNAME
+            if allowed_types.contains(git2::CredentialType::USERNAME) {
+                tracing::debug!("RETURNING USERNAME CREDENTIAL: {}", user);
+                return git2::Cred::username(user);
+            }
+
+            // 3. Ultimate fallback
             tracing::debug!("FALLBACK TO DEFAULT CREDENTIALS");
             git2::Cred::default()
         });

@@ -29,6 +29,7 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P10-T3 | Split Tauri `commands.rs` into domain modules | 45 | 2026-07-17 |
 | P11-T7 | Wire auth CLI commands to real backends | 44 | 2026-07-17 |
 | P10-T2 | Break up `lib.rs` into Engine modules | 44 | 2026-07-17 |
 | P11-T4 | Credential resolver chain | 43 | 2026-07-17 |
@@ -66,8 +67,7 @@ duplicating work.
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 1 | P10-T3 | Split Tauri `commands.rs` into domain modules | 1 ED | Medium | — |
-| 2 | P10-T7 | Expand CI to cross-platform matrix | 1 ED | Medium | — |
+| 1 | P10-T7 | Expand CI to cross-platform matrix | 1 ED | Medium | — |
 
 ### High — Phase 12: Reporting Completion & Hardening Foundations
 
