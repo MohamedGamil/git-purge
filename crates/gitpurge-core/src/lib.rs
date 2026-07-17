@@ -63,6 +63,7 @@ pub mod testkit;
 
 pub use config::Config;
 pub use error::{GitPurgeError, Result};
+pub use git::GitBackend;
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -122,7 +123,32 @@ impl Engine {
         }
 
         let git = Box::new(crate::git::CompositeGitBackend::new());
-        let secrets = Box::new(crate::auth::FakeSecretStore::default());
+        let keyring_store = std::sync::Arc::new(crate::auth::KeyringSecretStore::default());
+        let passphrase = std::env::var("GIT_PURGE_PASSPHRASE")
+            .unwrap_or_else(|_| "default_git_purge_passphrase".to_string());
+        let file_store_path = config.resolve_data_dir().join("vault.json");
+        let file_store = std::sync::Arc::new(crate::auth::FileSecretStore::new(
+            file_store_path,
+            passphrase,
+        ));
+
+        let resolver = std::sync::Arc::new(
+            crate::auth::CredentialResolver::new()
+                .with_config(config.clone())
+                .with_keyring_store(keyring_store)
+                .with_file_store(file_store),
+        );
+
+        git.set_resolver(resolver);
+
+        let secrets = Box::new(crate::auth::FallbackSecretStore::new(
+            crate::auth::KeyringSecretStore::default(),
+            crate::auth::FileSecretStore::new(
+                config.resolve_data_dir().join("vault.json"),
+                std::env::var("GIT_PURGE_PASSPHRASE")
+                    .unwrap_or_else(|_| "default_git_purge_passphrase".to_string()),
+            ),
+        ));
         let db_path = config.resolve_data_dir().join("history.db");
         let backups_root = config
             .backups_root

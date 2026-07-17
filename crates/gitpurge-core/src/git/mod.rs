@@ -96,6 +96,9 @@ pub trait GitBackend: Send + Sync + std::fmt::Debug {
 
     /// Fetch all remotes with prune.
     fn fetch_all_prune(&self, repo: &Repository) -> Result<()>;
+
+    /// Set the credential resolver for remote network operations.
+    fn set_resolver(&self, _resolver: std::sync::Arc<crate::auth::CredentialResolver>) {}
 }
 
 /// In-memory fake for tests. Proves dependency-inversion (P0-T4).

@@ -18,7 +18,7 @@ impl CompositeGitBackend {
     pub fn new() -> Self {
         Self {
             gix: GixBackend,
-            git2: Git2Backend,
+            git2: Git2Backend::default(),
         }
     }
 }
@@ -93,6 +93,10 @@ impl GitBackend for CompositeGitBackend {
 
     fn fetch_all_prune(&self, repo: &Repository) -> Result<()> {
         self.git2.fetch_all_prune(repo)
+    }
+
+    fn set_resolver(&self, resolver: std::sync::Arc<crate::auth::CredentialResolver>) {
+        self.git2.set_resolver(resolver);
     }
 }
 

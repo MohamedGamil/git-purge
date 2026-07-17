@@ -9,10 +9,12 @@
 mod credential;
 pub mod file_store;
 pub mod keyring_store;
+pub mod resolver;
 
 pub use credential::{Credential, CredentialEntry, CredentialKind, CredentialQuery};
 pub use file_store::FileSecretStore;
 pub use keyring_store::KeyringSecretStore;
+pub use resolver::CredentialResolver;
 
 use crate::error::Result;
 use crate::model::RepoId;
@@ -131,5 +133,68 @@ impl SecretStore for FakeSecretStore {
 
     fn test(&self, _repo: &RepoId, _remote: &str) -> Result<bool> {
         Ok(true)
+    }
+}
+
+/// A SecretStore wrapper that attempts OS Keyring operations first,
+/// and falls back to FileSecretStore if keyring is unavailable or errors.
+#[derive(Debug)]
+pub struct FallbackSecretStore {
+    keyring: KeyringSecretStore,
+    file_store: FileSecretStore,
+}
+
+impl FallbackSecretStore {
+    /// Create a new FallbackSecretStore.
+    pub fn new(keyring: KeyringSecretStore, file_store: FileSecretStore) -> Self {
+        Self {
+            keyring,
+            file_store,
+        }
+    }
+}
+
+impl SecretStore for FallbackSecretStore {
+    fn store(
+        &self,
+        repo: &RepoId,
+        remote: &str,
+        kind: CredentialKind,
+        secret: &[u8],
+    ) -> Result<()> {
+        if self.keyring.store(repo, remote, kind, secret).is_err() {
+            self.file_store.store(repo, remote, kind, secret)?;
+        }
+        Ok(())
+    }
+
+    fn retrieve(&self, repo: &RepoId, remote: &str) -> Result<Option<Credential>> {
+        if let Ok(Some(cred)) = self.keyring.retrieve(repo, remote) {
+            return Ok(Some(cred));
+        }
+        self.file_store.retrieve(repo, remote)
+    }
+
+    fn remove(&self, repo: &RepoId, remote: &str) -> Result<()> {
+        let _ = self.keyring.remove(repo, remote);
+        self.file_store.remove(repo, remote)
+    }
+
+    fn list(&self) -> Result<Vec<CredentialEntry>> {
+        if let Ok(list) = self.keyring.list() {
+            if !list.is_empty() {
+                return Ok(list);
+            }
+        }
+        self.file_store.list()
+    }
+
+    fn test(&self, repo: &RepoId, remote: &str) -> Result<bool> {
+        if let Ok(success) = self.keyring.test(repo, remote) {
+            if success {
+                return Ok(true);
+            }
+        }
+        self.file_store.test(repo, remote)
     }
 }

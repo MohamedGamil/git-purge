@@ -177,7 +177,7 @@ status, task-numbering divergences.
 
 ---
 
-### P10-T6 · Amend ADR-0002 or build `ShellGitBackend` 🔲
+### P10-T6 · Amend ADR-0002 or build `ShellGitBackend` ✅ (2026-07-17)
 
 **Goal:** Either build the shell-out adapter or formally amend the ADR to drop it.
 
@@ -244,7 +244,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P11-T4 · Credential resolver chain 🔲
+### P11-T4 · Credential resolver chain ✅ (2026-07-17)
 
 **Goal:** Resolver tries sources in order: CLI flag → keyring → file → env → prompt.
 
@@ -256,7 +256,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P11-T5 · git2 credential callback bridge 🔲
+### P11-T5 · git2 credential callback bridge ✅ (2026-07-17)
 
 **Goal:** Wire resolver into git2's `RemoteCallbacks::credentials()`.
 

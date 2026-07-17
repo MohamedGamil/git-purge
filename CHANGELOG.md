@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Priority-ordered `CredentialResolver` supporting CLI overrides, OS Keyring, fallback file store, environment variables, and interactive prompts, along with host/URL/glob specificity matching.
+- Native `git2` credential callback bridge in `git2_backend.rs` routing remote network actions to the `CredentialResolver`.
+- Wrapper `FallbackSecretStore` providing automatic degradation to the encrypted file store fallback on headless Linux/CI systems where the native OS keyring daemon is missing.
+- Credential metadata config structs (`AuthConfig`, `CredentialMetadata`) to represent credential matching specifications in `config.toml`.
 - Encrypted file `SecretStore` adapter (`FileSecretStore`) using AES-256-GCM encryption and Argon2id key derivation, with a fallback when a native OS keyring is not available or desired.
 - Standalone branch deletion orchestration module (`action/delete.rs`), refactoring core deletion logic out of the main `lib.rs` engine to prepare for further structural consolidation.
 - Keyring `SecretStore` adapter (`KeyringSecretStore`) using the OS keychain to securely store credential payloads, accompanied by a secure JSON index for list and test queries.
@@ -21,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Formally amended `ADR-0002` (Hybrid git engine) to drop the system `git` CLI shell-out fallback.
 - Transitioned `gitpurge-core` from `#![forbid(unsafe_code)]` to `#![deny(unsafe_code)]` with a single audited exemption for `libgit2` global timeout configuration per ADR-0006.
 - Updated conventions, project guides, and task lists to align with the Apache-2.0 only license model.
 

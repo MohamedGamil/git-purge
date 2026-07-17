@@ -39,6 +39,9 @@ pub struct Config {
 
     /// Custom date-time display format.
     pub date_format: String,
+
+    /// Authentication credentials metadata.
+    pub auth: Option<AuthConfig>,
 }
 
 impl Default for Config {
@@ -51,6 +54,7 @@ impl Default for Config {
             repos: Vec::new(),
             default_repo: None,
             date_format: "YYYY-MM-DD h:m a".to_string(),
+            auth: None,
         }
     }
 }
@@ -125,6 +129,30 @@ impl Config {
 
         Ok(())
     }
+}
+
+/// Configuration for credential metadata (referenced by SecretStore).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct AuthConfig {
+    /// List of configured credential metadata entries.
+    #[serde(rename = "credential", default)]
+    pub credentials: Vec<CredentialMetadata>,
+}
+
+/// Metadata entry for a single credential.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CredentialMetadata {
+    /// Unique credential identifier.
+    pub id: String,
+    /// Credential method (e.g. `ssh-key`, `https-basic`, `token`, `ssh-agent`).
+    pub method: String,
+    /// Matching spec pattern (host, org-glob, or URL).
+    pub r#match: String,
+    /// Optional username.
+    pub username: Option<String>,
+    /// Optional path to an SSH private key file.
+    pub key_path: Option<PathBuf>,
 }
 
 #[cfg(test)]

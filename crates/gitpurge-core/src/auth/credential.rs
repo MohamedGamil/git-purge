@@ -63,6 +63,7 @@ pub struct Credential {
     kind: CredentialKind,
     label: String,
     secret: zeroize::Zeroizing<Vec<u8>>,
+    key_path: Option<std::path::PathBuf>,
 }
 
 impl Credential {
@@ -72,7 +73,19 @@ impl Credential {
             kind,
             label: label.into(),
             secret: zeroize::Zeroizing::new(secret.into()),
+            key_path: None,
         }
+    }
+
+    /// Add an optional key path to the credential.
+    pub fn with_key_path(mut self, path: std::path::PathBuf) -> Self {
+        self.key_path = Some(path);
+        self
+    }
+
+    /// Optional path to an SSH private key file.
+    pub fn key_path(&self) -> Option<&std::path::PathBuf> {
+        self.key_path.as_ref()
     }
 
     /// Credential kind.
@@ -107,6 +120,7 @@ impl Clone for Credential {
             kind: self.kind,
             label: self.label.clone(),
             secret: zeroize::Zeroizing::new(self.secret.to_vec()),
+            key_path: self.key_path.clone(),
         }
     }
 }

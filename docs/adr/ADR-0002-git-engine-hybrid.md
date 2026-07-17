@@ -2,7 +2,7 @@
 
 | Field | Value |
 | :--- | :--- |
-| **Status** | Accepted |
+| **Status** | Amended |
 | **Date** | 2026-07-11 |
 | **Deciders** | Mohamed Gamil |
 | **Relates to** | [01-tech-stack.md §git-engine](../01-tech-stack.md), [04-core-spec.md §4](../04-core-spec.md), [CONVENTIONS §4](../../delivery/CONVENTIONS.md) |
@@ -38,12 +38,11 @@ Use a **hybrid strategy** behind the `GitBackend` port trait (ADR-0001):
    git2 based on a capability table. The routing is internal to the adapter
    crate — `gitpurge-core` sees only the `GitBackend` trait.
 
-4. **System `git` shell-out** is available as a last-resort adapter for edge
-   cases (e.g., `git credential fill`) but is never the default. Shell-out
-   commands must never construct command strings from user input without proper
-   escaping (SAFE-07, 14-security.md §3).
+4. **System `git` shell-out** fallback is dropped and not supported. Native Rust libraries
+   (`gix` and `git2`) completely cover the engine's requirements without requiring
+   external Git CLI dependencies. This satisfies the single-binary, zero-setup design goal.
 
-5. Priority order: **gix → git2 → shell**. As gix matures, operations migrate
+5. Priority order: **gix → git2**. As gix matures, operations migrate
    from git2 to gix without any facade change (the trait surface stays stable).
 
 ## Consequences
