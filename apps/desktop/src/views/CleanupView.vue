@@ -286,6 +286,58 @@
         </div>
       </section>
     </div>
+
+    <!-- Active Cleanups Collapsible Panel -->
+    <div v-if="branchesStore.activeCleanups.length > 0" class="active-cleanups-panel card" :class="{ collapsed: isCleanupsCollapsed }">
+      <header class="panel-header" @click="isCleanupsCollapsed = !isCleanupsCollapsed">
+        <div class="header-left">
+          <Sparkles class="lucide-icon icon color-primary" style="margin-right: 6px;" />
+          <h3>Active & Recent Cleanups ({{ branchesStore.activeCleanups.length }})</h3>
+        </div>
+        <div class="header-right">
+          <span class="badge badge-info pulse-badge" v-if="branchesStore.runningCleanupsCount > 0" style="margin-right: 8px;">
+            {{ branchesStore.runningCleanupsCount }} Running
+          </span>
+          <ChevronDown class="lucide-icon icon toggle-arrow color-muted" :class="{ rotated: !isCleanupsCollapsed }" />
+        </div>
+      </header>
+
+      <div v-show="!isCleanupsCollapsed" class="panel-content">
+        <div class="cleanup-tasks-list">
+          <div v-for="task in branchesStore.activeCleanups" :key="task.taskId" class="task-row">
+            <div class="task-info">
+              <span class="task-repo-name">
+                <strong>{{ getRepoName(task.repoId) }}</strong>
+              </span>
+              <span class="task-kind badge" :class="task.kind === 'archive' ? 'badge-info' : 'badge-danger'">
+                {{ task.kind === 'archive' ? 'Archive' : 'Delete' }}
+              </span>
+              <span class="task-status-badge" :class="task.status">
+                {{ task.status }}
+              </span>
+            </div>
+            
+            <div class="task-progress-col">
+              <div class="task-progress-text text-sm">
+                {{ task.message }} ({{ task.current }}/{{ task.total }})
+              </div>
+              <div class="progress-bar-bg progress-bar-tiny">
+                <div class="progress-bar-fill" :style="{ width: getTaskProgress(task) + '%' }"></div>
+              </div>
+            </div>
+
+            <div class="task-actions-col">
+              <button v-if="task.status === 'running' && branchesStore.execTaskId !== task.taskId" class="btn btn-secondary btn-sm" @click="viewTaskProgress(task)">
+                View
+              </button>
+              <button v-if="task.status === 'running'" class="btn btn-danger-alt btn-sm" @click="cancelTask(task.taskId)">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -294,7 +346,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useReposStore } from '../stores/repos';
 import { useBranchesStore } from '../stores/branches';
 import { useToastStore } from '../stores/toast';
-import { Search, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert } from '@lucide/vue';
+import { Search, Archive, Trash2, OctagonAlert, PartyPopper, TriangleAlert, ChevronDown, Sparkles } from '@lucide/vue';
 
 const toastStore = useToastStore();
 
@@ -435,6 +487,28 @@ const handleCancel = async () => {
   await branchesStore.cancelActiveTask();
 };
 
+const isCleanupsCollapsed = ref(true);
+
+const getRepoName = (repoId: string) => {
+  return store.repos.find(r => r.id === repoId)?.name || repoId;
+};
+
+const getTaskProgress = (task: any) => {
+  if (!task.total) return 0;
+  return Math.round((task.current / task.total) * 100);
+};
+
+const viewTaskProgress = (task: any) => {
+  branchesStore.isExecuting = true;
+  branchesStore.execTaskId = task.taskId;
+  branchesStore.execProgress = getTaskProgress(task);
+  branchesStore.execProgressMessage = task.message;
+};
+
+const cancelTask = async (taskId: string) => {
+  await branchesStore.cancelActiveTaskById(taskId);
+};
+
 const resetFlow = () => {
   branchesStore.resetPlanAndReport();
 };
@@ -447,7 +521,7 @@ watch(() => store.activeRepoId, (newId) => {
 });
 
 onMounted(() => {
-  if (selectedRepoId.value) {
+  if (selectedRepoId.value && !isExecuting.value && !planResult.value) {
     generatePlan();
   }
 });
@@ -904,5 +978,220 @@ onMounted(() => {
   word-break: break-all;
   border-left: 2px solid var(--primary);
   padding-left: 6px;
+}
+
+/* Active Cleanups Collapsible Panel Styles */
+.active-cleanups-panel {
+  margin-top: var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+  flex-shrink: 0;
+  transition: all var(--transition-normal);
+  width: 100%;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  cursor: pointer;
+  user-select: none;
+  background-color: var(--surface-raised);
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--transition-normal);
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+.active-cleanups-panel:not(.collapsed) .panel-header {
+  border-bottom-color: var(--border);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.header-left h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--on-surface-strong);
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.icon {
+  width: 20px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-arrow {
+  transition: transform var(--transition-normal);
+}
+
+.toggle-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.panel-content {
+  max-height: 250px;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  background-color: var(--surface);
+  border-bottom-left-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+}
+
+.cleanup-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-normal);
+}
+
+.task-row:hover {
+  border-color: var(--primary-glow);
+}
+
+.task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.task-repo-name {
+  font-size: 13px;
+  color: var(--on-surface-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-kind {
+  align-self: flex-start;
+  font-size: 9px;
+  padding: 1px 4px;
+}
+
+.task-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-round);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  width: max-content;
+}
+
+.task-status-badge.running {
+  background-color: rgba(97, 175, 239, 0.15);
+  color: var(--primary);
+}
+
+.task-status-badge.completed {
+  background-color: rgba(152, 195, 121, 0.15);
+  color: var(--success);
+}
+
+.task-status-badge.failed {
+  background-color: rgba(224, 108, 117, 0.15);
+  color: var(--danger);
+}
+
+.task-status-badge.cancelled {
+  background-color: rgba(235, 235, 235, 0.1);
+  color: var(--muted);
+}
+
+.task-progress-col {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-progress-text {
+  color: var(--on-surface);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-bar-tiny {
+  height: 4px;
+  background-color: var(--border);
+  border-radius: var(--radius-round);
+  overflow: hidden;
+}
+
+.progress-bar-tiny .progress-bar-fill {
+  height: 100%;
+  background-color: var(--primary);
+  border-radius: var(--radius-round);
+  transition: width 0.3s ease;
+}
+
+.task-actions-col {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.pulse-badge {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(86, 182, 194, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(86, 182, 194, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(86, 182, 194, 0);
+  }
+}
+
+.btn-danger-alt {
+  background-color: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-danger-alt:hover {
+  background-color: var(--danger);
+  color: #fff;
 }
 </style>

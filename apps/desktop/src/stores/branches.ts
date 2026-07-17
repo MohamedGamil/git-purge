@@ -119,6 +119,9 @@ export const useBranchesStore = defineStore('branches', {
           startedAt: new Date().toISOString()
         });
         const res = await deleteBranches(repoId, planData, execOpts, taskId);
+        this.isExecuting = false;
+        this.execTaskId = null;
+        if (unlistenFn) unlistenFn();
         this.runReport = res;
         this.fetchActiveCleanups();
         return res;
@@ -163,6 +166,9 @@ export const useBranchesStore = defineStore('branches', {
           startedAt: new Date().toISOString()
         });
         const res = await archiveBranches(repoId, planData, execOpts, taskId);
+        this.isExecuting = false;
+        this.execTaskId = null;
+        if (unlistenFn) unlistenFn();
         this.runReport = res;
         this.fetchActiveCleanups();
         return res;
@@ -177,15 +183,21 @@ export const useBranchesStore = defineStore('branches', {
 
     async cancelActiveTask() {
       if (this.execTaskId) {
-        try {
-          await cancel(this.execTaskId);
-        } catch (err) {
-          console.error('Failed to cancel task:', err);
-        } finally {
+        await this.cancelActiveTaskById(this.execTaskId);
+      }
+    },
+
+    async cancelActiveTaskById(taskId: string) {
+      try {
+        await cancel(taskId);
+      } catch (err) {
+        console.error('Failed to cancel task:', err);
+      } finally {
+        if (this.execTaskId === taskId) {
           this.isExecuting = false;
           this.execTaskId = null;
-          this.fetchActiveCleanups();
         }
+        this.fetchActiveCleanups();
       }
     },
 

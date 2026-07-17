@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Implemented global collapsible active & recent cleanup tasks registry panel inside Repository Cleanup screen (P13-T7).
+- Added view reconnect support inside the active cleanups list, letting users navigate back to the ongoing execution progress screen of any running task.
 - Implemented global toast notification system in desktop frontend using Pinia `toastStore` and `ToastContainer` UI, replacing all browser `alert()` and dialogs across the views (P13-T8).
 - Implemented `<ModalDialog />` component styled with glassmorphism to replace native `confirm()` prompts, featuring keyboard accessibility, a click-to-copy confirmation token, and row-level delete/archive confirmations (P13-T9).
 - Added interactive regex allowed naming check in Settings view with UI validation border indicators, compile error displays, and compilation checks in the `settings_save` Tauri backend IPC command (P13-T11).
@@ -17,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolved indefinite loading state/freeze after executing a cleanup action by guaranteeing the store clears its `isExecuting` state on Tauri command completion.
+- Fixed a repository lock hang by skipping auto plan generation on Cleanup View mount if a background task is executing or if a plan already exists.
 - Resolved TypeScript compilation type constraints (`ClientPlan`) and cleaned unused declarations/imports in Vue views and store files to guarantee clean production compilation builds (via `vue-tsc`).
 
 ## [0.4.0] — 2026-07-17
