@@ -9,9 +9,6 @@ use crate::model::{Action, ActionResult, BranchName, Repository, RestoreSpec, Sn
 /// Execute a list of branch deletions with a pre-op backup snapshot and verification.
 /// If any delete fails, calls `offer_restore` callback to prompt for auto-restore (SAFE-05).
 #[allow(clippy::too_many_arguments)]
-/// Execute a list of branch deletions with a pre-op backup snapshot and verification.
-/// If any delete fails, calls `offer_restore` callback to prompt for auto-restore (SAFE-05).
-#[allow(clippy::too_many_arguments)]
 pub fn execute_deletions_with_guard<D, F>(
     config: &Config,
     git_backend: &dyn GitBackend,

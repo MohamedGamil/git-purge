@@ -16,8 +16,10 @@ fn bench_engine_operations(c: &mut Criterion) {
     let fixture = testkit::benchmark_repo(500);
 
     let temp_data_dir = tempfile::tempdir().unwrap();
-    let mut config = Config::default();
-    config.data_dir = Some(temp_data_dir.path().to_path_buf());
+    let config = Config {
+        data_dir: Some(temp_data_dir.path().to_path_buf()),
+        ..Config::default()
+    };
 
     let engine = Engine::open(config).unwrap();
     let repo_model =

@@ -9,24 +9,28 @@ struct TestEnv {
     temp_dir: TempDir,
     config_path: PathBuf,
     repo_path: PathBuf,
+    repo_raw_path: PathBuf,
+    temp_dir_path: PathBuf,
 }
 
 impl TestEnv {
     fn new(repo: &testkit::FixtureRepo) -> Self {
         let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join(".gitpurge.toml");
-        let repo_path = repo.path().to_path_buf();
+        // Canonicalize paths to ensure symlinks (e.g. /var -> /private/var on macOS)
+        // and Windows UNC prefixes are resolved consistently with the CLI.
+        let temp_dir_path = std::fs::canonicalize(temp_dir.path()).unwrap();
+        let repo_path = std::fs::canonicalize(repo.path()).unwrap();
+        let repo_raw_path = repo.path().to_path_buf();
+        let config_path = temp_dir_path.join(".gitpurge.toml");
 
         let config_content = format!(
             "data_dir = \"{}\"\nbackups_root = \"{}\"\n",
-            temp_dir
-                .path()
+            temp_dir_path
                 .join("data")
                 .to_str()
                 .unwrap()
                 .replace("\\", "\\\\"),
-            temp_dir
-                .path()
+            temp_dir_path
                 .join("backups")
                 .to_str()
                 .unwrap()
@@ -38,6 +42,8 @@ impl TestEnv {
             temp_dir,
             config_path,
             repo_path,
+            repo_raw_path,
+            temp_dir_path,
         }
     }
 
@@ -61,20 +67,52 @@ impl TestEnv {
     fn sanitize(&self, input: &str) -> String {
         let mut out = input.to_string();
 
-        // 1. Sanitize Temp Directory Path
-        let temp_str = self.temp_dir.path().to_string_lossy().into_owned();
-        let temp_str_escaped = temp_str.replace("\\", "\\\\");
-        out = out.replace(&temp_str, "[TEMP_DIR]");
-        if !temp_str_escaped.is_empty() {
-            out = out.replace(&temp_str_escaped, "[TEMP_DIR]");
+        // 1. Sanitize Temp Directory Path (both raw and canonical/UNC/stripped forms)
+        let temp_raw = self.temp_dir.path().to_string_lossy().into_owned();
+        let temp_raw_escaped = temp_raw.replace("\\", "\\\\");
+        let temp_canonical = self.temp_dir_path.to_string_lossy().into_owned();
+        let temp_canonical_escaped = temp_canonical.replace("\\", "\\\\");
+        let temp_stripped = temp_canonical
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&temp_canonical)
+            .to_string();
+        let temp_stripped_escaped = temp_stripped.replace("\\", "\\\\");
+
+        out = out.replace(&temp_raw, "[TEMP_DIR]");
+        if !temp_raw_escaped.is_empty() {
+            out = out.replace(&temp_raw_escaped, "[TEMP_DIR]");
+        }
+        out = out.replace(&temp_canonical, "[TEMP_DIR]");
+        if !temp_canonical_escaped.is_empty() {
+            out = out.replace(&temp_canonical_escaped, "[TEMP_DIR]");
+        }
+        out = out.replace(&temp_stripped, "[TEMP_DIR]");
+        if !temp_stripped_escaped.is_empty() {
+            out = out.replace(&temp_stripped_escaped, "[TEMP_DIR]");
         }
 
-        // Sanitize Repo Path
-        let repo_str = self.repo_path.to_string_lossy().into_owned();
-        let repo_str_escaped = repo_str.replace("\\", "\\\\");
-        out = out.replace(&repo_str, "[REPO_DIR]");
-        if !repo_str_escaped.is_empty() {
-            out = out.replace(&repo_str_escaped, "[REPO_DIR]");
+        // Sanitize Repo Path (both raw and canonical/UNC/stripped forms)
+        let repo_raw = self.repo_raw_path.to_string_lossy().into_owned();
+        let repo_raw_escaped = repo_raw.replace("\\", "\\\\");
+        let repo_canonical = self.repo_path.to_string_lossy().into_owned();
+        let repo_canonical_escaped = repo_canonical.replace("\\", "\\\\");
+        let repo_stripped = repo_canonical
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&repo_canonical)
+            .to_string();
+        let repo_stripped_escaped = repo_stripped.replace("\\", "\\\\");
+
+        out = out.replace(&repo_raw, "[REPO_DIR]");
+        if !repo_raw_escaped.is_empty() {
+            out = out.replace(&repo_raw_escaped, "[REPO_DIR]");
+        }
+        out = out.replace(&repo_canonical, "[REPO_DIR]");
+        if !repo_canonical_escaped.is_empty() {
+            out = out.replace(&repo_canonical_escaped, "[REPO_DIR]");
+        }
+        out = out.replace(&repo_stripped, "[REPO_DIR]");
+        if !repo_stripped_escaped.is_empty() {
+            out = out.replace(&repo_stripped_escaped, "[REPO_DIR]");
         }
 
         // 2. Sanitize ULIDs (26 characters Base32 starting with 01)

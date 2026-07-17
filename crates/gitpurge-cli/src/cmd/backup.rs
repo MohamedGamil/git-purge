@@ -92,12 +92,22 @@ pub fn handle_backup(
                 for s in snapshots {
                     let trigger_str = format!("{:?}", s.trigger);
                     let verified_str = if s.verified { "yes" } else { "no" };
+                    #[allow(deprecated)]
+                    let format_desc = time::format_description::parse(
+                        "[year]-[month]-[day] [hour]:[minute]:[second] UTC",
+                    )
+                    .unwrap();
+                    let created_str = s
+                        .created_at
+                        .to_offset(time::UtcOffset::UTC)
+                        .format(&format_desc)
+                        .unwrap_or_default();
                     table.add_row(vec![
-                        s.id.0.as_str(),
-                        s.created_at.to_string().as_str(),
-                        trigger_str.as_str(),
-                        s.refs.len().to_string().as_str(),
-                        verified_str,
+                        s.id.0.clone(),
+                        created_str,
+                        trigger_str,
+                        s.refs.len().to_string(),
+                        verified_str.to_string(),
                     ]);
                 }
                 println!("{}", table);

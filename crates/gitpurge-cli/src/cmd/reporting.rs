@@ -135,6 +135,7 @@ pub fn handle_history(
             "--------------------------------------------------------------------------------"
         );
         for entry in &entries {
+            #[allow(deprecated)]
             let date_str = entry
                 .recorded_at
                 .format(
@@ -166,6 +167,7 @@ pub fn handle_history(
             "--------------------------------------------------------------------------------"
         );
         for run in runs {
+            #[allow(deprecated)]
             let date_str = run
                 .started_at
                 .format(
