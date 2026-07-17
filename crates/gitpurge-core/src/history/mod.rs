@@ -9,6 +9,8 @@ pub mod migrate;
 pub mod sqlite;
 /// Trend calculations and comparison algorithms.
 pub mod trends;
+/// Legacy history data import.
+pub mod import;
 
 pub use sqlite::SqliteHistoryStore;
 
@@ -16,6 +18,17 @@ use crate::error::Result;
 use crate::model::{
     RepoId, Repository, RunRecord, RunReport, Snapshot, SnapshotId, TrendEntry, TrendHistory,
 };
+
+/// Summary of historical trend data import operations.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ImportSummary {
+    /// Number of runs imported.
+    pub runs_imported: usize,
+    /// Number of metrics records imported (after deduplication).
+    pub metrics_imported: usize,
+    /// Number of skipped runs that already existed.
+    pub skipped_runs: usize,
+}
 
 /// Port for run recording and trend queries.
 ///
@@ -53,6 +66,14 @@ pub trait HistoryStore: Send + Sync + std::fmt::Debug {
 
     /// Delete snapshot metadata.
     fn delete_snapshot(&self, id: &SnapshotId) -> Result<()>;
+
+    /// Import legacy JSON history data.
+    fn import_legacy_json(
+        &self,
+        json_data: &str,
+        repo_mappings: &std::collections::HashMap<String, String>,
+        execute: bool,
+    ) -> Result<ImportSummary>;
 }
 
 /// In-memory fake for tests.
@@ -166,5 +187,119 @@ impl HistoryStore for FakeHistoryStore {
         let mut snaps = self.snapshots.lock().unwrap();
         snaps.remove(id);
         Ok(())
+    }
+
+    fn import_legacy_json(
+        &self,
+        json_data: &str,
+        repo_mappings: &std::collections::HashMap<String, String>,
+        execute: bool,
+    ) -> Result<ImportSummary> {
+        let legacy_data = crate::history::import::parse_legacy_json(json_data)?;
+        let mut runs_imported = 0;
+        let mut metrics_imported = 0;
+        let mut skipped_runs = 0;
+
+        for (legacy_repo_name, mut entries) in legacy_data {
+            let repo_id_str = repo_mappings
+                .get(&legacy_repo_name)
+                .cloned()
+                .unwrap_or_else(|| legacy_repo_name.clone());
+            let repo_id = RepoId(repo_id_str);
+
+            entries.sort_by(|a, b| {
+                a.timestamp
+                    .partial_cmp(&b.timestamp)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+
+            let mut last_metrics_hash: Option<String> = None;
+
+            for entry in entries {
+                let started_at = crate::history::import::parse_legacy_timestamp(entry.timestamp);
+
+                let mut exists = false;
+                {
+                    let runs = self.runs.lock().unwrap();
+                    for r in runs.values() {
+                        if r.repo == repo_id && r.started_at == started_at && r.command == "scan" {
+                            exists = true;
+                            break;
+                        }
+                    }
+                }
+
+                if exists {
+                    skipped_runs += 1;
+                    continue;
+                }
+
+                let metrics = &entry.metrics;
+                let hash_str = format!(
+                    "{}:{}:{}:{}:{}:{}",
+                    metrics.total,
+                    metrics.active,
+                    metrics.stale,
+                    metrics.merged,
+                    metrics.unmerged,
+                    metrics.non_standard
+                );
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                let mut hasher = DefaultHasher::new();
+                hash_str.hash(&mut hasher);
+                let metrics_hash = format!("{:016x}", hasher.finish());
+
+                if execute {
+                    let run_id = ulid::Ulid::new().to_string();
+                    let report = RunReport {
+                        id: run_id.clone(),
+                        started_at,
+                        repo: repo_id.clone(),
+                        mode: crate::model::ExecMode::Execute,
+                        snapshot: None,
+                        results: Vec::new(),
+                        success_count: 0,
+                        failure_count: 0,
+                        skipped_count: 0,
+                        command: "scan".to_string(),
+                        metrics: Some(crate::model::RunMetrics {
+                            total: metrics.total,
+                            active: metrics.active,
+                            stale: metrics.stale,
+                            merged: metrics.merged,
+                            unmerged: metrics.unmerged,
+                            non_standard: metrics.non_standard,
+                            local_count: None,
+                            remote_count: None,
+                            protected: None,
+                            deleted: Some(0),
+                            archived: Some(0),
+                            restored: Some(0),
+                        }),
+                        branch_snapshots: None,
+                    };
+                    self.runs.lock().unwrap().insert(run_id, report);
+                    runs_imported += 1;
+
+                    if last_metrics_hash.as_ref() != Some(&metrics_hash) {
+                        metrics_imported += 1;
+                        last_metrics_hash = Some(metrics_hash);
+                    }
+                } else {
+                    runs_imported += 1;
+                    if last_metrics_hash.as_ref() != Some(&metrics_hash) {
+                        metrics_imported += 1;
+                        last_metrics_hash = Some(metrics_hash);
+                    }
+                }
+            }
+        }
+
+        Ok(ImportSummary {
+            runs_imported,
+            metrics_imported,
+            skipped_runs,
+        })
     }
 }

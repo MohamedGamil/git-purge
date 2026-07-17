@@ -52,6 +52,11 @@ gitpurge-core = { path = ".", features = ["testkit"] }
 insta = { workspace = true }
 proptest = { workspace = true }
 tempfile = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "engine_bench"
+harness = false
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 git2 = { workspace = true, features = ["vendored-openssl", "vendored-libgit2"] }

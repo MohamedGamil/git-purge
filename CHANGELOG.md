@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Implemented `history import --legacy-json` CLI command and history store backend to import legacy SQLite metrics history with chronological sorting and metrics-hash deduplication (P12-T3).
+- Added Criterion benchmark suite (`crates/gitpurge-core/benches/engine_bench.rs`) measuring scan, plan, and report operations on a 500-branch repository, with optimized configuration settings for fast execution (P12-T5).
+- Expanded `SECURITY.md` with threat model, STRIDE mitigations, trust boundaries, sandboxing details, and safety invariants SAFE-01 to SAFE-07 (P12-T7).
+- Implemented multi-threaded branch deletions and archiving utilizing `std::thread::scope` and `mpsc` channels with thread-safe progress ticketing via `AtomicUsize` (P12-T8).
 - Expanded CI matrix workflow to run Cargo checks, clippy, and nextest test suites across `ubuntu-20.04`, `ubuntu-latest`, `macos-latest`, and `windows-latest` platforms, plus a Linux-based Vitest job for frontend desktop tests.
 - Implemented `TrendDiff` domain structures, `compare_scans` delta algorithms, and wired the `Engine::trends()` method to compute branch deltas, added/removed branches, and daily branch merge velocity over time.
 - Integrated `insta` golden-file rendering checks (`report_golden.rs`) verifying Markdown audit/trend, JSON, and HTML report formatting against static mock run fixtures.

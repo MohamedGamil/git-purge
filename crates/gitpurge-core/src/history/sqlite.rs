@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::error::Result;
-use crate::history::HistoryStore;
+use crate::history::{HistoryStore, ImportSummary};
 use crate::model::{
     RepoId, Repository, RunRecord, RunReport, Snapshot, SnapshotId, SnapshotTrigger, TrendEntry,
     TrendHistory,
@@ -871,6 +871,21 @@ impl HistoryStore for SqliteHistoryStore {
                 crate::GitPurgeError::Config(format!("Failed to delete snapshot row: {}", e))
             })?;
         Ok(())
+    }
+
+    fn import_legacy_json(
+        &self,
+        json_data: &str,
+        repo_mappings: &std::collections::HashMap<String, String>,
+        execute: bool,
+    ) -> Result<ImportSummary> {
+        let conn = self.conn.lock().unwrap();
+        super::import::import_legacy_db(
+            &conn,
+            super::import::parse_legacy_json(json_data)?,
+            repo_mappings,
+            execute,
+        )
     }
 }
 

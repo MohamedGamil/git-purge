@@ -1,6 +1,6 @@
 # Delivery Baton
 
-> **Last updated:** 2026-07-17 · **Session:** 46 · **Updated by:** Implementation loop (orient + implement + document)
+> **Last updated:** 2026-07-17 · **Session:** 47 · **Updated by:** Implementation loop (orient + implement + document)
 
 The baton is the **single source of truth** for what's done, what's in progress,
 and what's next. Every implementation session **reads the baton first** and
@@ -29,6 +29,10 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P12-T3 | `history import --legacy-json` | 47 | 2026-07-17 |
+| P12-T5 | Performance benchmark suite | 47 | 2026-07-17 |
+| P12-T7 | `SECURITY.md` threat-model content | 47 | 2026-07-17 |
+| P12-T8 | Multi-threaded branch delete/archive with progress reporting | 47 | 2026-07-17 |
 | P10-T7 | Expand CI to cross-platform matrix | 46 | 2026-07-17 |
 | P12-T1 | Implement trend diffs | 46 | 2026-07-17 |
 | P12-T2 | `insta` golden tests for report renderers | 46 | 2026-07-17 |
@@ -41,10 +45,6 @@ duplicating work.
 | P10-T6 | Amend ADR-0002 (drop shell git fallback) | 43 | 2026-07-17 |
 | P11-T3 | Encrypted file `SecretStore` fallback | 42 | 2026-07-17 |
 | P10-T1 | Extract delete action into `action/delete.rs` | 42 | 2026-07-17 |
-| P9-T5 | Coverage gate in CI | 41 | 2026-07-17 |
-| P9-T7 | Exit-code stability tests | 41 | 2026-07-17 |
-| P11-T6 | `safe_07` secret hygiene regression suite | 41 | 2026-07-17 |
-| P11-T2 | Keyring `SecretStore` adapter | 41 | 2026-07-17 |
 
 ---
 
@@ -72,11 +72,7 @@ duplicating work.
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 8 | P12-T3 | `history import --legacy-json` | 1 ED | Medium | — |
-| 9 | P12-T5 | Performance benchmark suite | 1.5 ED | Medium | — |
 | 10 | P12-T6 | Frontend Vitest expansion | 3 ED | Medium | — |
-| 11 | P12-T7 | `SECURITY.md` threat-model content | 1 ED | Medium | — |
-| 12 | P12-T8 | Multi-threaded branch delete/archive with progress reporting | 1.5 ED | High | — |
 
 ### Medium — Phase 13: Desktop Polish & Packaging Finalization
 

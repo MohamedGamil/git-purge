@@ -139,19 +139,30 @@ fn run() -> Result<()> {
             )?;
         }
         Some(cli::Commands::History {
+            action,
             limit,
             metric,
             since,
         }) => {
-            let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
-            cmd::reporting::handle_history(
-                &engine,
-                &repo_id,
-                *limit,
-                metric.clone(),
-                since.clone(),
-                args.json,
-            )?;
+            if let Some(cli::HistoryAction::Import { path, map }) = action {
+                cmd::reporting::handle_history_import(
+                    &engine,
+                    path,
+                    map,
+                    args.execute,
+                    args.json,
+                )?;
+            } else {
+                let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref())?;
+                cmd::reporting::handle_history(
+                    &engine,
+                    &repo_id,
+                    *limit,
+                    metric.clone(),
+                    since.clone(),
+                    args.json,
+                )?;
+            }
         }
         Some(cli::Commands::Auth { action }) => {
             cmd::auth::handle_auth(&engine, config_path, action, args.json)?;

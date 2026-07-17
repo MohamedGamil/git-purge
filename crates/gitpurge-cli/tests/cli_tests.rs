@@ -155,3 +155,69 @@ fn test_cli_auth_flows() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("Removed credential for github.com"));
 }
+
+#[test]
+fn test_cli_history_import() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir.path().join(".gitpurge.toml");
+
+    let config_content = format!(
+        "data_dir = \"{}\"\n",
+        temp_dir.path().to_str().unwrap().replace("\\", "\\\\")
+    );
+    std::fs::write(&config_path, config_content).unwrap();
+
+    let legacy_json = r#"{
+        "backend": [
+            {
+                "timestamp": 1625097600.0,
+                "commit": "abc",
+                "date_str": "2021-07-01",
+                "metrics": {
+                    "total": 10,
+                    "active": 4,
+                    "stale": 6,
+                    "merged": 3,
+                    "unmerged": 7,
+                    "non_standard": 1
+                }
+            }
+        ]
+    }"#;
+    let json_path = temp_dir.path().join("legacy.json");
+    std::fs::write(&json_path, legacy_json).unwrap();
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_git-purge"));
+    let output = cmd
+        .arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("history")
+        .arg("import")
+        .arg(json_path.to_str().unwrap())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("DRY-RUN: Showing what would be imported"));
+    assert!(stdout.contains("Runs parsed/imported: 1"));
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_git-purge"));
+    let output = cmd
+        .arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("--execute")
+        .arg("history")
+        .arg("import")
+        .arg(json_path.to_str().unwrap())
+        .arg("--map")
+        .arg("backend=gitpurge-core")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(!stdout.contains("DRY-RUN"));
+    assert!(stdout.contains("Runs parsed/imported: 1"));
+    assert!(stdout.contains("Metrics points stored: 1"));
+}

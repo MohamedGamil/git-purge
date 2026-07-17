@@ -198,8 +198,12 @@ pub enum Commands {
         #[command(flatten)]
         filters: SelectionFlags,
     },
-    /// View trend history.
+    /// View trend history or import legacy trend data.
     History {
+        /// Sub-action to perform (e.g. import). If omitted, displays history.
+        #[command(subcommand)]
+        action: Option<HistoryAction>,
+
         /// Cap the number of listed runs.
         #[arg(long, default_value = "20")]
         limit: u32,
@@ -370,6 +374,20 @@ pub enum AuthAction {
     },
 }
 
+/// History subcommands.
+#[derive(Debug, Subcommand)]
+pub enum HistoryAction {
+    /// Import legacy JSON data.
+    Import {
+        /// Path to the legacy JSON file.
+        path: String,
+
+        /// Map legacy repository name to a tracked repository ID (e.g. --map backend=gitpurge-core).
+        #[arg(long, value_parser = parse_key_val)]
+        map: Vec<(String, String)>,
+    },
+}
+
 /// Shared selection & filter flags (CONVENTIONS §9, CLI Spec §5).
 #[derive(Debug, Args, Clone)]
 pub struct SelectionFlags {
@@ -468,4 +486,12 @@ pub enum ShellArg {
     Fish,
     PowerShell,
     Elvish,
+}
+
+/// Parse a key-value pair separated by `=` (e.g. key=value)
+pub fn parse_key_val(s: &str) -> std::result::Result<(String, String), String> {
+    let pos = s
+        .find('=')
+        .ok_or_else(|| format!("invalid KEY=value: no `=` found in `{}`", s))?;
+    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
 }

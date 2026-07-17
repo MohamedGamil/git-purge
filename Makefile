@@ -1,7 +1,7 @@
 # Git Purge — Development Makefile
 # Excludes gitpurge-desktop (Tauri app) by default as it requires Tauri system dependencies.
 
-.PHONY: all build check test test-desktop test-all clippy fmt run clean ui-dev install-desktop-deps desktop-dev desktop-build desktop-test desktop-test-rust build-all coverage
+.PHONY: all build check test test-desktop test-all clippy fmt run clean ui-dev install-desktop-deps desktop-dev desktop-build desktop-test desktop-test-rust build-all coverage bench
 
 # Default target
 all: check test
@@ -95,3 +95,7 @@ clean:
 # Run coverage checks locally using cargo-llvm-cov
 coverage:
 	cargo llvm-cov --workspace --exclude gitpurge-desktop --all-features --fail-under-lines 50
+
+# Run criterion performance benchmarks
+bench:
+	cargo bench -p gitpurge-core

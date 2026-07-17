@@ -335,10 +335,13 @@ fn test_auto_restore_on_failure() {
     let plan = engine.plan(&repo_id, &filter).unwrap();
 
     // Verify the branch exists before we try to delete it
-    let source_repo = git2::Repository::open(repo_fixture.path()).unwrap();
-    assert!(source_repo
-        .find_reference("refs/heads/unmerged-branch")
-        .is_ok());
+    let source_repo = std::sync::Mutex::new(git2::Repository::open(repo_fixture.path()).unwrap());
+    {
+        let repo_lock = source_repo.lock().unwrap();
+        assert!(repo_lock
+            .find_reference("refs/heads/unmerged-branch")
+            .is_ok());
+    }
 
     // 2. Execute plan with simulated failure during deletion to trigger SAFE-05
     let mut is_restore_called = false;
@@ -351,7 +354,8 @@ fn test_auto_restore_on_failure() {
         &plan.actions,
         false,
         |_action| {
-            let mut r = source_repo
+            let repo_lock = source_repo.lock().unwrap();
+            let mut r = repo_lock
                 .find_reference("refs/heads/unmerged-branch")
                 .unwrap();
             r.delete().unwrap();
@@ -375,9 +379,12 @@ fn test_auto_restore_on_failure() {
     assert!(is_restore_called);
 
     // Verify that the branch was automatically restored!
-    assert!(source_repo
-        .find_reference("refs/heads/unmerged-branch")
-        .is_ok());
+    {
+        let repo_lock = source_repo.lock().unwrap();
+        assert!(repo_lock
+            .find_reference("refs/heads/unmerged-branch")
+            .is_ok());
+    }
 }
 
 #[test]

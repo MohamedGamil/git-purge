@@ -194,3 +194,43 @@ pub fn handle_history(
 
     Ok(())
 }
+
+/// Handle the `history import` CLI command.
+pub fn handle_history_import(
+    engine: &Engine,
+    path: &str,
+    map: &[(String, String)],
+    execute: bool,
+    json_output: bool,
+) -> Result<()> {
+    let json_data = std::fs::read_to_string(path).map_err(|e| {
+        gitpurge_core::GitPurgeError::Config(format!("Failed to read legacy JSON file: {}", e))
+    })?;
+
+    let repo_mappings = map.iter().cloned().collect::<std::collections::HashMap<_, _>>();
+
+    let summary = engine.import_history(&json_data, &repo_mappings, execute)?;
+
+    if json_output {
+        println!(
+            "{}",
+            serde_json::json!({
+                "status": "success",
+                "execute": execute,
+                "runs_imported": summary.runs_imported,
+                "metrics_imported": summary.metrics_imported,
+                "skipped_runs": summary.skipped_runs,
+            })
+        );
+    } else {
+        if !execute {
+            println!("DRY-RUN: Showing what would be imported (run with --execute to apply changes).");
+        }
+        println!("Legacy trend history import summary:");
+        println!("  Runs parsed/imported: {}", summary.runs_imported);
+        println!("  Metrics points stored: {}", summary.metrics_imported);
+        println!("  Skipped (already exists): {}", summary.skipped_runs);
+    }
+
+    Ok(())
+}

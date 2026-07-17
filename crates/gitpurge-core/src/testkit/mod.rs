@@ -212,3 +212,16 @@ pub fn naming_repo() -> FixtureRepo {
 
     repo
 }
+
+/// Create a repository with a default branch and N other branches for benchmarking.
+pub fn benchmark_repo(num_branches: usize) -> FixtureRepo {
+    let repo = FixtureRepo::new();
+    repo.write_file("file.txt", "initial content");
+    repo.commit("Initial commit", "2026-07-01T12:00:00Z");
+
+    for i in 0..num_branches {
+        repo.git(&["branch", &format!("branch-{}", i)]);
+    }
+
+    repo
+}

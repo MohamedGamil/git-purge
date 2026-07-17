@@ -23,7 +23,7 @@ pub fn delete_branches(
         return Ok(Vec::new());
     }
 
-    let mut current_step = 0;
+    let current_step = std::sync::atomic::AtomicUsize::new(0);
     let total_steps = actions.len();
     progress.set_total(total_steps as u64);
 
@@ -35,10 +35,10 @@ pub fn delete_branches(
         actions,
         no_backup,
         |action| {
-            current_step += 1;
+            let step = current_step.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
             let msg = format!(
                 "{} ({}/{}) branch {}",
-                action_name, current_step, total_steps, action.branch.0
+                action_name, step, total_steps, action.branch.0
             );
             progress.tick(Some(&msg));
 
