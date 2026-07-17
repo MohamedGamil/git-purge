@@ -358,16 +358,18 @@ mod tests {
         let remote = "origin";
         let remote_url = "git@github.com:acme/api.git";
 
-        let mut config = Config::default();
-        config.auth = Some(AuthConfig {
-            credentials: vec![CredentialMetadata {
-                id: "github-ssh".to_string(),
-                method: "ssh-key".to_string(),
-                r#match: "github.com".to_string(),
-                username: Some("git".to_string()),
-                key_path: Some(std::path::PathBuf::from("~/.ssh/id_ed25519")),
-            }],
-        });
+        let config = Config {
+            auth: Some(AuthConfig {
+                credentials: vec![CredentialMetadata {
+                    id: "github-ssh".to_string(),
+                    method: "ssh-key".to_string(),
+                    r#match: "github.com".to_string(),
+                    username: Some("git".to_string()),
+                    key_path: Some(std::path::PathBuf::from("~/.ssh/id_ed25519")),
+                }],
+            }),
+            ..Default::default()
+        };
 
         let keyring = Arc::new(FakeSecretStore::default());
         // Store passphrase in store

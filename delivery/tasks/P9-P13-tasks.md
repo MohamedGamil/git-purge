@@ -129,7 +129,7 @@ status, task-numbering divergences.
 
 ---
 
-### P10-T2 · Break up `lib.rs` into Engine modules 🔲
+### P10-T2 · Break up `lib.rs` into Engine modules ✅ 2026-07-17
 
 **Goal:** Split `lib.rs` (65KB/1874 lines) into ≤500-line focused modules under `engine/`.
 
@@ -280,7 +280,7 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
-### P11-T7 · Wire auth CLI commands to real backends 🔲
+### P11-T7 · Wire auth CLI commands to real backends ✅ 2026-07-17
 
 **Goal:** Replace auth command stubs with real `Engine::auth_*` calls.
 

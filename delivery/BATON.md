@@ -29,6 +29,8 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P11-T7 | Wire auth CLI commands to real backends | 44 | 2026-07-17 |
+| P10-T2 | Break up `lib.rs` into Engine modules | 44 | 2026-07-17 |
 | P11-T4 | Credential resolver chain | 43 | 2026-07-17 |
 | P11-T5 | git2 credential callback bridge | 43 | 2026-07-17 |
 | P10-T6 | Amend ADR-0002 (drop shell git fallback) | 43 | 2026-07-17 |
@@ -42,8 +44,6 @@ duplicating work.
 | P9-T4 | `insta` snapshot tests for CLI | 40 | 2026-07-17 |
 | P11-T1 | Credential model types | 40 | 2026-07-17 |
 | P10-T4 | Resolve license inconsistency | 40 | 2026-07-17 |
-| P10-T5 | Update CONVENTIONS/AGENTS.md for ADR-0006 | 40 | 2026-07-17 |
-| P7-T1 | Debug and stabilize release workflow | 37 | 2026-07-13 |
 
 ---
 
@@ -62,19 +62,12 @@ duplicating work.
 > Ordered by: phase priority (critical first), then within-phase task order
 > (dependencies → quick wins → high → medium → low).
 
-### Critical — Phase 11: Authentication & Credential Management
-
-| # | Task ID | Title | Est | Priority | Blocked by |
-|:--|:--------|:------|:----|:---------|:-----------|
-| 1 | P11-T7 | Wire auth CLI commands to real backends | 1 ED | Medium | — |
-
 ### High — Phase 10: Structural Consolidation & Spec Alignment
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 2 | P10-T2 | Break up `lib.rs` into Engine modules | 2.5 ED | High | ⛔ P10-T1 |
-| 3 | P10-T3 | Split Tauri `commands.rs` into domain modules | 1 ED | Medium | — |
-| 4 | P10-T7 | Expand CI to cross-platform matrix | 1 ED | Medium | — |
+| 1 | P10-T3 | Split Tauri `commands.rs` into domain modules | 1 ED | Medium | — |
+| 2 | P10-T7 | Expand CI to cross-platform matrix | 1 ED | Medium | — |
 
 ### High — Phase 12: Reporting Completion & Hardening Foundations
 

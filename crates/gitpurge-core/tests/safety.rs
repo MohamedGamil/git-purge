@@ -500,6 +500,7 @@ fn safe_07_no_secrets_in_output() {
             "origin",
             gitpurge_core::auth::CredentialKind::HttpsToken,
             secret_token.as_bytes(),
+            None,
         )
         .unwrap();
 

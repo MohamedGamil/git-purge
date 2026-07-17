@@ -6,6 +6,7 @@ use serde_json::json;
 /// Handle the `auth` command.
 pub fn handle_auth(
     engine: &Engine,
+    config_path: Option<&std::path::Path>,
     action: &crate::cli::AuthAction,
     json_output: bool,
 ) -> Result<()> {
@@ -80,8 +81,21 @@ pub fn handle_auth(
                 }
             };
 
+            let metadata = gitpurge_core::config::CredentialMetadata {
+                id: host_str.to_string(),
+                method: match method_arg {
+                    crate::cli::AuthMethodArg::Ssh => "ssh-key".to_string(),
+                    crate::cli::AuthMethodArg::Https => "https-basic".to_string(),
+                    crate::cli::AuthMethodArg::Token => "token".to_string(),
+                },
+                r#match: host_str.to_string(),
+                username: username.clone(),
+                key_path: key.as_ref().map(std::path::PathBuf::from),
+            };
+
             let dummy_repo = RepoId(host_str.to_string());
-            engine.auth_store(&dummy_repo, "origin", kind, &secret_bytes)?;
+            engine.auth_store(&dummy_repo, "origin", kind, &secret_bytes, Some(metadata))?;
+            engine.save_config(config_path)?;
 
             if json_output {
                 println!(
@@ -140,6 +154,7 @@ pub fn handle_auth(
         crate::cli::AuthAction::Remove { id } => {
             let dummy_repo = RepoId(id.clone());
             engine.auth_remove(&dummy_repo, "origin")?;
+            engine.save_config(config_path)?;
 
             if json_output {
                 println!(

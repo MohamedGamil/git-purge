@@ -154,7 +154,7 @@ fn run() -> Result<()> {
             )?;
         }
         Some(cli::Commands::Auth { action }) => {
-            cmd::auth::handle_auth(&engine, action, args.json)?;
+            cmd::auth::handle_auth(&engine, config_path, action, args.json)?;
         }
         Some(cli::Commands::Ui) => {
             let repo_id = resolve_repo(&engine, config_path, args.repo.as_deref()).ok();

@@ -1,5 +1,5 @@
 ---
-source: crates/gitpurge-core/src/lib.rs
+source: crates/gitpurge-core/src/engine/tests.rs
 expression: report.content
 ---
 # Git Purge Audit Report — test-report-repo

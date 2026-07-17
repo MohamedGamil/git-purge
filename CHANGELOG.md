@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Wired the CLI `auth add` and `auth remove` commands to configure credential metadata in `config.toml` via `AuthConfig`/`CredentialMetadata` models, persisting it to disk on configuration updates.
+- Refactored `lib.rs` by splitting the monolithic 1.8K lines of engine code into modular sub-modules under `crates/gitpurge-core/src/engine/` (`core.rs`, `auth.rs`, `scan_plan.rs`, `backup.rs`, `execute.rs`, `git_ops.rs`, `report_history.rs`, `tests.rs`), keeping `lib.rs` under 200 lines (now 77 lines) and all modular files under 500 lines.
 - Priority-ordered `CredentialResolver` supporting CLI overrides, OS Keyring, fallback file store, environment variables, and interactive prompts, along with host/URL/glob specificity matching.
 - Native `git2` credential callback bridge in `git2_backend.rs` routing remote network actions to the `CredentialResolver`.
 - Wrapper `FallbackSecretStore` providing automatic degradation to the encrypted file store fallback on headless Linux/CI systems where the native OS keyring daemon is missing.
