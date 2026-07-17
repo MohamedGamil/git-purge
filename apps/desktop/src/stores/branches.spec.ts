@@ -16,6 +16,14 @@ describe('useBranchesStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+
+    // Default mock implementation
+    (invoke as Mock).mockImplementation((cmd) => {
+      if (cmd === 'get_active_cleanups') {
+        return Promise.resolve([]);
+      }
+      return Promise.resolve(null);
+    });
   });
 
   it('generatePlan should call plan API and populate planResult', async () => {
@@ -74,6 +82,9 @@ describe('useBranchesStore', () => {
           });
         }
         return mockReport;
+      }
+      if (cmd === 'get_active_cleanups') {
+        return [];
       }
       return Promise.reject(new Error('Unknown cmd'));
     });

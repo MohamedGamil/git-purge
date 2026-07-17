@@ -6,11 +6,13 @@ import {
   cancel,
   listenProgress,
   diff,
+  getActiveCleanups,
   type ClientPlan,
   type ClientRunReport,
   type ClientActionFilter,
   type ClientExecOptions,
-  type ClientDiffResult
+  type ClientDiffResult,
+  type ActiveCleanupTask
 } from '../api/ipc';
 
 export const useBranchesStore = defineStore('branches', {
@@ -25,7 +27,14 @@ export const useBranchesStore = defineStore('branches', {
     execTaskId: null as string | null,
     diffResult: null as ClientDiffResult | null,
     loadingDiff: false,
+    activeCleanups: [] as ActiveCleanupTask[]
   }),
+
+  getters: {
+    runningCleanupsCount(state) {
+      return state.activeCleanups.filter(c => c.status === 'running').length;
+    }
+  },
 
   actions: {
     async generatePlan(repoId: string, filter: ClientActionFilter) {
@@ -41,6 +50,40 @@ export const useBranchesStore = defineStore('branches', {
         throw err;
       } finally {
         this.loadingPlan = false;
+      }
+    },
+
+    async fetchActiveCleanups() {
+      try {
+        const tasks = (await getActiveCleanups()) || [];
+        this.activeCleanups = tasks;
+        
+        // If we are not executing locally, but a task is running on the backend, reconnect to it
+        const running = tasks.find(t => t.status === 'running');
+        if (running && !this.isExecuting) {
+          this.isExecuting = true;
+          this.execTaskId = running.taskId;
+          this.execProgress = Math.round((running.current / (running.total || 1)) * 100);
+          this.execProgressMessage = running.message;
+          
+          let unlistenFn: (() => void) | null = null;
+          unlistenFn = await listenProgress((event) => {
+            if (event.taskId === running.taskId) {
+              this.execProgress = Math.round((event.current / (event.total || 1)) * 100);
+              this.execProgressMessage = event.message;
+              if (event.done) {
+                this.isExecuting = false;
+                this.execTaskId = null;
+                if (unlistenFn) unlistenFn();
+                this.fetchActiveCleanups();
+              }
+            }
+          });
+        }
+        return tasks;
+      } catch (err) {
+        console.error('Failed to fetch active cleanups:', err);
+        throw err;
       }
     },
 
@@ -60,16 +103,30 @@ export const useBranchesStore = defineStore('branches', {
               this.isExecuting = false;
               this.execTaskId = null;
               if (unlistenFn) unlistenFn();
+              this.fetchActiveCleanups();
             }
           }
         });
+        // Add to activeCleanups immediately
+        this.activeCleanups.push({
+          taskId,
+          repoId,
+          kind: 'delete',
+          status: 'running',
+          current: 0,
+          total: planData.actions.length,
+          message: 'Initializing branch deletion...',
+          startedAt: new Date().toISOString()
+        });
         const res = await deleteBranches(repoId, planData, execOpts, taskId);
         this.runReport = res;
+        this.fetchActiveCleanups();
         return res;
       } catch (err: any) {
         this.isExecuting = false;
         this.execTaskId = null;
         if (unlistenFn) unlistenFn();
+        this.fetchActiveCleanups();
         throw err;
       }
     },
@@ -90,16 +147,30 @@ export const useBranchesStore = defineStore('branches', {
               this.isExecuting = false;
               this.execTaskId = null;
               if (unlistenFn) unlistenFn();
+              this.fetchActiveCleanups();
             }
           }
         });
+        // Add to activeCleanups immediately
+        this.activeCleanups.push({
+          taskId,
+          repoId,
+          kind: 'archive',
+          status: 'running',
+          current: 0,
+          total: planData.actions.length,
+          message: 'Initializing branch archival...',
+          startedAt: new Date().toISOString()
+        });
         const res = await archiveBranches(repoId, planData, execOpts, taskId);
         this.runReport = res;
+        this.fetchActiveCleanups();
         return res;
       } catch (err: any) {
         this.isExecuting = false;
         this.execTaskId = null;
         if (unlistenFn) unlistenFn();
+        this.fetchActiveCleanups();
         throw err;
       }
     },
@@ -113,6 +184,7 @@ export const useBranchesStore = defineStore('branches', {
         } finally {
           this.isExecuting = false;
           this.execTaskId = null;
+          this.fetchActiveCleanups();
         }
       }
     },

@@ -231,6 +231,17 @@ export interface ProgressEvent {
   error?: SerializableError;
 }
 
+export interface ActiveCleanupTask {
+  taskId: string;
+  repoId: string;
+  kind: 'delete' | 'archive';
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  current: number;
+  total: number;
+  message: string;
+  startedAt: string;
+}
+
 // --- IPC Commands ---
 
 // --- Mock API Layer (VITE_MOCK_IPC) ---
@@ -921,4 +932,13 @@ export function listenProgress(callback: (event: ProgressEvent) => void): Promis
   return listen<ProgressEvent>('gitpurge://progress', (event) => {
     callback(event.payload);
   });
+}
+
+let mockActiveCleanups: ActiveCleanupTask[] = [];
+
+export async function getActiveCleanups(): Promise<ActiveCleanupTask[]> {
+  if (isMock) {
+    return Promise.resolve(JSON.parse(JSON.stringify(mockActiveCleanups)));
+  }
+  return invoke<ActiveCleanupTask[]>('get_active_cleanups');
 }

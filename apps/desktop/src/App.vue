@@ -21,6 +21,9 @@
         <router-link to="/cleanup" class="nav-item" active-class="active">
           <Sparkles class="lucide-icon icon" />
           <span>Cleanup</span>
+          <span v-if="branchesStore.runningCleanupsCount > 0" class="cleanup-pulse-badge">
+            {{ branchesStore.runningCleanupsCount }}
+          </span>
         </router-link>
 
         <router-link to="/backups" class="nav-item" active-class="active">
@@ -79,6 +82,7 @@ import { useTheme } from './composables/useTheme';
 import { openUrl, listenProgress } from './api/ipc';
 import { useSettingsStore } from './stores/settings';
 import { useToastStore } from './stores/toast';
+import { useBranchesStore } from './stores/branches';
 import ToastContainer from './components/ToastContainer.vue';
 import {
   LayoutDashboard,
@@ -94,8 +98,10 @@ import {
 useTheme();
 const settingsStore = useSettingsStore();
 const toastStore = useToastStore();
+const branchesStore = useBranchesStore();
 
 const currentYear = new Date().getFullYear();
+let pollInterval: any = null;
 const isOnline = ref(navigator.onLine);
 let progressUnlisten: (() => void) | null = null;
 
@@ -123,6 +129,15 @@ onMounted(async () => {
   }
 
   try {
+    await branchesStore.fetchActiveCleanups();
+    pollInterval = setInterval(() => {
+      branchesStore.fetchActiveCleanups();
+    }, 3000);
+  } catch (err) {
+    console.error('Failed to init active cleanups:', err);
+  }
+
+  try {
     progressUnlisten = await listenProgress((event) => {
       if (event.done) {
         if (event.error) {
@@ -142,6 +157,9 @@ onUnmounted(() => {
   window.removeEventListener('offline', updateOnlineStatus);
   if (progressUnlisten) {
     progressUnlisten();
+  }
+  if (pollInterval) {
+    clearInterval(pollInterval);
   }
 });
 </script>
@@ -306,5 +324,27 @@ onUnmounted(() => {
   0% { transform: scale(0.9); opacity: 0.6; }
   50% { transform: scale(1.15); opacity: 1; }
   100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+.cleanup-pulse-badge {
+  background-color: var(--warning);
+  color: var(--bg);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: auto;
+  animation: pulse-animation 1.5s infinite;
+}
+
+@keyframes pulse-animation {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
 }
 </style>

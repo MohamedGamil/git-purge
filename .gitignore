@@ -13,6 +13,7 @@ node_modules
 apps/desktop/dist
 apps/desktop/dist-ssr
 apps/desktop/.vite
+apps/desktop/coverage
 *.local
 
 # --- Tooling / coverage ---

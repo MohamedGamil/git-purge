@@ -12,7 +12,7 @@ use super::{
     emit_progress, map_diff_result, map_error, map_plan, map_run_report, map_scan_result,
     map_tree_view, ClientActionFilter, ClientDiffResult, ClientExecOptions, ClientPlan,
     ClientRunReport, ClientScanOptions, ClientScanResult, ClientTreeView, SerializableError,
-    TauriProgressSink,
+    TauriProgressSink, format_datetime, ActiveCleanupTask,
 };
 use crate::AppState;
 
@@ -198,7 +198,7 @@ pub fn map_action_filter(filter: ClientActionFilter, remotes: &[String]) -> Acti
 pub async fn delete_branches(
     app: AppHandle,
     state: State<'_, AppState>,
-    _repo_id: String,
+    repo_id: String,
     plan: ClientPlan,
     exec: ClientExecOptions,
     task_id: String,
@@ -207,6 +207,25 @@ pub async fn delete_branches(
     {
         let mut tasks = state.tasks.lock().unwrap();
         tasks.insert(task_id.clone(), tx);
+    }
+
+    {
+        let mut cleanups = state.cleanups.lock().unwrap();
+        if !cleanups.contains_key(&task_id) {
+            cleanups.insert(
+                task_id.clone(),
+                ActiveCleanupTask {
+                    task_id: task_id.clone(),
+                    repo_id: repo_id.clone(),
+                    kind: "delete".to_string(),
+                    status: "running".to_string(),
+                    current: 0,
+                    total: plan.actions.len() as u64,
+                    message: "Initializing branch deletion...".to_string(),
+                    started_at: format_datetime(time::OffsetDateTime::now_utc()),
+                },
+            );
+        }
     }
 
     let engine = state.engine.clone();
@@ -369,6 +388,23 @@ pub async fn archive_branches(
     exec: ClientExecOptions,
     task_id: String,
 ) -> Result<ClientRunReport, SerializableError> {
+    {
+        let mut cleanups = state.cleanups.lock().unwrap();
+        cleanups.insert(
+            task_id.clone(),
+            ActiveCleanupTask {
+                task_id: task_id.clone(),
+                repo_id: repo_id.clone(),
+                kind: "archive".to_string(),
+                status: "running".to_string(),
+                current: 0,
+                total: plan.actions.len() as u64,
+                message: "Initializing branch archival...".to_string(),
+                started_at: format_datetime(time::OffsetDateTime::now_utc()),
+            },
+        );
+    }
+
     let engine = state.engine.clone();
 
     // 1. Resolve target branch
@@ -472,5 +508,20 @@ pub async fn cancel(state: State<'_, AppState>, task_id: String) -> Result<(), S
     if let Some(tx) = tasks.remove(&task_id) {
         let _ = tx.send(());
     }
+    {
+        let mut cleanups = state.cleanups.lock().unwrap();
+        if let Some(task) = cleanups.get_mut(&task_id) {
+            task.status = "cancelled".to_string();
+            task.message = "Cancelled by user".to_string();
+        }
+    }
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_active_cleanups(
+    state: State<'_, AppState>,
+) -> Result<Vec<ActiveCleanupTask>, SerializableError> {
+    let cleanups = state.cleanups.lock().unwrap();
+    Ok(cleanups.values().cloned().collect())
 }

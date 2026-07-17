@@ -1,6 +1,6 @@
 # Delivery Baton
 
-> **Last updated:** 2026-07-17 · **Session:** 49 · **Updated by:** Implementation loop (orient + implement + document)
+> **Last updated:** 2026-07-17 · **Session:** 50 · **Updated by:** Implementation loop (orient + implement + document)
 
 The baton is the **single source of truth** for what's done, what's in progress,
 and what's next. Every implementation session **reads the baton first** and
@@ -29,6 +29,8 @@ duplicating work.
 
 | Task ID | Title | Session | Date |
 |:--------|:------|:--------|:-----|
+| P13-T7 | In-memory task registry for ongoing cleanups | 50 | 2026-07-17 |
+| P12-T6 | Frontend Vitest expansion | 50 | 2026-07-17 |
 | P13-T8 | Global toast notification system | 49 | 2026-07-17 |
 | P13-T9 | Custom themed modal dialogs | 49 | 2026-07-17 |
 | P13-T11 | Custom naming convention regex UI input | 49 | 2026-07-17 |
@@ -42,10 +44,6 @@ duplicating work.
 | P12-T8 | Multi-threaded branch delete/archive with progress reporting | 47 | 2026-07-17 |
 | P10-T7 | Expand CI to cross-platform matrix | 46 | 2026-07-17 |
 | P12-T1 | Implement trend diffs | 46 | 2026-07-17 |
-| P12-T2 | `insta` golden tests for report renderers | 46 | 2026-07-17 |
-| P12-T4 | `proptest` property tests for policy engine | 46 | 2026-07-17 |
-| P10-T3 | Split Tauri `commands.rs` into domain modules | 45 | 2026-07-17 |
-| P11-T7 | Wire auth CLI commands to real backends | 44 | 2026-07-17 |
 
 ---
 
@@ -73,13 +71,11 @@ duplicating work.
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 10 | P12-T6 | Frontend Vitest expansion | 3 ED | Medium | — |
 
 ### Medium — Phase 13: Desktop Polish & Packaging Finalization
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 15 | P13-T7 | In-memory task registry for ongoing cleanups | 1.5 ED | Medium | — |
 | 20 | P13-T2 | `tauri-driver` + WebDriver e2e smoke suite | 2 ED | High | — |
 | 21 | P13-T3 | Accessibility pass | 1.5 ED | Medium | — |
 | 22 | P13-T5 | Cross-platform release verification | 1 ED | Medium | — |

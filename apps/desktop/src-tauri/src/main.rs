@@ -16,6 +16,7 @@ pub mod commands;
 pub struct AppState {
     pub engine: Arc<gitpurge_core::Engine>,
     pub tasks: Mutex<HashMap<String, oneshot::Sender<()>>>,
+    pub cleanups: Mutex<HashMap<String, commands::ActiveCleanupTask>>,
 }
 
 fn main() {
@@ -30,6 +31,7 @@ fn main() {
     let state = AppState {
         engine,
         tasks: Mutex::new(HashMap::new()),
+        cleanups: Mutex::new(HashMap::new()),
     };
 
     // 4. Build and run Tauri app
@@ -50,6 +52,7 @@ fn main() {
             commands::backup_prune,
             commands::delete_branches,
             commands::archive_branches,
+            commands::get_active_cleanups,
             commands::restore,
             commands::diff,
             commands::show_tree,

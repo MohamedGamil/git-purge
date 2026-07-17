@@ -154,6 +154,7 @@ fn test_desktop_tauri_commands() {
         let app_state = AppState {
             engine: Arc::new(engine),
             tasks: Mutex::new(HashMap::new()),
+            cleanups: Mutex::new(HashMap::new()),
         };
         app.manage(app_state);
 
@@ -239,6 +240,7 @@ fn test_desktop_backup_commands() {
         let app_state = AppState {
             engine: Arc::new(engine),
             tasks: Mutex::new(HashMap::new()),
+            cleanups: Mutex::new(HashMap::new()),
         };
         app.manage(app_state);
 

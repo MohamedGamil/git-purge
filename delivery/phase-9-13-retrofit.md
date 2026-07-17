@@ -184,7 +184,7 @@ Total ≈ 8.5 ED.
 
 # Phase 12 — Reporting Completion & Hardening Foundations (High)
 
-`Status: In Progress` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
+`Status: Complete` · `Owner: Delivery` · `Last-updated: 2026-07-17` ·
 `Related: [10-reporting-and-history.md](../docs/10-reporting-and-history.md), [12-testing-strategy.md](../docs/12-testing-strategy.md), [phase-5-reporting.md](phase-5-reporting.md), [phase-8-hardening-release.md](phase-8-hardening-release.md), [analysis](../.scratch/analysis/delivery-vs-specs-analysis.md)`
 
 ## Goal

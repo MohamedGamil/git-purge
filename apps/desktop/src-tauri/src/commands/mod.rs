@@ -301,6 +301,19 @@ pub struct ClientProgressEvent {
     pub error: Option<SerializableError>,
 }
 
+#[derive(serde::Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ActiveCleanupTask {
+    pub task_id: String,
+    pub repo_id: String,
+    pub kind: String, // "delete" | "archive"
+    pub status: String, // "running" | "completed" | "failed" | "cancelled"
+    pub current: u64,
+    pub total: u64,
+    pub message: String,
+    pub started_at: String,
+}
+
 // --- Helper Mappings ---
 
 pub fn map_error(err: GitPurgeError) -> SerializableError {
@@ -978,6 +991,32 @@ pub fn emit_progress(
     done: bool,
     error: Option<SerializableError>,
 ) {
+    if task_id.starts_with("delete-") || task_id.starts_with("archive-") {
+        use tauri::Manager;
+        if let Some(state) = app.try_state::<crate::AppState>() {
+            if let Ok(mut cleanups) = state.cleanups.lock() {
+                if let Some(task) = cleanups.get_mut(task_id) {
+                    task.current = current;
+                    task.total = total;
+                    if !message.is_empty() {
+                        task.message = message.to_string();
+                    }
+                    if done {
+                        if let Some(ref err) = error {
+                            if err.code == "CANCELLED" {
+                                task.status = "cancelled".to_string();
+                            } else {
+                                task.status = "failed".to_string();
+                            }
+                        } else {
+                            task.status = "completed".to_string();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     let event = ClientProgressEvent {
         task_id: task_id.to_string(),
         phase: phase.to_string(),
