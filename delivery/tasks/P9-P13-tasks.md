@@ -382,9 +382,21 @@ Option (b): `docs/adr/ADR-0002-git-engine-hybrid.md`
 
 ---
 
+### P12-T8 · Multi-threaded branch delete/archive with progress reporting 🔲
+
+**Goal:** Thread-local `git2::Repository` instances across worker threads to delete/archive branches concurrently, streaming progress back to caller.
+
+**Files:** `crates/gitpurge-core/src/action/delete.rs`, `crates/gitpurge-core/src/engine/action.rs`
+
+**Priority:** High
+
+**Acceptance:** Test deletes 10 branches concurrently; progress counts are emitted sequentially.
+
+---
+
 ## Phase 13 — Desktop Polish & Packaging Finalization (Medium)
 
-> Est: 8 ED · Priority: **Medium** · Depends: P9, P10, P11
+> Est: 13 ED · Priority: **Medium** · Depends: P9, P10, P11
 
 ---
 
@@ -458,3 +470,63 @@ all 3 platforms.
 **Priority:** Low (low impact, high effort relative to value)
 
 **Acceptance:** `git-purge show main` lists tree; `show main:README.md` prints content.
+
+---
+
+### P13-T7 · In-memory task registry for ongoing cleanups 🔲
+
+**Goal:** Thread-safe task registry in `AppState` tracking running cleanups, with associated Tauri query commands and sidebar tracking panel in Vue.
+
+**Files:** `apps/desktop/src-tauri/src/main.rs`, `apps/desktop/src-tauri/src/commands/branch.rs`, `apps/desktop/src/views/Sidebar.vue`
+
+**Priority:** Medium
+
+**Acceptance:** Navigating away from cleanup view during active deletion does not terminate UI tracking; sidebar badge returns to progress screen.
+
+---
+
+### P13-T8 · Global toast notification system 🔲
+
+**Goal:** Reactive Pinia toast store and standard floating container component in Vue to display floating success/error alerts.
+
+**Files:** `apps/desktop/src/stores/toast.ts`, `apps/desktop/src/components/ToastContainer.vue`, `apps/desktop/src/App.vue`
+
+**Priority:** Quick Win
+
+**Acceptance:** Emitting an operation event from the Tauri backend displays a corresponding success/error toast floating in the browser corner.
+
+---
+
+### P13-T9 · Custom themed modal dialogs 🔲
+
+**Goal:** Beautiful Vue `<ModalDialog />` components utilizing glassmorphism and type-to-confirm safety inputs to replace native OS alert dialogues.
+
+**Files:** `apps/desktop/src/components/ModalDialog.vue`, `apps/desktop/src/views/BranchesView.vue`
+
+**Priority:** Medium
+
+**Acceptance:** Triggering deletion prompts opens glassmorphic custom modal dialog; typing branch names correctly enables confirmation.
+
+---
+
+### P13-T10 · Disable context menu & shortcuts in production 🔲
+
+**Goal:** Restrict standard browser right-click context menu and developer hotkeys in production builds to secure frontend diagnostics.
+
+**Files:** `apps/desktop/src/main.ts`, `apps/desktop/src-tauri/tauri.conf.json`
+
+**Priority:** Quick Win
+
+**Acceptance:** In production build, right-clicking the window or pressing F12 has no effect; devtools remain enabled in development mode.
+
+---
+
+### P13-T11 · Custom naming convention regex UI input 🔲
+
+**Goal:** Configuration text input in `SettingsView.vue` to allow custom regex naming policy overrides, with validity check styling.
+
+**Files:** `apps/desktop/src/views/SettingsView.vue`, `apps/desktop/src-tauri/src/commands/settings.rs`
+
+**Priority:** Medium
+
+**Acceptance:** Custom naming regex field is visible in Settings view; entering an invalid regex shows a validation error; saving updates naming configuration on disk.

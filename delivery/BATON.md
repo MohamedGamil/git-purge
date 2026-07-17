@@ -80,14 +80,20 @@ duplicating work.
 | 9 | P12-T5 | Performance benchmark suite | 1.5 ED | Medium | — |
 | 10 | P12-T6 | Frontend Vitest expansion | 3 ED | Medium | — |
 | 11 | P12-T7 | `SECURITY.md` threat-model content | 1 ED | Medium | — |
+| 12 | P12-T8 | Multi-threaded branch delete/archive with progress reporting | 1.5 ED | High | — |
 
 ### Medium — Phase 13: Desktop Polish & Packaging Finalization
 
 | # | Task ID | Title | Est | Priority | Blocked by |
 |:--|:--------|:------|:----|:---------|:-----------|
-| 12 | P13-T4 | SHA256 checksums + signing verification | 1 ED | Quick Win | — |
-| 13 | P13-T1 | Pinia stores for remaining views | 2 ED | Quick Win | — |
-| 17 | P13-T2 | `tauri-driver` + WebDriver e2e smoke suite | 2 ED | High | ⛔ P13-T1 |
-| 18 | P13-T3 | Accessibility pass | 1.5 ED | Medium | — |
-| 19 | P13-T5 | Cross-platform release verification | 1 ED | Medium | ⛔ P13-T4 |
-| 20 | P13-T6 | `git-purge show` as separate CLI command | 0.5 ED | Low | — |
+| 13 | P13-T4 | SHA256 checksums + signing verification | 1 ED | Quick Win | — |
+| 14 | P13-T1 | Pinia stores for remaining views | 2 ED | Quick Win | — |
+| 15 | P13-T7 | In-memory task registry for ongoing cleanups | 1.5 ED | Medium | ⛔ P13-T1 |
+| 16 | P13-T8 | Global toast notification system | 1.0 ED | Quick Win | ⛔ P13-T1 |
+| 17 | P13-T9 | Custom themed modal dialogs | 1.5 ED | Medium | ⛔ P13-T1 |
+| 18 | P13-T10 | Disable context menu & shortcuts in production | 0.5 ED | Quick Win | — |
+| 19 | P13-T11 | Custom naming convention regex UI input | 0.5 ED | Medium | ⛔ P13-T1 |
+| 20 | P13-T2 | `tauri-driver` + WebDriver e2e smoke suite | 2 ED | High | ⛔ P13-T1 |
+| 21 | P13-T3 | Accessibility pass | 1.5 ED | Medium | — |
+| 22 | P13-T5 | Cross-platform release verification | 1 ED | Medium | ⛔ P13-T4 |
+| 23 | P13-T6 | `git-purge show` as separate CLI command | 0.5 ED | Low | — |
